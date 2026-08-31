@@ -1,0 +1,159 @@
+import { createClient } from '../supabase/client';
+import { Choir, ChoirMember, Section, ChoirSettings } from '../types/database.types';
+import { generateChoirCode } from '../utils/choirCode';
+
+export const choirService = {
+  async getMyChoirs(): Promise<Choir[]> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data: memberships, error } = await supabase
+      .from('choir_members')
+      .select('choir_id, choirs(*)')
+      .eq('user_id', user.id)
+      .eq('status', 'active');
+
+    if (error || !memberships) return [];
+
+    return memberships.map((m: any) => m.choirs).filter(Boolean) as Choir[];
+  },
+
+  async createChoir(payload: {
+    name: string;
+    description?: string;
+    location?: string;
+    church_name?: string;
+    logo_url?: string;
+  }): Promise<{ choir: Choir | null; error: string | null }> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { choir: null, error: 'User must be authenticated' };
+
+    const choirCode = generateChoirCode();
+
+    const { data: choir, error: choirError } = await supabase
+      .from('choirs')
+      .insert({
+        name: payload.name,
+        description: payload.description || null,
+        location: payload.location || null,
+        church_name: payload.church_name || null,
+        logo_url: payload.logo_url || null,
+        choir_code: choirCode,
+        owner_id: user.id,
+      })
+      .select()
+      .single();
+
+    if (choirError || !choir) {
+      return { choir: null, error: choirError?.message || 'Failed to create choir' };
+    }
+
+    // Automatically add user as Choir Owner
+    await supabase.from('choir_members').insert({
+      choir_id: choir.id,
+      user_id: user.id,
+      role: 'owner',
+      status: 'active',
+    });
+
+    // Create default voice sections (Soprano, Alto, Tenor, Bass)
+    const defaultSections = [
+      { choir_id: choir.id, name: 'Soprano', description: 'High voice range' },
+      { choir_id: choir.id, name: 'Alto', description: 'Middle-low voice range' },
+      { choir_id: choir.id, name: 'Tenor', description: 'High male voice range' },
+      { choir_id: choir.id, name: 'Bass', description: 'Deep male voice range' },
+    ];
+    await supabase.from('sections').insert(defaultSections);
+
+    // Attach active subscription to Free Community Plan
+    const { data: freePlan } = await supabase
+      .from('subscription_plans')
+      .select('id')
+      .eq('is_free', true)
+      .limit(1)
+      .single();
+
+    if (freePlan) {
+      await supabase.from('subscriptions').insert({
+        choir_id: choir.id,
+        plan_id: freePlan.id,
+        status: 'active',
+      });
+    }
+
+    return { choir: choir as Choir, error: null };
+  },
+
+  async findChoirByCode(code: string): Promise<Choir | null> {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('choirs')
+      .select('*')
+      .eq('choir_code', code.trim().toUpperCase())
+      .single();
+
+    return data as Choir | null;
+  },
+
+  async joinChoirByCode(choirId: string): Promise<{ success: boolean; status: string; error: string | null }> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, status: '', error: 'User must be authenticated' };
+
+    // Check choir auto-approve setting
+    const { data: choir } = await supabase
+      .from('choirs')
+      .select('settings')
+      .eq('id', choirId)
+      .single();
+
+    const autoApprove = (choir?.settings as ChoirSettings)?.auto_approve_members ?? false;
+    const initialStatus = autoApprove ? 'active' : 'pending';
+
+    const { error } = await supabase.from('choir_members').upsert({
+      choir_id: choirId,
+      user_id: user.id,
+      role: 'member',
+      status: initialStatus,
+    });
+
+    if (error) return { success: false, status: '', error: error.message };
+
+    return { success: true, status: initialStatus, error: null };
+  },
+
+  async getChoirMembers(choirId: string): Promise<ChoirMember[]> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('choir_members')
+      .select('*, profile:profiles(*)')
+      .eq('choir_id', choirId)
+      .order('joined_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data as ChoirMember[];
+  },
+
+  async updateMemberStatus(memberId: string, status: 'active' | 'rejected' | 'suspended'): Promise<boolean> {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('choir_members')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', memberId);
+
+    return !error;
+  },
+
+  async getChoirSections(choirId: string): Promise<Section[]> {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('sections')
+      .select('*, leader_profile:profiles(*)')
+      .eq('choir_id', choirId)
+      .order('name');
+
+    return (data as Section[]) || [];
+  }
+};
