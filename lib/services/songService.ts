@@ -112,5 +112,39 @@ export const songService = {
       });
     }
     return result;
+  },
+
+  async uploadAudioFile(file: File, choirId: string): Promise<string | null> {
+    const supabase = createClient();
+    const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
+    const { data, error } = await supabase.storage
+      .from('song-audio')
+      .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
+
+    if (error) {
+      console.error('Audio upload error:', error);
+      return null;
+    }
+
+    const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
+    return publicUrlData.publicUrl;
+  },
+
+  async uploadPdfFile(file: File, choirId: string): Promise<string | null> {
+    const supabase = createClient();
+    const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
+    const { data, error } = await supabase.storage
+      .from('song-documents')
+      .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
+
+    if (error) {
+      console.error('PDF upload error:', error);
+      return null;
+    }
+
+    const { data: publicUrlData } = supabase.storage.from('song-documents').getPublicUrl(cleanFileName);
+    return publicUrlData.publicUrl;
   }
 };
