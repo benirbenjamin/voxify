@@ -26,64 +26,53 @@ export const choirService = {
     church_name?: string;
     logo_url?: string;
   }): Promise<{ choir: Choir | null; error: string | null }> {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { choir: null, error: 'User must be authenticated' };
-
-    const choirCode = generateChoirCode();
-
-    const { data: choir, error: choirError } = await supabase
-      .from('choirs')
-      .insert({
-        name: payload.name,
-        description: payload.description || null,
-        location: payload.location || null,
-        church_name: payload.church_name || null,
-        logo_url: payload.logo_url || null,
-        choir_code: choirCode,
-        owner_id: user.id,
-      })
-      .select()
-      .single();
-
-    if (choirError || !choir) {
-      return { choir: null, error: choirError?.message || 'Failed to create choir' };
-    }
-
-    // Automatically add user as Choir Owner
-    await supabase.from('choir_members').insert({
-      choir_id: choir.id,
-      user_id: user.id,
-      role: 'owner',
-      status: 'active',
-    });
-
-    // Create default voice sections (Soprano, Alto, Tenor, Bass)
-    const defaultSections = [
-      { choir_id: choir.id, name: 'Soprano', description: 'High voice range' },
-      { choir_id: choir.id, name: 'Alto', description: 'Middle-low voice range' },
-      { choir_id: choir.id, name: 'Tenor', description: 'High male voice range' },
-      { choir_id: choir.id, name: 'Bass', description: 'Deep male voice range' },
-    ];
-    await supabase.from('sections').insert(defaultSections);
-
-    // Attach active subscription to Free Community Plan
-    const { data: freePlan } = await supabase
-      .from('subscription_plans')
-      .select('id')
-      .eq('is_free', true)
-      .limit(1)
-      .single();
-
-    if (freePlan) {
-      await supabase.from('subscriptions').insert({
-        choir_id: choir.id,
-        plan_id: freePlan.id,
-        status: 'active',
+    try {
+      const res = await fetch('/api/choir/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-    }
 
-    return { choir: choir as Choir, error: null };
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        // Fallback to browser client if API route fails
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { choir: null, error: 'User must be authenticated' };
+
+        const choirCode = generateChoirCode();
+        const { data: choir, error: choirError } = await supabase
+          .from('choirs')
+          .insert({
+            name: payload.name,
+            description: payload.description || null,
+            location: payload.location || null,
+            church_name: payload.church_name || null,
+            logo_url: payload.logo_url || null,
+            choir_code: choirCode,
+            owner_id: user.id,
+          })
+          .select()
+          .single();
+
+        if (choirError || !choir) {
+          return { choir: null, error: choirError?.message || 'Failed to create choir' };
+        }
+
+        await supabase.from('choir_members').insert({
+          choir_id: choir.id,
+          user_id: user.id,
+          role: 'owner',
+          status: 'active',
+        });
+
+        return { choir: choir as Choir, error: null };
+      }
+
+      return { choir: data.choir as Choir, error: null };
+    } catch (err: any) {
+      return { choir: null, error: err.message || 'Network error creating choir' };
+    }
   },
 
   async findChoirByCode(code: string): Promise<Choir | null> {

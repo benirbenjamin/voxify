@@ -91,16 +91,25 @@ ON public.subscription_plans FOR ALL USING (public.is_super_admin());
 -- ------------------------------------------
 -- 3. CHOIRS POLICIES
 -- ------------------------------------------
+DROP POLICY IF EXISTS "Users can view choirs they belong to or by code search" ON public.choirs;
+DROP POLICY IF EXISTS "Authenticated users can create a choir" ON public.choirs;
+DROP POLICY IF EXISTS "Choir owner and admin can update choir info" ON public.choirs;
+DROP POLICY IF EXISTS "Super admin can manage all choirs" ON public.choirs;
+
 CREATE POLICY "Users can view choirs they belong to or by code search" 
 ON public.choirs FOR SELECT USING (
-    public.is_choir_member(id) OR auth.role() = 'authenticated'
+    owner_id = auth.uid() OR public.is_choir_member(id) OR auth.role() = 'authenticated'
 );
 
 CREATE POLICY "Authenticated users can create a choir" 
-ON public.choirs FOR INSERT WITH CHECK (auth.uid() = owner_id);
+ON public.choirs FOR INSERT WITH CHECK (
+    auth.role() = 'authenticated'
+);
 
 CREATE POLICY "Choir owner and admin can update choir info" 
-ON public.choirs FOR UPDATE USING (public.is_choir_admin(id));
+ON public.choirs FOR UPDATE USING (
+    owner_id = auth.uid() OR public.is_choir_admin(id)
+);
 
 CREATE POLICY "Super admin can manage all choirs" 
 ON public.choirs FOR ALL USING (public.is_super_admin());
