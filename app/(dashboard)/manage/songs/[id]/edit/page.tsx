@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useChoir } from '@/lib/context/ChoirContext';
 import { songService } from '@/lib/services/songService';
-import { VoicePart } from '@/lib/types/database.types';
+import { Song, SongPart, VoicePart } from '@/lib/types/database.types';
 import {
   ArrowLeft,
   Music,
@@ -17,10 +17,12 @@ import {
   FileText,
   Loader2,
   FileAudio,
-  Send
+  Save,
+  ShieldCheck
 } from 'lucide-react';
 
 interface PartDraft {
+  id?: string;
   part_name: VoicePart;
   audio_url: string;
   duration_seconds: number;
@@ -28,9 +30,12 @@ interface PartDraft {
   fileName?: string;
 }
 
-export default function NewSongPage() {
+export default function EditSongPage() {
   const router = useRouter();
-  const { activeChoir } = useChoir();
+  const params = useParams();
+  const songId = params?.id as string;
+
+  const { activeChoir, isAdmin } = useChoir();
 
   const [title, setTitle] = useState('');
   const [composer, setComposer] = useState('');
@@ -40,19 +45,63 @@ export default function NewSongPage() {
   const [sheetPdfUrl, setSheetPdfUrl] = useState('');
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [pdfFileName, setPdfFileName] = useState('');
-  
-  const [parts, setParts] = useState<PartDraft[]>([
-    { part_name: 'Full Mix', audio_url: '', duration_seconds: 180 },
-    { part_name: 'Soprano', audio_url: '', duration_seconds: 180 },
-    { part_name: 'Alto', audio_url: '', duration_seconds: 180 },
-    { part_name: 'Tenor', audio_url: '', duration_seconds: 180 },
-    { part_name: 'Bass', audio_url: '', duration_seconds: 180 },
-  ]);
 
-  const [loading, setLoading] = useState(false);
+  const [parts, setParts] = useState<PartDraft[]>([]);
+  const [deletedPartIds, setDeletedPartIds] = useState<string[]>([]);
+
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deletingSong, setDeletingSong] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isAnyUploading = uploadingPdf || parts.some(p => p.isUploading);
+
+  useEffect(() => {
+    async function loadSong() {
+      if (!songId) return;
+      setInitialLoading(true);
+      const songData = await songService.getSongById(songId);
+      if (songData) {
+        setTitle(songData.title || '');
+        setComposer(songData.composer || '');
+        setCategory(songData.category || 'Worship');
+        setDifficulty(songData.difficulty || 'Medium');
+        setLyrics(songData.lyrics || '');
+        setSheetPdfUrl(songData.sheet_music_pdf_url || '');
+
+        if (songData.parts && songData.parts.length > 0) {
+          setParts(
+            songData.parts.map(p => ({
+              id: p.id,
+              part_name: p.part_name,
+              audio_url: p.audio_url,
+              duration_seconds: p.duration_seconds || 180,
+            }))
+          );
+        } else {
+          setParts([
+            { part_name: 'Full Mix', audio_url: '', duration_seconds: 180 },
+            { part_name: 'Soprano', audio_url: '', duration_seconds: 180 },
+            { part_name: 'Alto', audio_url: '', duration_seconds: 180 },
+            { part_name: 'Tenor', audio_url: '', duration_seconds: 180 },
+            { part_name: 'Bass', audio_url: '', duration_seconds: 180 },
+          ]);
+        }
+      }
+      setInitialLoading(false);
+    }
+    loadSong();
+  }, [songId]);
+
+  if (!isAdmin) {
+    return (
+      <div className="py-20 text-center text-slate-400 space-y-4">
+        <ShieldCheck className="w-12 h-12 text-rose-500 mx-auto" />
+        <h2 className="text-xl font-bold text-white">Access Restricted</h2>
+        <p className="text-xs">You must be a Choir Owner or Admin to edit song details.</p>
+      </div>
+    );
+  }
 
   const handleAddPart = () => {
     setParts(prev => [...prev, { part_name: 'Custom', audio_url: '', duration_seconds: 180 }]);
@@ -67,6 +116,10 @@ export default function NewSongPage() {
   };
 
   const handleRemovePart = (index: number) => {
+    const target = parts[index];
+    if (target.id) {
+      setDeletedPartIds(prev => [...prev, target.id!]);
+    }
     setParts(prev => prev.filter((_, i) => i !== index));
   };
 
@@ -126,60 +179,95 @@ export default function NewSongPage() {
     setUploadingPdf(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeChoir) return;
+    if (!activeChoir || !songId) return;
 
     if (isAnyUploading) {
-      setError('Please wait until all audio/PDF files finish uploading before publishing.');
+      setError('Please wait until all audio/PDF files finish uploading before saving.');
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
     setError(null);
 
-    const { song, error: songErr } = await songService.createSong({
-      choir_id: activeChoir.id,
+    // 1. Update Song metadata
+    const { success, error: updateErr } = await songService.updateSong(songId, {
       title,
       composer,
       category,
       difficulty,
       lyrics,
-      sheet_music_pdf_url: sheetPdfUrl.trim() || undefined,
+      sheet_music_pdf_url: sheetPdfUrl.trim() || null,
     });
 
-    if (songErr || !song) {
-      setError(songErr || 'Failed to create song');
-      setLoading(false);
+    if (!success || updateErr) {
+      setError(updateErr || 'Failed to update song details');
+      setSaving(false);
       return;
     }
 
-    // Insert Song Parts that have audio URLs provided
+    // 2. Delete removed song parts
+    for (const partId of deletedPartIds) {
+      await songService.deleteSongPart(partId);
+    }
+
+    // 3. Upsert / Add song parts
     for (const p of parts) {
       if (p.audio_url.trim()) {
-        await songService.addSongPart({
-          song_id: song.id,
-          part_name: p.part_name,
-          audio_url: p.audio_url.trim(),
-          duration_seconds: p.duration_seconds || 180,
-        });
+        if (!p.id) {
+          await songService.addSongPart({
+            song_id: songId,
+            part_name: p.part_name,
+            audio_url: p.audio_url.trim(),
+            duration_seconds: p.duration_seconds || 180,
+          });
+        }
       }
     }
 
-    router.push(`/songs/${song.id}`);
+    router.push(`/songs/${songId}`);
   };
+
+  const handleDeleteSong = async () => {
+    if (!confirm(`Are you sure you want to delete "${title}"? This action cannot be undone.`)) return;
+
+    setDeletingSong(true);
+    const ok = await songService.deleteSong(songId);
+    if (ok) {
+      router.push('/songs');
+    } else {
+      setError('Failed to delete song.');
+      setDeletingSong(false);
+    }
+  };
+
+  if (initialLoading) {
+    return <div className="py-20 text-center text-slate-400">Loading song editor...</div>;
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <Link href="/manage" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Back to Choir Admin
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link href={`/songs/${songId}`} className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back to Song Practice Room
+        </Link>
+
+        <button
+          type="button"
+          onClick={handleDeleteSong}
+          disabled={deletingSong}
+          className="text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 bg-rose-950/40 border border-rose-800/40 px-3 py-1.5 rounded-xl transition-all"
+        >
+          <Trash2 className="w-3.5 h-3.5" /> {deletingSong ? 'Deleting Song...' : 'Delete Song'}
+        </button>
+      </div>
 
       <div className="border-b border-slate-800 pb-4">
         <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
-          <Music className="w-8 h-8 text-purple-400" /> Upload New Song
+          <Music className="w-8 h-8 text-purple-400" /> Edit Song: {title}
         </h1>
-        <p className="text-sm text-slate-400">Upload MP3/WAV voice parts and PDF sheet music directly for your choir</p>
+        <p className="text-sm text-slate-400">Update song details, replace MP3/WAV voice parts, or attach PDF sheet music</p>
       </div>
 
       {error && (
@@ -189,7 +277,7 @@ export default function NewSongPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSave} className="space-y-8">
         {/* Song Info */}
         <div className="bg-slate-900/60 p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6">
           <h3 className="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
@@ -381,16 +469,14 @@ export default function NewSongPage() {
 
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs text-slate-400 font-mono">{p.duration_seconds}s</span>
-                    {parts.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePart(idx)}
-                        className="p-2 text-rose-400 hover:text-rose-300 transition-colors"
-                        title="Remove Track"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleRemovePart(idx)}
+                      className="p-2 text-rose-400 hover:text-rose-300 transition-colors"
+                      title="Remove Track"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
               </div>
@@ -400,18 +486,18 @@ export default function NewSongPage() {
 
         <button
           type="submit"
-          disabled={loading || isAnyUploading}
+          disabled={saving || isAnyUploading}
           className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 disabled:opacity-50 text-white font-bold py-4 rounded-2xl shadow-xl shadow-purple-600/30 transition-all flex items-center justify-center gap-2 text-sm"
         >
           {isAnyUploading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" /> Uploading Files to Storage, Please Wait...
             </>
-          ) : loading ? (
-            'Publishing Song...'
+          ) : saving ? (
+            'Saving Changes...'
           ) : (
             <>
-              Publish Song &amp; Audio Tracks <Send className="w-4 h-4" />
+              <Save className="w-4 h-4" /> Save Song &amp; Audio Tracks
             </>
           )}
         </button>

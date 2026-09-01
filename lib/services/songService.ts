@@ -64,6 +64,31 @@ export const songService = {
     return { song: data as Song, error: null };
   },
 
+  async updateSong(songId: string, payload: {
+    title?: string;
+    composer?: string;
+    arranger?: string;
+    category?: string;
+    difficulty?: 'Easy' | 'Medium' | 'Hard' | 'Advanced';
+    lyrics?: string;
+    notes?: string;
+    sheet_music_pdf_url?: string | null;
+  }): Promise<{ success: boolean; error: string | null }> {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('songs')
+      .update({
+        ...payload,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', songId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true, error: null };
+  },
+
   async addSongPart(payload: {
     song_id: string;
     part_name: string;
@@ -80,6 +105,24 @@ export const songService = {
 
     if (error || !data) return null;
     return data as SongPart;
+  },
+
+  async deleteSongPart(partId: string): Promise<boolean> {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('song_parts')
+      .delete()
+      .eq('id', partId);
+
+    return !error;
+  },
+
+  async deleteSong(songId: string): Promise<boolean> {
+    const supabase = createClient();
+    // Delete song parts first
+    await supabase.from('song_parts').delete().eq('song_id', songId);
+    const { error } = await supabase.from('songs').delete().eq('id', songId);
+    return !error;
   },
 
   async updateLearningStatus(memberId: string, songId: string, partName: string, status: LearningStatus): Promise<boolean> {
@@ -114,7 +157,7 @@ export const songService = {
     return result;
   },
 
-  async uploadAudioFile(file: File, choirId: string): Promise<string | null> {
+  async uploadAudioFile(file: File, choirId: string): Promise<{ url: string | null; error: string | null }> {
     const supabase = createClient();
     const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
 
@@ -124,14 +167,14 @@ export const songService = {
 
     if (error) {
       console.error('Audio upload error:', error);
-      return null;
+      return { url: null, error: error.message };
     }
 
     const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
-    return publicUrlData.publicUrl;
+    return { url: publicUrlData.publicUrl, error: null };
   },
 
-  async uploadPdfFile(file: File, choirId: string): Promise<string | null> {
+  async uploadPdfFile(file: File, choirId: string): Promise<{ url: string | null; error: string | null }> {
     const supabase = createClient();
     const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
 
@@ -141,10 +184,10 @@ export const songService = {
 
     if (error) {
       console.error('PDF upload error:', error);
-      return null;
+      return { url: null, error: error.message };
     }
 
     const { data: publicUrlData } = supabase.storage.from('song-documents').getPublicUrl(cleanFileName);
-    return publicUrlData.publicUrl;
+    return { url: publicUrlData.publicUrl, error: null };
   }
 };
