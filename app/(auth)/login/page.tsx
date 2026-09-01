@@ -1,15 +1,16 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Mail, Lock, ArrowRight, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,11 +20,22 @@ export default function LoginPage() {
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (user) {
       router.push('/dashboard');
     }
   }, [user, router]);
+
+  useEffect(() => {
+    const errorType = searchParams.get('error');
+    if (errorType === 'link_expired') {
+      setError('This email verification link has expired or was already used. Please enter your email below to request a new link.');
+      setIsUnconfirmed(true);
+    } else if (errorType === 'verification_failed') {
+      setError('Email verification failed. Please try signing in or request a new verification link.');
+      setIsUnconfirmed(true);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,7 +63,7 @@ export default function LoginPage() {
 
   const handleResendVerification = async () => {
     if (!email) {
-      setError('Please enter your email address to resend the verification link.');
+      setError('Please enter your email address above to resend the verification link.');
       return;
     }
 
@@ -99,7 +111,9 @@ export default function LoginPage() {
             {isUnconfirmed && (
               <div className="pt-2 border-t border-rose-500/20 space-y-2">
                 <p className="text-[11px] text-rose-300">
-                  Your email address has not been confirmed yet. Click below to resend a verification link to <strong className="text-white">{email}</strong>.
+                  {email
+                    ? `Click below to resend a new verification link to ${email}.`
+                    : 'Enter your registered email address above and click below to resend a new link.'}
                 </p>
                 <button
                   type="button"
@@ -178,5 +192,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-xs">Loading...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

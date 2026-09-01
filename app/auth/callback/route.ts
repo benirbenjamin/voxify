@@ -2,8 +2,19 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
+  const errorParam = searchParams.get('error') || searchParams.get('error_code');
+  const errorDesc = searchParams.get('error_description');
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://voxify.space';
+
+  // If Supabase returned an error in query params (e.g. link expired)
+  if (errorParam || errorDesc) {
+    const isExpired = errorParam === 'otp_expired' || (errorDesc && errorDesc.toLowerCase().includes('expired'));
+    const reason = isExpired ? 'link_expired' : 'verification_failed';
+    return NextResponse.redirect(`${appUrl}/login?error=${reason}`);
+  }
 
   if (code) {
     const supabase = await createServerSupabaseClient();
@@ -21,13 +32,13 @@ export async function GET(request: Request) {
         .single();
 
       if (rolePref === 'director' && !choir) {
-        return NextResponse.redirect(`${origin}/choir/create`);
+        return NextResponse.redirect(`${appUrl}/choir/create`);
       }
 
-      return NextResponse.redirect(`${origin}/dashboard`);
+      return NextResponse.redirect(`${appUrl}/dashboard`);
     }
   }
 
   // Fallback if no code or error
-  return NextResponse.redirect(`${origin}/login?verified=true`);
+  return NextResponse.redirect(`${appUrl}/login?verified=true`);
 }
