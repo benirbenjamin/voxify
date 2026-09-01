@@ -40,6 +40,18 @@ export const choirService = {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return { choir: null, error: 'User must be authenticated' };
 
+        // Ensure profile exists before inserting choir
+        const userFullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Choir Director';
+        await supabase.from('profiles').upsert({
+          id: user.id,
+          full_name: userFullName,
+          email: user.email!,
+          phone: user.user_metadata?.phone || null,
+          avatar_url: user.user_metadata?.avatar_url || null,
+          is_super_admin: false,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
+
         const choirCode = generateChoirCode();
         const { data: choir, error: choirError } = await supabase
           .from('choirs')
@@ -90,6 +102,18 @@ export const choirService = {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, status: '', error: 'User must be authenticated' };
+
+    // Ensure profile exists
+    const userFullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Choir Member';
+    await supabase.from('profiles').upsert({
+      id: user.id,
+      full_name: userFullName,
+      email: user.email!,
+      phone: user.user_metadata?.phone || null,
+      avatar_url: user.user_metadata?.avatar_url || null,
+      is_super_admin: false,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'id' });
 
     // Check if user is ALREADY a member
     const { data: existingMember } = await supabase

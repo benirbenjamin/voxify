@@ -24,6 +24,18 @@ export async function POST(request: Request) {
       auth: { autoRefreshToken: false, persistSession: false }
     });
 
+    // 0. Ensure user profile exists in public.profiles table (prevents choirs_owner_id_fkey violation)
+    const userFullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Choir Director';
+    await adminSupabase.from('profiles').upsert({
+      id: user.id,
+      full_name: userFullName,
+      email: user.email!,
+      phone: user.user_metadata?.phone || null,
+      avatar_url: user.user_metadata?.avatar_url || null,
+      is_super_admin: false,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'id' });
+
     const choirCode = generateChoirCode();
 
     // 1. Insert Choir
@@ -46,12 +58,12 @@ export async function POST(request: Request) {
     }
 
     // 2. Add User as Choir Owner
-    await adminSupabase.from('choir_members').insert({
+    await adminSupabase.from('choir_members').upsert({
       choir_id: choir.id,
       user_id: user.id,
       role: 'owner',
       status: 'active',
-    });
+    }, { onConflict: 'choir_id,user_id' });
 
     // 3. Create Default Voice Sections
     const defaultSections = [
