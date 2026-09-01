@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/context/AuthContext';
-import { Mail, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import { Mail, Lock, ArrowRight, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,6 +15,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isUnconfirmed, setIsUnconfirmed] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   React.useEffect(() => {
     if (user) {
@@ -26,6 +29,8 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setIsUnconfirmed(false);
+    setResendSuccess(false);
 
     const supabase = createClient();
     const { error: authError } = await supabase.auth.signInWithPassword({
@@ -35,9 +40,41 @@ export default function LoginPage() {
 
     if (authError) {
       setError(authError.message);
+      if (authError.message.toLowerCase().includes('email not confirmed')) {
+        setIsUnconfirmed(true);
+      }
       setLoading(false);
     } else {
       router.push('/dashboard');
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setError('Please enter your email address to resend the verification link.');
+      return;
+    }
+
+    setResending(true);
+    setError(null);
+
+    const supabase = createClient();
+    const customDomainUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://voxify.space';
+    const redirectTo = `${customDomainUrl}/auth/callback`;
+
+    const { error: resendErr } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: redirectTo,
+      },
+    });
+
+    setResending(false);
+    if (resendErr) {
+      setError(resendErr.message);
+    } else {
+      setResendSuccess(true);
     }
   };
 
@@ -53,9 +90,38 @@ export default function LoginPage() {
         </div>
 
         {error && (
-          <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 p-3 rounded-xl text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-            <span>{error}</span>
+          <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-2xl text-xs space-y-3">
+            <div className="flex items-center gap-2 font-semibold text-rose-200">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{error}</span>
+            </div>
+
+            {isUnconfirmed && (
+              <div className="pt-2 border-t border-rose-500/20 space-y-2">
+                <p className="text-[11px] text-rose-300">
+                  Your email address has not been confirmed yet. Click below to resend a verification link to <strong className="text-white">{email}</strong>.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  disabled={resending}
+                  className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs shadow-md shadow-purple-600/30"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${resending ? 'animate-spin' : ''}`} />
+                  <span>{resending ? 'Resending Link...' : 'Resend Verification Email'}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {resendSuccess && (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 p-4 rounded-2xl text-xs flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <p className="font-bold text-emerald-200">Verification Email Sent!</p>
+              <p className="text-[11px] text-slate-300">Please check your inbox for <strong className="text-emerald-400">{email}</strong> and click the link to confirm.</p>
+            </div>
           </div>
         )}
 
