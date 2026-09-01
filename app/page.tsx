@@ -30,12 +30,12 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-purple-600 selection:text-white scroll-smooth">
-      {/* Navigation Header Bar with Live Auth Detection */}
-      <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-purple-600 selection:text-white scroll-smooth overflow-x-hidden">
+      {/* Navigation Header Bar */}
+      <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 p-1 flex items-center justify-center shadow-lg shadow-purple-600/30 group-hover:scale-105 transition-transform">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-600 to-indigo-600 p-1 flex items-center justify-center shadow-lg shadow-purple-600/30 group-hover:scale-105 transition-transform duration-300">
               <Image src="/logo.png" alt="Voxify Logo" width={40} height={40} className="object-contain" />
             </div>
             <div>
@@ -54,13 +54,13 @@ export default function LandingPage() {
             <a href="#pricing" className="hover:text-purple-400 transition-colors">Pricing Plans</a>
           </nav>
 
-          {/* Auth-Aware Header Navigation */}
+          {/* Auth-Aware Navigation */}
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-3">
                 <Link
                   href="/dashboard"
-                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-purple-600/30 transition-all flex items-center gap-2"
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-purple-600/30 transition-all hover:scale-105 flex items-center gap-2"
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   <span>Go to Dashboard</span>
@@ -88,30 +88,30 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section with Glowing Gradients & Scroll Effects */}
+      {/* Hero Section with Ambient Glows & Smooth Reveal */}
       <section className="relative pt-20 pb-28 px-6 overflow-hidden">
         {/* Glow Spheres */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-purple-600/20 blur-[150px] rounded-full pointer-events-none animate-pulse" />
-        <div className="absolute top-1/3 left-1/4 w-[350px] h-[350px] bg-indigo-600/15 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[750px] h-[450px] bg-purple-600/20 blur-[160px] rounded-full pointer-events-none animate-pulse-glow" />
+        <div className="absolute top-1/3 left-1/4 w-[380px] h-[380px] bg-indigo-600/15 blur-[130px] rounded-full pointer-events-none" />
 
         <div className="max-w-5xl mx-auto text-center space-y-8 relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-950/60 border border-purple-500/40 text-purple-300 text-xs font-bold uppercase tracking-widest shadow-xl shadow-purple-900/20">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-950/60 border border-purple-500/40 text-purple-300 text-xs font-bold uppercase tracking-widest shadow-xl shadow-purple-900/20 animate-fade-in-up">
             <Sparkles className="w-4 h-4 text-purple-400" /> Multi-Tenant Choir &amp; Music Learning SaaS
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-black tracking-tight text-white leading-tight">
+          <h1 className="text-5xl md:text-7xl font-black tracking-tight text-white leading-tight animate-fade-in-up delay-100">
             Manage Your Choir. <br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-indigo-300 to-amber-300">
               Master Every Voice Part.
             </span>
           </h1>
 
-          <p className="text-base md:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-base md:text-lg text-slate-300 max-w-3xl mx-auto leading-relaxed animate-fade-in-up delay-200">
             The complete platform for Choir Directors and Singers. Schedule Sunday worship services, distribute multi-track voice parts (<strong className="text-purple-300">Soprano, Alto, Tenor, Bass</strong>), practice with variable speed (0.5x–1.5x) &amp; A-B looping, and track member readiness.
           </p>
 
           {/* Quick Join Code Box */}
-          <div className="max-w-lg mx-auto bg-slate-900/90 border border-purple-500/40 p-2.5 rounded-2xl shadow-2xl flex items-center gap-2 backdrop-blur-xl transition-transform hover:scale-[1.01]">
+          <div className="max-w-lg mx-auto bg-slate-900/90 border border-purple-500/40 p-2.5 rounded-2xl shadow-2xl flex items-center gap-2 backdrop-blur-xl transition-all duration-300 hover:scale-[1.02] hover:border-purple-400/60 animate-fade-in-up delay-300">
             <input
               type="text"
               placeholder="Enter 5-character Choir Code (e.g. K7P2A)"
@@ -122,7 +122,7 @@ export default function LandingPage() {
             />
             <Link
               href={code.length === 5 ? `/join/${code}` : '#'}
-              className={`px-6 py-3 rounded-xl text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 transition-all ${
+              className={`px-6 py-3 rounded-xl text-xs font-extrabold uppercase tracking-wider flex items-center gap-2 transition-all duration-300 ${
                 code.length === 5
                   ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/40 hover:scale-105'
                   : 'bg-slate-800 text-slate-500 cursor-not-allowed'
@@ -134,31 +134,31 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Real Live Database Statistics Counter Banner */}
-      <section className="bg-slate-900/80 border-y border-slate-800/80 py-10 px-6 backdrop-blur-md">
+      {/* Real Database Statistics Counter Banner with Scroll Reveal */}
+      <section className="bg-slate-900/80 border-y border-slate-800/80 py-10 px-6 backdrop-blur-md reveal-on-scroll">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          <div className="space-y-1">
+          <div className="space-y-1 transition-transform duration-300 hover:scale-105">
             <span className="text-4xl md:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-400">
               {stats.totalChoirs > 0 ? `${stats.totalChoirs}+` : '100+'}
             </span>
             <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Registered Choirs</span>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1 transition-transform duration-300 hover:scale-105">
             <span className="text-4xl md:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-emerald-400">
               {stats.totalAudioTracks > 0 ? `${stats.totalAudioTracks}+` : '1,000+'}
             </span>
             <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Voice Part Audio Tracks</span>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1 transition-transform duration-300 hover:scale-105">
             <span className="text-4xl md:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-amber-400 to-rose-400">
               {stats.totalSongs > 0 ? `${stats.totalSongs}+` : '500+'}
             </span>
             <span className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Song Practice Files</span>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1 transition-transform duration-300 hover:scale-105">
             <span className="text-4xl md:text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-amber-400">
               {stats.totalMembers > 0 ? `${stats.totalMembers}+` : '5,000+'}
             </span>
@@ -167,8 +167,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Interactive Voice Part Practice Sandbox Demo */}
-      <section id="demo" className="max-w-6xl mx-auto px-6 py-24 space-y-12">
+      {/* Interactive Voice Part Practice Sandbox Demo with Scroll Reveal */}
+      <section id="demo" className="max-w-6xl mx-auto px-6 py-24 space-y-12 reveal-on-scroll">
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-indigo-950/60 border border-indigo-500/40 text-indigo-300 text-xs font-bold uppercase tracking-wider">
             <Zap className="w-4 h-4 text-indigo-400" /> Interactive Audio Sandbox Demo
@@ -180,7 +180,7 @@ export default function LandingPage() {
         </div>
 
         {/* Player Component Sandbox Card */}
-        <div className="bg-slate-900/90 border border-purple-500/30 p-8 rounded-3xl shadow-2xl space-y-8 backdrop-blur-xl transition-all hover:border-purple-500/60">
+        <div className="bg-slate-900/90 border border-purple-500/30 p-8 rounded-3xl shadow-2xl space-y-8 backdrop-blur-xl transition-all duration-500 hover:border-purple-500/60 reveal-scale-on-scroll">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
             <div>
               <span className="text-[10px] text-purple-400 font-bold uppercase tracking-widest bg-purple-950/80 px-3 py-1 rounded-md border border-purple-800/50">Worship Song Sandbox Preview</span>
@@ -204,7 +204,7 @@ export default function LandingPage() {
                 <button
                   key={part}
                   onClick={() => setActiveVoicePart(part)}
-                  className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all ${
+                  className={`py-3 px-4 rounded-2xl text-xs font-bold border transition-all duration-300 ${
                     activeVoicePart === part
                       ? 'bg-purple-600 text-white border-purple-400 shadow-lg shadow-purple-600/40 scale-105'
                       : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
@@ -244,7 +244,7 @@ export default function LandingPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setIsPlaying(prev => !prev)}
-                  className="w-12 h-12 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white flex items-center justify-center shadow-lg shadow-purple-600/30 transition-transform active:scale-95"
+                  className="w-12 h-12 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white flex items-center justify-center shadow-lg shadow-purple-600/30 transition-transform duration-200 active:scale-95"
                 >
                   {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
                 </button>
@@ -260,7 +260,7 @@ export default function LandingPage() {
                   <button
                     key={spd}
                     onClick={() => setPlaybackSpeed(spd)}
-                    className={`px-2.5 py-1 rounded-lg font-mono text-[11px] font-bold ${
+                    className={`px-2.5 py-1 rounded-lg font-mono text-[11px] font-bold transition-all duration-200 ${
                       playbackSpeed === spd ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
                     }`}
                   >
@@ -273,8 +273,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Feature Grid with Modern Graphics & Micro-Animations */}
-      <section id="features" className="max-w-7xl mx-auto px-6 py-20 border-t border-slate-900 space-y-16">
+      {/* Feature Grid with Scroll Reveal */}
+      <section id="features" className="max-w-7xl mx-auto px-6 py-20 border-t border-slate-900 space-y-16 reveal-on-scroll">
         <div className="text-center space-y-4">
           <h2 className="text-3xl md:text-4xl font-black text-white">Built Specifically for Choirs &amp; Music Directors</h2>
           <p className="text-sm text-slate-400 max-w-xl mx-auto">
@@ -283,8 +283,8 @@ export default function LandingPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-slate-900/60 p-8 rounded-3xl border border-slate-800 space-y-5 hover:border-purple-500/40 transition-all hover:-translate-y-2 duration-300 group">
-            <div className="w-14 h-14 rounded-2xl bg-purple-600/20 flex items-center justify-center text-purple-400 border border-purple-500/30 group-hover:scale-110 transition-transform">
+          <div className="bg-slate-900/60 p-8 rounded-3xl border border-slate-800 space-y-5 hover:border-purple-500/40 transition-all duration-300 hover:-translate-y-2 group reveal-scale-on-scroll">
+            <div className="w-14 h-14 rounded-2xl bg-purple-600/20 flex items-center justify-center text-purple-400 border border-purple-500/30 group-hover:scale-110 transition-transform duration-300">
               <Volume2 className="w-7 h-7" />
             </div>
             <h3 className="text-xl font-bold text-white">Multi-Track Voice Part Isolation</h3>
@@ -293,8 +293,8 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="bg-slate-900/60 p-8 rounded-3xl border border-slate-800 space-y-5 hover:border-indigo-500/40 transition-all hover:-translate-y-2 duration-300 group">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 flex items-center justify-center text-indigo-400 border border-indigo-500/30 group-hover:scale-110 transition-transform">
+          <div className="bg-slate-900/60 p-8 rounded-3xl border border-slate-800 space-y-5 hover:border-indigo-500/40 transition-all duration-300 hover:-translate-y-2 group reveal-scale-on-scroll">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-600/20 flex items-center justify-center text-indigo-400 border border-indigo-500/30 group-hover:scale-110 transition-transform duration-300">
               <Calendar className="w-7 h-7" />
             </div>
             <h3 className="text-xl font-bold text-white">Sunday Service Song Assignments</h3>
@@ -303,8 +303,8 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="bg-slate-900/60 p-8 rounded-3xl border border-slate-800 space-y-5 hover:border-amber-500/40 transition-all hover:-translate-y-2 duration-300 group">
-            <div className="w-14 h-14 rounded-2xl bg-amber-600/20 flex items-center justify-center text-amber-400 border border-amber-500/30 group-hover:scale-110 transition-transform">
+          <div className="bg-slate-900/60 p-8 rounded-3xl border border-slate-800 space-y-5 hover:border-amber-500/40 transition-all duration-300 hover:-translate-y-2 group reveal-scale-on-scroll">
+            <div className="w-14 h-14 rounded-2xl bg-amber-600/20 flex items-center justify-center text-amber-400 border border-amber-500/30 group-hover:scale-110 transition-transform duration-300">
               <ShieldCheck className="w-7 h-7" />
             </div>
             <h3 className="text-xl font-bold text-white">Multi-Tenant SaaS Security</h3>
@@ -315,8 +315,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* SaaS Pricing Plans Section */}
-      <section id="pricing" className="max-w-7xl mx-auto px-6 py-20 border-t border-slate-900 space-y-12">
+      {/* SaaS Pricing Plans Section with Scroll Reveal */}
+      <section id="pricing" className="max-w-7xl mx-auto px-6 py-20 border-t border-slate-900 space-y-12 reveal-on-scroll">
         <div className="text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-purple-950/60 border border-purple-500/40 text-purple-300 text-xs font-bold uppercase tracking-wider">
             <Crown className="w-4 h-4 text-purple-400" /> Transparent Choir Plans
@@ -325,7 +325,7 @@ export default function LandingPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-slate-900/60 p-8 rounded-3xl border border-slate-800 space-y-6 flex flex-col justify-between hover:border-slate-700 transition-all">
+          <div className="bg-slate-900/60 p-8 rounded-3xl border border-slate-800 space-y-6 flex flex-col justify-between hover:border-slate-700 transition-all duration-300 reveal-scale-on-scroll">
             <div className="space-y-4">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Community</span>
               <div className="flex items-baseline gap-1">
@@ -339,12 +339,12 @@ export default function LandingPage() {
                 <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> 500 MB Storage</li>
               </ul>
             </div>
-            <Link href="/register" className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-xs text-center block">
+            <Link href="/register" className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-xs text-center block transition-colors">
               Start Free
             </Link>
           </div>
 
-          <div className="bg-gradient-to-b from-purple-950/80 to-slate-900/90 p-8 rounded-3xl border-2 border-purple-500 space-y-6 flex flex-col justify-between shadow-2xl relative hover:scale-105 transition-all">
+          <div className="bg-gradient-to-b from-purple-950/80 to-slate-900/90 p-8 rounded-3xl border-2 border-purple-500 space-y-6 flex flex-col justify-between shadow-2xl relative hover:scale-105 transition-all duration-300 reveal-scale-on-scroll">
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-[10px] font-extrabold uppercase tracking-widest px-4 py-1 rounded-full shadow-lg">
               Most Popular
             </div>
@@ -362,12 +362,12 @@ export default function LandingPage() {
                 <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" /> Resend Email Notifications</li>
               </ul>
             </div>
-            <Link href="/register" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs text-center block shadow-lg shadow-purple-600/30">
+            <Link href="/register" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs text-center block shadow-lg shadow-purple-600/30 transition-colors">
               Upgrade to Choir Pro
             </Link>
           </div>
 
-          <div className="bg-slate-900/60 p-8 rounded-3xl border border-slate-800 space-y-6 flex flex-col justify-between hover:border-slate-700 transition-all">
+          <div className="bg-slate-900/60 p-8 rounded-3xl border border-slate-800 space-y-6 flex flex-col justify-between hover:border-slate-700 transition-all duration-300 reveal-scale-on-scroll">
             <div className="space-y-4">
               <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">Cathedral Enterprise</span>
               <div className="flex items-baseline gap-1">
@@ -381,7 +381,7 @@ export default function LandingPage() {
                 <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" /> Multi-Choir Super Admin</li>
               </ul>
             </div>
-            <Link href="/register" className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-xs text-center block">
+            <Link href="/register" className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-xs text-center block transition-colors">
               Get Enterprise
             </Link>
           </div>
