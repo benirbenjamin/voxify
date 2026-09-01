@@ -5,24 +5,33 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/context/AuthContext';
 import { subscriptionService } from '@/lib/services/subscriptionService';
-import { SubscriptionPlan } from '@/lib/types/database.types';
-import { Shield, Layers, Users, Music, Settings, Sparkles, ArrowRight, Plus } from 'lucide-react';
+import { adminService } from '@/lib/services/adminService';
+import { SubscriptionPlan, Choir, Profile } from '@/lib/types/database.types';
+import { Shield, Layers, Users, Music, Settings, Sparkles, ArrowRight, Plus, Edit3, Trash2, Power } from 'lucide-react';
 
 export default function SuperAdminPage() {
   const { user } = useAuth();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [choirsCount, setChoirsCount] = useState<number>(0);
+  const [usersCount, setUsersCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [settingUpDb, setSettingUpDb] = useState(false);
   const [dbSetupMessage, setDbSetupMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    async function loadPlans() {
+    async function loadData() {
       setLoading(true);
-      const data = await subscriptionService.getAllPlans();
-      setPlans(data);
+      const [plansData, choirsData, usersData] = await Promise.all([
+        subscriptionService.getAllPlans(),
+        adminService.getAllChoirs(),
+        adminService.getAllUsers(),
+      ]);
+      setPlans(plansData);
+      setChoirsCount(choirsData.length);
+      setUsersCount(usersData.length);
       setLoading(false);
     }
-    loadPlans();
+    loadData();
   }, []);
 
   const handleOneClickDbSetup = async () => {
@@ -45,6 +54,26 @@ export default function SuperAdminPage() {
     }
   };
 
+  const handleTogglePlanActive = async (plan: SubscriptionPlan) => {
+    const nextStatus = !plan.is_active;
+    const ok = await subscriptionService.togglePlanActive(plan.id, nextStatus);
+    if (ok) {
+      setPlans(prev => prev.map(p => p.id === plan.id ? { ...p, is_active: nextStatus } : p));
+    }
+  };
+
+  const handleDeletePlan = async (e: React.MouseEvent, plan: SubscriptionPlan) => {
+    e.preventDefault();
+    if (!confirm(`Are you sure you want to delete "${plan.name}" plan?`)) return;
+
+    const ok = await subscriptionService.deletePlan(plan.id);
+    if (ok) {
+      setPlans(prev => prev.filter(p => p.id !== plan.id));
+    } else {
+      alert('Failed to delete plan.');
+    }
+  };
+
   if (!user?.is_super_admin) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-6 text-white text-center space-y-4">
@@ -59,7 +88,7 @@ export default function SuperAdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10 space-y-8">
+    <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10 space-y-8 max-w-7xl mx-auto">
       {/* Header Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div className="flex items-center gap-4">
@@ -99,16 +128,31 @@ export default function SuperAdminPage() {
         </div>
       )}
 
-      {/* Platform Statistics Row */}
+      {/* Platform Statistics & Management Links Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Active Choirs</span>
-            <Users className="w-5 h-5 text-purple-400" />
+        <Link
+          href="/admin/choirs"
+          className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-purple-500/50 hover:bg-slate-800/80 transition-all group cursor-pointer block"
+        >
+          <div className="flex items-center justify-between text-slate-400 group-hover:text-purple-300">
+            <span className="text-xs font-semibold uppercase tracking-wider">Choirs Management</span>
+            <Music className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
           </div>
-          <p className="text-3xl font-bold text-white">1</p>
-          <p className="text-xs text-slate-500">Multi-tenant isolation active</p>
-        </div>
+          <p className="text-3xl font-bold text-white group-hover:text-purple-300 transition-colors">{choirsCount}</p>
+          <p className="text-xs text-slate-500 group-hover:text-slate-400">View, edit &amp; delete choirs →</p>
+        </Link>
+
+        <Link
+          href="/admin/users"
+          className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-indigo-500/50 hover:bg-slate-800/80 transition-all group cursor-pointer block"
+        >
+          <div className="flex items-center justify-between text-slate-400 group-hover:text-indigo-300">
+            <span className="text-xs font-semibold uppercase tracking-wider">Users Management</span>
+            <Users className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" />
+          </div>
+          <p className="text-3xl font-bold text-white group-hover:text-indigo-300 transition-colors">{usersCount}</p>
+          <p className="text-xs text-slate-500 group-hover:text-slate-400">Manage user profiles &amp; roles →</p>
+        </Link>
 
         <div className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2">
           <div className="flex items-center justify-between text-slate-400">
@@ -127,62 +171,88 @@ export default function SuperAdminPage() {
           <p className="text-2xl font-bold text-emerald-400">Production Ready</p>
           <p className="text-xs text-slate-500">Supabase RLS active</p>
         </div>
-
-        <div className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Storage Buckets</span>
-            <Music className="w-5 h-5 text-indigo-400" />
-          </div>
-          <p className="text-3xl font-bold text-white">6 Buckets</p>
-          <p className="text-xs text-slate-500">Audio, PDFs &amp; Avatars</p>
-        </div>
       </div>
 
       {/* Dynamic SaaS Subscription Plan Management */}
       <div className="bg-slate-900/60 p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
           <div>
             <h2 className="text-xl font-bold text-white">Dynamic SaaS Subscription Plans</h2>
             <p className="text-xs text-slate-400">Configure free/paid plans, member limits, and enabled feature flags without hardcoded restrictions</p>
           </div>
           <Link
             href="/admin/plans/new"
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20"
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-amber-500/20 transition-all self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" /> Create New Plan
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {plans.map(plan => (
-            <div key={plan.id} className="bg-slate-950 p-6 rounded-3xl border border-slate-800 space-y-4 flex flex-col justify-between">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className={`text-[10px] uppercase font-bold px-2.5 py-1 rounded-md border ${
-                    plan.is_free ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/40' : 'bg-amber-950/60 text-amber-300 border-amber-800/40'
-                  }`}>
-                    {plan.is_free ? 'FREE PLAN' : `$${plan.price_monthly}/mo`}
-                  </span>
-                  <span className="text-xs text-slate-500 font-mono">Max Members: {plan.limits?.max_members || 'Unlimited'}</span>
+        {loading ? (
+          <p className="text-xs text-slate-400 text-center py-10">Loading subscription plans...</p>
+        ) : plans.length === 0 ? (
+          <p className="text-xs text-slate-400 text-center py-10">No subscription plans found.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {plans.map(plan => (
+              <div key={plan.id} className="bg-slate-950 p-6 rounded-3xl border border-slate-800 space-y-4 flex flex-col justify-between hover:border-amber-500/30 transition-all">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[10px] uppercase font-bold px-2.5 py-1 rounded-md border ${
+                      plan.is_free ? 'bg-emerald-950/60 text-emerald-300 border-emerald-800/40' : 'bg-amber-950/60 text-amber-300 border-amber-800/40'
+                    }`}>
+                      {plan.is_free ? 'FREE PLAN' : `$${plan.price_monthly}/mo`}
+                    </span>
+                    <span className="text-xs text-slate-500 font-mono">Max: {plan.limits?.max_members || '50'} singers</span>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-white">{plan.name}</h3>
+                  <p className="text-xs text-slate-400 line-clamp-2">{plan.description || 'No plan description.'}</p>
                 </div>
 
-                <h3 className="text-xl font-bold text-white">{plan.name}</h3>
-                <p className="text-xs text-slate-400 line-clamp-2">{plan.description}</p>
-              </div>
+                <div className="space-y-3 pt-2">
+                  <div className="border-t border-slate-900 pt-3 space-y-1 text-xs text-slate-400">
+                    <div className="flex justify-between">
+                      <span>Storage:</span>
+                      <strong className="text-slate-200">{plan.limits?.max_storage_mb || 500} MB</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Included Features:</span>
+                      <strong className="text-slate-200">{plan.features?.length || 0} Enabled</strong>
+                    </div>
+                  </div>
 
-              <div className="border-t border-slate-900 pt-4 space-y-2 text-xs text-slate-400">
-                <div className="flex justify-between">
-                  <span>Storage:</span>
-                  <strong className="text-slate-200">{plan.limits?.max_storage_mb || 500} MB</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span>Included Features:</span>
-                  <strong className="text-slate-200">{plan.features?.length || 0} Enabled</strong>
+                  <div className="flex items-center justify-between gap-2 border-t border-slate-900 pt-3">
+                    <Link
+                      href={`/admin/plans/${plan.id}/edit`}
+                      className="text-xs font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 bg-amber-950/40 border border-amber-800/40 px-3 py-1.5 rounded-xl transition-all"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" /> Edit Plan
+                    </Link>
+
+                    <button
+                      onClick={() => handleTogglePlanActive(plan)}
+                      className={`text-[11px] font-semibold px-2.5 py-1.5 rounded-xl border flex items-center gap-1 transition-all ${
+                        plan.is_active ? 'bg-emerald-950/40 text-emerald-300 border-emerald-800/40' : 'bg-slate-900 text-slate-500 border-slate-800'
+                      }`}
+                      title="Toggle Plan Active Status"
+                    >
+                      <Power className="w-3 h-3" /> {plan.is_active ? 'Active' : 'Disabled'}
+                    </button>
+
+                    <button
+                      onClick={e => handleDeletePlan(e, plan)}
+                      className="p-1.5 text-rose-400 hover:text-rose-300 transition-colors"
+                      title="Delete Plan"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

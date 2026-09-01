@@ -15,7 +15,6 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { activeChoir, isAdmin } = useChoir();
 
-  // All React state hooks declared unconditionally at top level
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -83,7 +82,7 @@ export default function DashboardPage() {
         </div>
         <h2 className="text-2xl font-bold">No Active Choir Selected</h2>
         <p className="text-sm text-slate-400 max-w-md mx-auto">
-          Create a new choir or enter a 5-character choir code to join an existing choir.
+          Create a new choir or enter a choir code to join an existing choir.
         </p>
         <div className="flex justify-center gap-4">
           <Link href="/choir/create" className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg">
@@ -163,46 +162,60 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Overview Metrics Row */}
+      {/* Clickable Overview Metric Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-slate-400">
+        <Link
+          href="/songs"
+          className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-purple-500/50 hover:bg-slate-800/80 transition-all group cursor-pointer block"
+        >
+          <div className="flex items-center justify-between text-slate-400 group-hover:text-purple-300">
             <span className="text-xs font-semibold uppercase tracking-wider">Choir Library</span>
-            <Music className="w-5 h-5 text-purple-400" />
+            <Music className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
           </div>
-          <p className="text-3xl font-bold text-white">{songs.length}</p>
-          <p className="text-xs text-slate-500">Songs with practice audio</p>
-        </div>
+          <p className="text-3xl font-bold text-white group-hover:text-purple-300 transition-colors">{songs.length}</p>
+          <p className="text-xs text-slate-500 group-hover:text-slate-400">Songs with practice audio →</p>
+        </Link>
 
-        <div className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-slate-400">
+        <Link
+          href="/events"
+          className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-indigo-500/50 hover:bg-slate-800/80 transition-all group cursor-pointer block"
+        >
+          <div className="flex items-center justify-between text-slate-400 group-hover:text-indigo-300">
             <span className="text-xs font-semibold uppercase tracking-wider">Upcoming Events</span>
-            <Calendar className="w-5 h-5 text-indigo-400" />
+            <Calendar className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" />
           </div>
-          <p className="text-3xl font-bold text-white">{upcomingEvents.length}</p>
-          <p className="text-xs text-slate-500">Sunday services & rehearsals</p>
-        </div>
+          <p className="text-3xl font-bold text-white group-hover:text-indigo-300 transition-colors">{upcomingEvents.length}</p>
+          <p className="text-xs text-slate-500 group-hover:text-slate-400">Sunday services & rehearsals →</p>
+        </Link>
 
-        <div className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-slate-400">
+        <Link
+          href="/announcements"
+          className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-amber-500/50 hover:bg-slate-800/80 transition-all group cursor-pointer block"
+        >
+          <div className="flex items-center justify-between text-slate-400 group-hover:text-amber-300">
             <span className="text-xs font-semibold uppercase tracking-wider">Announcements</span>
-            <Sparkles className="w-5 h-5 text-amber-400" />
+            <Sparkles className="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform" />
           </div>
-          <p className="text-3xl font-bold text-white">{announcements.length}</p>
-          <p className="text-xs text-slate-500">Choir notices & updates</p>
-        </div>
+          <p className="text-3xl font-bold text-white group-hover:text-amber-300 transition-colors">{announcements.length}</p>
+          <p className="text-xs text-slate-500 group-hover:text-slate-400">Choir notices & updates →</p>
+        </Link>
 
-        <div className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-slate-400">
+        <Link
+          href={isAdmin ? "/manage" : "/dashboard"}
+          className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-emerald-500/50 hover:bg-slate-800/80 transition-all group cursor-pointer block"
+        >
+          <div className="flex items-center justify-between text-slate-400 group-hover:text-emerald-300">
             <span className="text-xs font-semibold uppercase tracking-wider">Role</span>
-            <Users className="w-5 h-5 text-emerald-400" />
+            <Users className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
           </div>
           <p className="text-2xl font-bold text-emerald-400 capitalize">{isAdmin ? 'Choir Leader' : 'Active Singer'}</p>
-          <p className="text-xs text-slate-500">Voice Part Readiness</p>
-        </div>
+          <p className="text-xs text-slate-500 group-hover:text-slate-400">
+            {isAdmin ? 'Access Choir Admin →' : 'Voice Part Readiness'}
+          </p>
+        </Link>
       </div>
 
-      {/* Featured Service Songs / Quick Practice */}
+      {/* Featured Service Songs / Clickable Song Cards */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -217,7 +230,7 @@ export default function DashboardPage() {
           <div className="bg-slate-900/40 p-8 rounded-3xl border border-slate-800 text-center space-y-3">
             <p className="text-sm text-slate-400">No songs added to library yet.</p>
             {isAdmin && (
-              <Link href="/manage/songs/new" className="inline-block bg-purple-600 text-white text-xs font-bold px-4 py-2 rounded-xl">
+              <Link href="/manage/songs/new" className="inline-block bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">
                 + Upload First Song
               </Link>
             )}
@@ -225,22 +238,25 @@ export default function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {songs.slice(0, 3).map(song => (
-              <div key={song.id} className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 flex flex-col justify-between gap-4 hover:border-purple-500/40 transition-all">
+              <Link
+                key={song.id}
+                href={`/songs/${song.id}`}
+                className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 flex flex-col justify-between gap-4 hover:border-purple-500/60 hover:bg-slate-900 transition-all group block cursor-pointer"
+              >
                 <div className="space-y-2">
                   <span className="text-[10px] uppercase font-bold text-purple-400 tracking-wider bg-purple-950/60 px-2.5 py-1 rounded-md border border-purple-800/40">
                     {song.category}
                   </span>
-                  <h3 className="text-lg font-bold text-white line-clamp-1">{song.title}</h3>
+                  <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition-colors line-clamp-1">
+                    {song.title}
+                  </h3>
                   {song.composer && <p className="text-xs text-slate-400">Composer: {song.composer}</p>}
                 </div>
 
-                <Link
-                  href={`/songs/${song.id}`}
-                  className="w-full bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 border border-purple-500/30 transition-all"
-                >
+                <div className="w-full bg-purple-600/20 group-hover:bg-purple-600 text-purple-300 group-hover:text-white py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 border border-purple-500/30 transition-all">
                   <Volume2 className="w-4 h-4" /> Practice Voice Parts
-                </Link>
-              </div>
+                </div>
+              </Link>
             ))}
           </div>
         )}

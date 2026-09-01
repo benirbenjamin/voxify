@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useChoir } from '@/lib/context/ChoirContext';
 import { songService } from '@/lib/services/songService';
 import { Song } from '@/lib/types/database.types';
-import { Music, Search, Filter, Volume2, Plus } from 'lucide-react';
+import { Music, Search, Filter, Volume2, Plus, Edit3, Trash2 } from 'lucide-react';
 
 export default function MusicLibraryPage() {
   const { activeChoir, isAdmin } = useChoir();
@@ -25,6 +25,20 @@ export default function MusicLibraryPage() {
     fetchSongs();
   }, [activeChoir, search, category]);
 
+  const handleDeleteSong = async (e: React.MouseEvent, songId: string, title: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+
+    const ok = await songService.deleteSong(songId);
+    if (ok && activeChoir) {
+      const updated = await songService.getChoirSongs(activeChoir.id, search, category);
+      setSongs(updated);
+    } else {
+      alert('Failed to delete song.');
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Header Bar */}
@@ -36,7 +50,7 @@ export default function MusicLibraryPage() {
         {isAdmin && (
           <Link
             href="/manage/songs/new"
-            className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-purple-600/30 flex items-center gap-2"
+            className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all"
           >
             <Plus className="w-4 h-4" /> Add New Song
           </Link>
@@ -61,7 +75,7 @@ export default function MusicLibraryPage() {
           <select
             value={category}
             onChange={e => setCategory(e.target.value)}
-            className="bg-slate-900 border border-slate-800 text-slate-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-purple-500"
+            className="bg-slate-900 border border-slate-800 text-slate-200 text-sm rounded-xl px-4 py-2.5 focus:outline-none focus:border-purple-500 font-semibold"
           >
             <option value="">All Categories</option>
             <option value="Worship">Worship</option>
@@ -85,26 +99,51 @@ export default function MusicLibraryPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {songs.map(song => (
-            <div key={song.id} className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 flex flex-col justify-between gap-6 hover:border-purple-500/40 transition-all">
+            <Link
+              key={song.id}
+              href={`/songs/${song.id}`}
+              className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 flex flex-col justify-between gap-6 hover:border-purple-500/60 hover:bg-slate-900 transition-all group cursor-pointer block"
+            >
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] uppercase font-bold text-purple-400 tracking-wider bg-purple-950/60 px-2.5 py-1 rounded-md border border-purple-800/40">
                     {song.category}
                   </span>
-                  <span className="text-xs text-slate-400">{song.difficulty}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-slate-400">{song.difficulty}</span>
+                    {isAdmin && (
+                      <div className="flex items-center gap-1">
+                        <Link
+                          href={`/manage/songs/${song.id}/edit`}
+                          onClick={e => e.stopPropagation()}
+                          className="p-1 text-slate-400 hover:text-purple-400 transition-colors"
+                          title="Edit Song"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={e => handleDeleteSong(e, song.id, song.title)}
+                          className="p-1 text-slate-400 hover:text-rose-400 transition-colors"
+                          title="Delete Song"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-white line-clamp-1">{song.title}</h3>
+                <h3 className="text-xl font-bold text-white group-hover:text-purple-300 transition-colors line-clamp-1">
+                  {song.title}
+                </h3>
                 {song.composer && <p className="text-xs text-slate-400">Composer: {song.composer}</p>}
-                <p className="text-xs text-slate-500 line-clamp-2">{song.description || 'No description provided.'}</p>
+                <p className="text-xs text-slate-500 line-clamp-2">{song.lyrics || 'No written lyrics provided.'}</p>
               </div>
 
-              <Link
-                href={`/songs/${song.id}`}
-                className="w-full bg-purple-600 hover:bg-purple-500 text-white py-3 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 shadow-lg shadow-purple-600/30 transition-all"
-              >
+              <div className="w-full bg-purple-600/20 group-hover:bg-purple-600 text-purple-300 group-hover:text-white py-3 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 border border-purple-500/30 transition-all shadow-md">
                 <Volume2 className="w-4 h-4" /> Open Practice Room
-              </Link>
-            </div>
+              </div>
+            </Link>
           ))}
         </div>
       )}

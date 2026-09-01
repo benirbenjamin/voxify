@@ -1,17 +1,18 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { songService } from '@/lib/services/songService';
 import { Song, LearningStatus } from '@/lib/types/database.types';
 import { AudioPracticePlayer } from '@/components/audio/AudioPracticePlayer';
 import { useAuth } from '@/lib/context/AuthContext';
 import { useChoir } from '@/lib/context/ChoirContext';
-import { ArrowLeft, FileText, Download, Edit3, Music } from 'lucide-react';
+import { ArrowLeft, FileText, Download, Edit3, Trash2 } from 'lucide-react';
 
 export default function SongDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const songId = params?.id as string;
   
   const { user } = useAuth();
@@ -19,6 +20,7 @@ export default function SongDetailPage() {
 
   const [song, setSong] = useState<Song | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const [statusMap, setStatusMap] = useState<Record<string, LearningStatus>>({});
 
   useEffect(() => {
@@ -40,6 +42,20 @@ export default function SongDetailPage() {
   const handleStatusChange = async (partName: string, status: LearningStatus) => {
     if (!song || !activeMember) return;
     await songService.updateLearningStatus(activeMember.id, song.id, partName, status);
+  };
+
+  const handleDeleteSong = async () => {
+    if (!song) return;
+    if (!confirm(`Are you sure you want to delete "${song.title}"? This cannot be undone.`)) return;
+
+    setDeleting(true);
+    const ok = await songService.deleteSong(song.id);
+    if (ok) {
+      router.push('/songs');
+    } else {
+      alert('Failed to delete song.');
+      setDeleting(false);
+    }
   };
 
   if (loading) {
@@ -64,12 +80,22 @@ export default function SongDetailPage() {
         </Link>
 
         {isAdmin && (
-          <Link
-            href={`/manage/songs/${song.id}/edit`}
-            className="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1.5 bg-purple-950/40 border border-purple-800/40 px-3 py-1.5 rounded-xl"
-          >
-            <Edit3 className="w-3.5 h-3.5" /> Edit Song &amp; Audio Tracks
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/manage/songs/${song.id}/edit`}
+              className="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1.5 bg-purple-950/40 border border-purple-800/40 px-3 py-1.5 rounded-xl transition-all"
+            >
+              <Edit3 className="w-3.5 h-3.5" /> Edit Song &amp; Audio Tracks
+            </Link>
+
+            <button
+              onClick={handleDeleteSong}
+              disabled={deleting}
+              className="text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1.5 bg-rose-950/40 border border-rose-800/40 px-3 py-1.5 rounded-xl transition-all"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> {deleting ? 'Deleting...' : 'Delete Song'}
+            </button>
+          </div>
         )}
       </div>
 
