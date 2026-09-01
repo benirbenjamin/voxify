@@ -6,19 +6,22 @@ import Image from 'next/image';
 import { choirService } from '@/lib/services/choirService';
 import { Choir } from '@/lib/types/database.types';
 import { useAuth } from '@/lib/context/AuthContext';
-import { Music, CheckCircle2, Clock, AlertCircle, ArrowRight } from 'lucide-react';
+import { useChoir } from '@/lib/context/ChoirContext';
+import { Music, CheckCircle2, Clock, AlertCircle, ArrowRight, UserCheck } from 'lucide-react';
 
 export default function JoinChoirPage() {
   const params = useParams();
   const router = useRouter();
   const { user } = useAuth();
-  
+  const { refreshChoirs, selectChoir } = useChoir();
+
   const codeParam = (params?.code as string || '').toUpperCase();
-  
+
   const [choir, setChoir] = useState<Choir | null>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [resultStatus, setResultStatus] = useState<string | null>(null);
+  const [isAlreadyMember, setIsAlreadyMember] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,14 +44,25 @@ export default function JoinChoirPage() {
 
     setJoining(true);
     setError(null);
-    const { success, status, error: joinErr } = await choirService.joinChoirByCode(choir.id);
+    const { success, status, alreadyMember, error: joinErr } = await choirService.joinChoirByCode(choir.id);
 
     setJoining(false);
     if (!success) {
       setError(joinErr || 'Failed to submit join request');
     } else {
+      setIsAlreadyMember(alreadyMember || false);
       setResultStatus(status);
+      await refreshChoirs(choir.id);
+      selectChoir(choir.id);
     }
+  };
+
+  const handleGoToDashboard = async () => {
+    if (choir) {
+      await refreshChoirs(choir.id);
+      selectChoir(choir.id);
+    }
+    router.push('/dashboard');
   };
 
   return (
@@ -73,7 +87,15 @@ export default function JoinChoirPage() {
           </div>
         ) : resultStatus ? (
           <div className="space-y-4">
-            {resultStatus === 'active' ? (
+            {isAlreadyMember ? (
+              <>
+                <UserCheck className="w-12 h-12 text-purple-400 mx-auto" />
+                <h2 className="text-2xl font-bold text-white">Already a Member!</h2>
+                <p className="text-xs text-slate-400">
+                  You are already a registered member of <strong>{choir.name}</strong>.
+                </p>
+              </>
+            ) : resultStatus === 'active' ? (
               <>
                 <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
                 <h2 className="text-2xl font-bold text-emerald-300">Membership Approved!</h2>
@@ -91,10 +113,10 @@ export default function JoinChoirPage() {
               </>
             )}
             <button
-              onClick={() => router.push('/dashboard')}
-              className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl shadow-lg"
+              onClick={handleGoToDashboard}
+              className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3 rounded-xl shadow-lg transition-all text-xs"
             >
-              Go to Dashboard
+              Go to Choir Dashboard
             </button>
           </div>
         ) : (

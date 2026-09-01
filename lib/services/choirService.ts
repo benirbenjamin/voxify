@@ -59,12 +59,12 @@ export const choirService = {
           return { choir: null, error: choirError?.message || 'Failed to create choir' };
         }
 
-        await supabase.from('choir_members').insert({
+        await supabase.from('choir_members').upsert({
           choir_id: choir.id,
           user_id: user.id,
           role: 'owner',
           status: 'active',
-        });
+        }, { onConflict: 'choir_id,user_id' });
 
         return { choir: choir as Choir, error: null };
       }
@@ -86,10 +86,27 @@ export const choirService = {
     return data as Choir | null;
   },
 
-  async joinChoirByCode(choirId: string): Promise<{ success: boolean; status: string; error: string | null }> {
+  async joinChoirByCode(choirId: string): Promise<{ success: boolean; status: string; alreadyMember?: boolean; error: string | null }> {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, status: '', error: 'User must be authenticated' };
+
+    // Check if user is ALREADY a member
+    const { data: existingMember } = await supabase
+      .from('choir_members')
+      .select('status, role')
+      .eq('choir_id', choirId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (existingMember) {
+      return {
+        success: true,
+        status: existingMember.status,
+        alreadyMember: true,
+        error: null,
+      };
+    }
 
     // Check choir auto-approve setting
     const { data: choir } = await supabase
@@ -106,11 +123,11 @@ export const choirService = {
       user_id: user.id,
       role: 'member',
       status: initialStatus,
-    });
+    }, { onConflict: 'choir_id,user_id' });
 
     if (error) return { success: false, status: '', error: error.message };
 
-    return { success: true, status: initialStatus, error: null };
+    return { success: true, status: initialStatus, alreadyMember: false, error: null };
   },
 
   async getChoirMembers(choirId: string): Promise<ChoirMember[]> {

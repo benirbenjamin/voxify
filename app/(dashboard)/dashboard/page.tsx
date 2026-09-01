@@ -15,11 +15,13 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const { activeChoir, isAdmin } = useChoir();
 
+  // All React state hooks declared unconditionally at top level
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [currentPlan, setCurrentPlan] = useState<SubscriptionPlan | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -45,6 +47,34 @@ export default function DashboardPage() {
     setTimeout(() => setCopiedCode(false), 2000);
   };
 
+  const shareableLink = activeChoir
+    ? `${typeof window !== 'undefined' ? window.location.origin : 'https://voxify.space'}/join/${activeChoir.choir_code}`
+    : '';
+
+  const copyLink = () => {
+    if (!shareableLink) return;
+    navigator.clipboard.writeText(shareableLink);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
+  const handleShare = async () => {
+    if (!activeChoir || !shareableLink) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Join ${activeChoir.name} on Voxify Space`,
+          text: `Use this link or code ${activeChoir.choir_code} to join ${activeChoir.name} choir on Voxify Space!`,
+          url: shareableLink,
+        });
+      } catch {
+        copyLink();
+      }
+    } else {
+      copyLink();
+    }
+  };
+
   if (!activeChoir) {
     return (
       <div className="text-center py-20 space-y-6">
@@ -63,16 +93,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  const [copiedLink, setCopiedLink] = useState(false);
-
-  const shareableLink = `${typeof window !== 'undefined' ? window.location.origin : 'https://voxify.space'}/join/${activeChoir.choir_code}`;
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(shareableLink);
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2000);
-  };
 
   return (
     <div className="space-y-8">
@@ -94,14 +114,14 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Choir Code & Shareable Invitation Link Card */}
+        {/* Choir Code, Copy Link & Native Share App Buttons */}
         <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center gap-4 shrink-0">
           <div className="text-center sm:text-left">
             <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Choir Code</span>
             <span className="text-xl font-black font-mono tracking-widest text-purple-400">{activeChoir.choir_code}</span>
           </div>
 
-          <div className="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-800 pt-3 sm:pt-0 sm:pl-4">
+          <div className="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-800 pt-3 sm:pt-0 sm:pl-4 flex-wrap justify-center">
             <button
               onClick={copyCode}
               className="p-2.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold"
@@ -114,10 +134,19 @@ export default function DashboardPage() {
             <button
               onClick={copyLink}
               className="p-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold"
-              title="Copy Shareable Join Link"
+              title="Copy Direct Join Link"
             >
-              {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
-              <span>{copiedLink ? 'Link Copied!' : 'Share Link'}</span>
+              {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              <span>{copiedLink ? 'Link Copied!' : 'Copy Link'}</span>
+            </button>
+
+            <button
+              onClick={handleShare}
+              className="p-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold shadow-md shadow-purple-600/30"
+              title="Open Device Share Menu (WhatsApp, Email, etc.)"
+            >
+              <Share2 className="w-4 h-4" />
+              <span>Share App</span>
             </button>
 
             {isAdmin && (
