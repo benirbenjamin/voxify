@@ -1,19 +1,23 @@
 import { createClient } from '../supabase/client';
-import { SubscriptionPlan, PlanLimits, Subscription } from '../types/database.types';
+import { SubscriptionPlan, Subscription } from '../types/database.types';
 
-export const subscriptionService = {
-  // Fetch active subscription plans from database
+export const planService = {
+  // Fetch active subscription plans directly from database
   async getAllPlans(): Promise<SubscriptionPlan[]> {
     const supabase = createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('subscription_plans')
       .select('*')
       .order('price_monthly', { ascending: true });
 
-    return (data as SubscriptionPlan[]) || [];
+    if (error) {
+      console.error('Error fetching subscription plans:', error);
+      return [];
+    }
+    return data || [];
   },
 
-  // Fetch active subscription plan for a choir
+  // Fetch active plan for a specific choir
   async getChoirSubscription(choirId: string): Promise<{ subscription: Subscription | null; plan: SubscriptionPlan | null }> {
     const supabase = createClient();
     const { data: sub } = await supabase
@@ -29,7 +33,7 @@ export const subscriptionService = {
       };
     }
 
-    // Default fallback to Community Free plan
+    // Fallback: Default to Community Free plan if no record
     const { data: freePlan } = await supabase
       .from('subscription_plans')
       .select('*')
@@ -42,10 +46,11 @@ export const subscriptionService = {
     };
   },
 
-  // Set or update a choir's subscription plan
+  // Assign or upgrade a choir's subscription plan
   async setChoirPlan(choirId: string, planId: string): Promise<{ success: boolean; error: string | null }> {
     const supabase = createClient();
 
+    // Check if subscription already exists for this choir
     const { data: existing } = await supabase
       .from('subscriptions')
       .select('id')
@@ -78,37 +83,31 @@ export const subscriptionService = {
     return { success: true, error: null };
   },
 
-  // Super Admin: Create a new plan
-  async createPlan(payload: {
-    name: string;
-    description?: string;
-    price_monthly: number;
-    is_free: boolean;
-    features: string[];
-    limits: PlanLimits;
-  }): Promise<SubscriptionPlan | null> {
+  // Super Admin: Create new subscription plan
+  async createPlan(planData: Partial<SubscriptionPlan>): Promise<{ plan: SubscriptionPlan | null; error: string | null }> {
     const supabase = createClient();
     const { data, error } = await supabase
       .from('subscription_plans')
-      .insert({
-        ...payload,
-        is_active: true,
-      })
+      .insert([planData])
       .select()
       .single();
 
-    if (error || !data) return null;
-    return data as SubscriptionPlan;
+    if (error) return { plan: null, error: error.message };
+    return { plan: data as SubscriptionPlan, error: null };
   },
 
-  // Super Admin: Toggle plan active status
-  async togglePlanActive(planId: string, isActive: boolean): Promise<boolean> {
+  // Super Admin: Update existing subscription plan
+  async updatePlan(planId: string, planData: Partial<SubscriptionPlan>): Promise<{ success: boolean; error: string | null }> {
     const supabase = createClient();
     const { error } = await supabase
       .from('subscription_plans')
-      .update({ is_active: isActive })
+      .update({
+        ...planData,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', planId);
 
-    return !error;
+    if (error) return { success: false, error: error.message };
+    return { success: true, error: null };
   }
 };

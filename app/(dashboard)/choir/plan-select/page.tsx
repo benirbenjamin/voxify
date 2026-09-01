@@ -1,0 +1,169 @@
+'use client';
+
+import React, { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { useChoir } from '@/lib/context/ChoirContext';
+import { subscriptionService } from '@/lib/services/subscriptionService';
+import { SubscriptionPlan } from '@/lib/types/database.types';
+import { Crown, CheckCircle2, ArrowRight, Sparkles, Shield, AlertCircle } from 'lucide-react';
+
+function PlanSelectContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { activeChoir, refreshChoirs } = useChoir();
+
+  const choirId = searchParams.get('choirId') || activeChoir?.id;
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadPlans() {
+      setLoading(true);
+      const data = await subscriptionService.getAllPlans();
+      setPlans(data);
+      if (data.length > 0) {
+        // Default select free plan or first
+        const defaultPlan = data.find(p => p.is_free) || data[0];
+        setSelectedPlanId(defaultPlan.id);
+      }
+      setLoading(false);
+    }
+    loadPlans();
+  }, []);
+
+  const handleConfirmPlan = async () => {
+    if (!choirId || !selectedPlanId) {
+      setError('Please select a choir and subscription plan.');
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    const { success, error: err } = await subscriptionService.setChoirPlan(choirId, selectedPlanId);
+
+    if (!success) {
+      setError(err || 'Failed to update subscription plan.');
+      setSubmitting(false);
+    } else {
+      await refreshChoirs(choirId);
+      router.push('/dashboard');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col justify-center items-center text-slate-400">
+        <div className="w-10 h-10 border-4 border-purple-500 border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-xs font-semibold">Loading Subscription Plans from Database...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-8 text-white py-6">
+      <div className="text-center space-y-3">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-purple-950/60 border border-purple-500/40 text-purple-300 text-xs font-bold uppercase tracking-wider">
+          <Crown className="w-4 h-4 text-purple-400" /> Choir Subscription Setup
+        </div>
+        <h1 className="text-3xl md:text-5xl font-black text-white">Select Your Choir SaaS Plan</h1>
+        <p className="text-sm text-slate-400 max-w-xl mx-auto">
+          Choose a subscription plan for <strong className="text-purple-300">{activeChoir?.name || 'Your Choir'}</strong> directly from our active plans database.
+        </p>
+      </div>
+
+      {error && (
+        <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-2xl text-xs flex items-center gap-2 max-w-lg mx-auto">
+          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {/* Subscription Plans Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {plans.map(plan => {
+          const isSelected = selectedPlanId === plan.id;
+          return (
+            <div
+              key={plan.id}
+              onClick={() => setSelectedPlanId(plan.id)}
+              className={`p-8 rounded-3xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-6 ${
+                isSelected
+                  ? 'bg-gradient-to-b from-purple-950/80 to-slate-900/90 border-purple-500 shadow-2xl shadow-purple-600/20 scale-[1.02]'
+                  : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 opacity-80 hover:opacity-100'
+              }`}
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">{plan.name}</span>
+                  {isSelected && (
+                    <span className="bg-purple-600 text-white text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full">
+                      Selected
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-black text-white">${plan.price_monthly}</span>
+                  <span className="text-xs text-slate-400">/ month</span>
+                </div>
+
+                <p className="text-xs text-slate-300 leading-relaxed">{plan.description}</p>
+
+                <div className="pt-4 border-t border-slate-800 space-y-2">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Included Features:</span>
+                  <ul className="space-y-2 text-xs text-slate-200">
+                    {(plan.features || []).map((feat, idx) => (
+                      <li key={idx} className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span>{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className={`w-full py-3.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
+                  isSelected
+                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                }`}
+              >
+                {isSelected ? 'Current Selection' : 'Choose This Plan'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Confirm & Save Button */}
+      <div className="flex justify-center pt-4">
+        <button
+          onClick={handleConfirmPlan}
+          disabled={submitting}
+          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold px-8 py-4 rounded-2xl shadow-xl shadow-purple-600/40 text-sm flex items-center gap-2 transition-all hover:scale-105"
+        >
+          {submitting ? 'Activating Plan...' : 'Confirm Plan & Go to Dashboard'} <ArrowRight className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function PlanSelectPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[60vh] flex items-center justify-center text-slate-400 text-xs">
+        Loading Subscription Selection...
+      </div>
+    }>
+      <PlanSelectContent />
+    </Suspense>
+  );
+}

@@ -7,8 +7,9 @@ import { useChoir } from '@/lib/context/ChoirContext';
 import { eventService } from '@/lib/services/eventService';
 import { songService } from '@/lib/services/songService';
 import { announcementService } from '@/lib/services/announcementService';
-import { Event, Song, Announcement } from '@/lib/types/database.types';
-import { Music, Calendar, Users, Sparkles, Volume2, ArrowRight, Share2, Copy, Check } from 'lucide-react';
+import { subscriptionService } from '@/lib/services/subscriptionService';
+import { Event, Song, Announcement, SubscriptionPlan } from '@/lib/types/database.types';
+import { Music, Calendar, Users, Sparkles, Volume2, ArrowRight, Share2, Copy, Check, Crown, Zap } from 'lucide-react';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -17,19 +18,22 @@ export default function DashboardPage() {
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [currentPlan, setCurrentPlan] = useState<SubscriptionPlan | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       if (!activeChoir) return;
-      const [eventsData, songsData, announceData] = await Promise.all([
+      const [eventsData, songsData, announceData, subData] = await Promise.all([
         eventService.getChoirEvents(activeChoir.id),
         songService.getChoirSongs(activeChoir.id),
         announcementService.getAnnouncements(activeChoir.id),
+        subscriptionService.getChoirSubscription(activeChoir.id),
       ]);
       setUpcomingEvents(eventsData);
       setSongs(songsData);
       setAnnouncements(announceData);
+      setCurrentPlan(subData.plan);
     }
     loadData();
   }, [activeChoir]);
@@ -75,9 +79,13 @@ export default function DashboardPage() {
       {/* Active Choir Welcome & Code Banner */}
       <div className="bg-gradient-to-r from-purple-900/60 via-slate-900 to-indigo-900/60 border border-purple-500/30 p-6 md:p-8 rounded-3xl shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="bg-purple-500/20 text-purple-300 text-xs px-3 py-1 rounded-full border border-purple-500/30 font-semibold uppercase tracking-wider">
               {activeChoir.church_name || 'Active Choir'}
+            </span>
+            <span className="bg-amber-500/20 text-amber-300 text-xs px-3 py-1 rounded-full border border-amber-500/30 font-bold uppercase tracking-wider flex items-center gap-1">
+              <Crown className="w-3.5 h-3.5 text-amber-400" />
+              {currentPlan?.name || 'Community Free Plan'}
             </span>
           </div>
           <h1 className="text-3xl font-extrabold text-white">{activeChoir.name}</h1>
@@ -111,6 +119,17 @@ export default function DashboardPage() {
               {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
               <span>{copiedLink ? 'Link Copied!' : 'Share Link'}</span>
             </button>
+
+            {isAdmin && (
+              <Link
+                href={`/choir/plan-select?choirId=${activeChoir.id}`}
+                className="p-2.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold"
+                title="Upgrade Choir Subscription Plan"
+              >
+                <Zap className="w-4 h-4 text-amber-400" />
+                <span>Upgrade Plan</span>
+              </Link>
+            )}
           </div>
         </div>
       </div>

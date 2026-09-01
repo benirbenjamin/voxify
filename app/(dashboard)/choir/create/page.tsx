@@ -37,7 +37,7 @@ export default function CreateChoirPage() {
     } else {
       setActiveChoirExplicitly(choir);
       await refreshChoirs(choir.id);
-      router.push('/dashboard');
+      router.push(`/choir/plan-select?choirId=${choir.id}`);
     }
   };
 
