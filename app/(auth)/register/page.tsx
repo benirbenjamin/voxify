@@ -24,7 +24,8 @@ export default function RegisterPage() {
     setError(null);
 
     const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/callback`;
+    const customDomainUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://voxify.space';
+    const redirectTo = `${customDomainUrl}/auth/callback`;
 
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,

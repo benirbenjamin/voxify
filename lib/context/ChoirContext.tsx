@@ -11,7 +11,8 @@ interface ChoirContextType {
   activeMember: ChoirMember | null;
   loading: boolean;
   selectChoir: (choirId: string) => void;
-  refreshChoirs: () => Promise<void>;
+  setActiveChoirExplicitly: (choir: Choir) => void;
+  refreshChoirs: (selectNewChoirId?: string) => Promise<void>;
   isOwner: boolean;
   isAdmin: boolean;
   isSectionLeader: boolean;
@@ -23,6 +24,7 @@ const ChoirContext = createContext<ChoirContextType>({
   activeMember: null,
   loading: true,
   selectChoir: () => {},
+  setActiveChoirExplicitly: () => {},
   refreshChoirs: async () => {},
   isOwner: false,
   isAdmin: false,
@@ -36,7 +38,7 @@ export const ChoirProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [activeMember, setActiveMember] = useState<ChoirMember | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchChoirs = async () => {
+  const fetchChoirs = async (selectNewChoirId?: string) => {
     if (!user) {
       setChoirs([]);
       setActiveChoir(null);
@@ -50,14 +52,17 @@ export const ChoirProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const userChoirs = await choirService.getMyChoirs();
       setChoirs(userChoirs);
 
-      // Restore stored active choir ID or default to first
-      const storedChoirId = typeof window !== 'undefined' ? localStorage.getItem('voxify_active_choir') : null;
-      const initialChoir = userChoirs.find(c => c.id === storedChoirId) || userChoirs[0] || null;
+      // If explicit choir ID passed (e.g. after choir creation), select it directly
+      const storedChoirId = selectNewChoirId || (typeof window !== 'undefined' ? localStorage.getItem('voxify_active_choir') : null);
+      const targetChoir = userChoirs.find(c => c.id === storedChoirId) || userChoirs[0] || null;
 
-      setActiveChoir(initialChoir);
+      setActiveChoir(targetChoir);
 
-      if (initialChoir) {
-        const members = await choirService.getChoirMembers(initialChoir.id);
+      if (targetChoir) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('voxify_active_choir', targetChoir.id);
+        }
+        const members = await choirService.getChoirMembers(targetChoir.id);
         const currentMember = members.find(m => m.user_id === user.id) || null;
         setActiveMember(currentMember);
       }
@@ -87,6 +92,22 @@ export const ChoirProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const setActiveChoirExplicitly = async (choir: Choir) => {
+    setActiveChoir(choir);
+    setChoirs(prev => {
+      if (prev.some(c => c.id === choir.id)) return prev;
+      return [choir, ...prev];
+    });
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('voxify_active_choir', choir.id);
+    }
+    if (user) {
+      const members = await choirService.getChoirMembers(choir.id);
+      const currentMember = members.find(m => m.user_id === user.id) || null;
+      setActiveMember(currentMember);
+    }
+  };
+
   const isOwner = activeMember?.role === 'owner' || user?.is_super_admin === true;
   const isAdmin = isOwner || activeMember?.role === 'admin';
   const isSectionLeader = isAdmin || activeMember?.role === 'section_leader';
@@ -99,6 +120,7 @@ export const ChoirProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         activeMember,
         loading,
         selectChoir,
+        setActiveChoirExplicitly,
         refreshChoirs: fetchChoirs,
         isOwner,
         isAdmin,

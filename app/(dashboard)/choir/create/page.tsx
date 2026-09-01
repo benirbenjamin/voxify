@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { choirService } from '@/lib/services/choirService';
+import { useChoir } from '@/lib/context/ChoirContext';
 import { ArrowLeft, Music, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function CreateChoirPage() {
@@ -15,6 +16,8 @@ export default function CreateChoirPage() {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { refreshChoirs, setActiveChoirExplicitly } = useChoir();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +35,8 @@ export default function CreateChoirPage() {
       setError(err || 'Failed to create choir');
       setLoading(false);
     } else {
+      setActiveChoirExplicitly(choir);
+      await refreshChoirs(choir.id);
       router.push('/dashboard');
     }
   };
