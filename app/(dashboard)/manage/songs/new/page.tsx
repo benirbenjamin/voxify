@@ -6,7 +6,19 @@ import Link from 'next/link';
 import { useChoir } from '@/lib/context/ChoirContext';
 import { songService } from '@/lib/services/songService';
 import { VoicePart } from '@/lib/types/database.types';
-import { ArrowLeft, Music, Upload, Plus, Trash2, CheckCircle2, AlertCircle, FileText, Loader2, FileAudio } from 'lucide-react';
+import {
+  ArrowLeft,
+  Music,
+  Upload,
+  Plus,
+  Trash2,
+  CheckCircle2,
+  AlertCircle,
+  FileText,
+  Loader2,
+  FileAudio,
+  Send
+} from 'lucide-react';
 
 interface PartDraft {
   part_name: VoicePart;
@@ -41,7 +53,7 @@ export default function NewSongPage() {
   const [error, setError] = useState<string | null>(null);
 
   const handleAddPart = () => {
-    setParts(prev => [...prev, { part_name: 'Custom', audio_url: '', duration_seconds: 120 }]);
+    setParts(prev => [...prev, { part_name: 'Custom', audio_url: '', duration_seconds: 180 }]);
   };
 
   const handlePartChange = (index: number, field: keyof PartDraft, value: any) => {
@@ -56,6 +68,24 @@ export default function NewSongPage() {
     setParts(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Helper to extract actual audio duration from file
+  const getAudioDurationFromFile = (file: File): Promise<number> => {
+    return new Promise((resolve) => {
+      const audio = new Audio();
+      const objectUrl = URL.createObjectURL(file);
+      audio.src = objectUrl;
+      audio.onloadedmetadata = () => {
+        const dur = Math.round(audio.duration);
+        URL.revokeObjectURL(objectUrl);
+        resolve(dur > 0 ? dur : 180);
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve(180);
+      };
+    });
+  };
+
   // Direct Supabase Storage Audio File Upload
   const handleAudioFileUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -63,6 +93,10 @@ export default function NewSongPage() {
 
     handlePartChange(index, 'isUploading', true);
     handlePartChange(index, 'fileName', file.name);
+
+    // Get exact audio file duration
+    const exactDuration = await getAudioDurationFromFile(file);
+    handlePartChange(index, 'duration_seconds', exactDuration);
 
     const uploadedUrl = await songService.uploadAudioFile(file, activeChoir.id);
     if (uploadedUrl) {
@@ -106,7 +140,7 @@ export default function NewSongPage() {
       category,
       difficulty,
       lyrics,
-      sheet_music_pdf_url: sheetPdfUrl || undefined,
+      sheet_music_pdf_url: sheetPdfUrl.trim() || undefined,
     });
 
     if (songErr || !song) {
@@ -115,15 +149,17 @@ export default function NewSongPage() {
       return;
     }
 
-    // Insert Song Parts
+    // Insert Song Parts that have audio URLs provided
+    let insertedCount = 0;
     for (const p of parts) {
       if (p.audio_url.trim()) {
         await songService.addSongPart({
           song_id: song.id,
           part_name: p.part_name,
           audio_url: p.audio_url.trim(),
-          duration_seconds: p.duration_seconds,
+          duration_seconds: p.duration_seconds || 180,
         });
+        insertedCount++;
       }
     }
 
@@ -132,13 +168,15 @@ export default function NewSongPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      <Link href="/manage" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white">
+      <Link href="/manage" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back to Choir Admin
       </Link>
 
       <div className="border-b border-slate-800 pb-4">
-        <h1 className="text-3xl font-extrabold text-white">Upload New Song</h1>
-        <p className="text-sm text-slate-400">Upload MP3/WAV voice parts and PDF sheet music directly to Supabase Storage</p>
+        <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
+          <Music className="w-8 h-8 text-purple-400" /> Upload New Song
+        </h1>
+        <p className="text-sm text-slate-400">Upload MP3/WAV voice parts and PDF sheet music directly for your choir</p>
       </div>
 
       {error && (
@@ -151,7 +189,7 @@ export default function NewSongPage() {
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* Song Info */}
         <div className="bg-slate-900/60 p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          <h3 className="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
             <Music className="w-5 h-5 text-purple-400" /> Song Details
           </h3>
 
@@ -184,7 +222,7 @@ export default function NewSongPage() {
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500 font-semibold"
               >
                 <option value="Worship">Worship</option>
                 <option value="Praise">Praise</option>
@@ -196,11 +234,11 @@ export default function NewSongPage() {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1.5">Difficulty</label>
+              <label className="text-xs font-semibold text-slate-300 block mb-1.5">Difficulty Level</label>
               <select
                 value={difficulty}
                 onChange={e => setDifficulty(e.target.value as any)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500 font-semibold"
               >
                 <option value="Easy">Easy</option>
                 <option value="Medium">Medium</option>
@@ -221,11 +259,11 @@ export default function NewSongPage() {
             />
           </div>
 
-          {/* PDF Sheet Music Supabase Direct Upload */}
+          {/* PDF Sheet Music Upload */}
           <div>
             <label className="text-xs font-semibold text-slate-300 block mb-1.5 flex items-center justify-between">
               <span>PDF Sheet Music Upload</span>
-              <span className="text-[10px] text-purple-400 font-normal">Supabase Storage</span>
+              <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">Public Access Enabled</span>
             </label>
             
             <div className="flex flex-col md:flex-row items-center gap-4">
@@ -233,7 +271,7 @@ export default function NewSongPage() {
                 <FileText className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform shrink-0" />
                 <div className="flex-1 truncate">
                   <span className="text-xs text-slate-200 block truncate">
-                    {uploadingPdf ? 'Uploading to Supabase Storage...' : pdfFileName ? pdfFileName : 'Choose PDF Sheet Music File'}
+                    {uploadingPdf ? 'Uploading PDF to Supabase Storage...' : pdfFileName ? pdfFileName : sheetPdfUrl ? 'PDF Attached ✅' : 'Choose PDF Sheet Music File'}
                   </span>
                   <span className="text-[10px] text-slate-500 block">Click to browse .pdf files</span>
                 </div>
@@ -250,7 +288,7 @@ export default function NewSongPage() {
                 />
               </label>
 
-              <div className="w-full md:w-auto text-xs text-slate-400">OR</div>
+              <div className="w-full md:w-auto text-xs text-slate-400 font-mono">OR</div>
 
               <input
                 type="url"
@@ -263,16 +301,19 @@ export default function NewSongPage() {
           </div>
         </div>
 
-        {/* Multi-Track Voice Parts Audio Supabase Storage Setup */}
+        {/* Multi-Track Voice Parts Audio Setup */}
         <div className="bg-slate-900/60 p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-              <Upload className="w-5 h-5 text-indigo-400" /> Voice Part Audio Tracks (Upload MP3/WAV)
-            </h3>
+          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Upload className="w-5 h-5 text-indigo-400" /> Voice Part Audio Tracks (Upload MP3 / WAV)
+              </h3>
+              <p className="text-xs text-slate-400">Select MP3/WAV files for each choir section or paste audio links</p>
+            </div>
             <button
               type="button"
               onClick={handleAddPart}
-              className="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1 bg-purple-950/40 border border-purple-800/40 px-3 py-1.5 rounded-xl"
+              className="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1 bg-purple-950/40 border border-purple-800/40 px-3 py-2 rounded-xl transition-all"
             >
               <Plus className="w-4 h-4" /> Add Track
             </button>
@@ -287,7 +328,7 @@ export default function NewSongPage() {
                     <select
                       value={p.part_name}
                       onChange={e => handlePartChange(idx, 'part_name', e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-purple-500"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:border-purple-500 font-semibold"
                     >
                       <option value="Full Mix">Full Mix</option>
                       <option value="Soprano">Soprano</option>
@@ -299,7 +340,7 @@ export default function NewSongPage() {
                     </select>
                   </div>
 
-                  {/* Supabase Storage Audio File Upload Picker */}
+                  {/* Audio File Upload Picker */}
                   <div className="md:col-span-2 space-y-1">
                     <label className="text-[10px] text-slate-400 uppercase font-semibold flex items-center justify-between">
                       <span>Audio File (Upload MP3 / WAV)</span>
@@ -336,12 +377,13 @@ export default function NewSongPage() {
                   </div>
 
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs text-slate-400 font-mono">180s</span>
+                    <span className="text-xs text-slate-400 font-mono">{p.duration_seconds}s</span>
                     {parts.length > 1 && (
                       <button
                         type="button"
                         onClick={() => handleRemovePart(idx)}
-                        className="p-2 text-rose-400 hover:text-rose-300"
+                        className="p-2 text-rose-400 hover:text-rose-300 transition-colors"
+                        title="Remove Track"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -358,7 +400,7 @@ export default function NewSongPage() {
           disabled={loading}
           className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-4 rounded-2xl shadow-xl shadow-purple-600/30 transition-all flex items-center justify-center gap-2 text-sm"
         >
-          {loading ? 'Publishing Song...' : 'Publish Song & Audio Tracks'} <CheckCircle2 className="w-5 h-5" />
+          {loading ? 'Publishing Song...' : 'Publish Song & Audio Tracks'} <Send className="w-4 h-4" />
         </button>
       </form>
     </div>
