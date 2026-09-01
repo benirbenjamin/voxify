@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { User, Mail, Lock, Phone, ArrowRight, AlertCircle, Music, Crown, Mic } from 'lucide-react';
+import { User, Mail, Lock, Phone, ArrowRight, AlertCircle, Crown, Mic, MailCheck, CheckCircle2 } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,6 +16,7 @@ export default function RegisterPage() {
   const [rolePreference, setRolePreference] = useState<'director' | 'singer'>('director');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,10 +24,13 @@ export default function RegisterPage() {
     setError(null);
 
     const supabase = createClient();
+    const redirectTo = `${window.location.origin}/auth/callback`;
+
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
+        emailRedirectTo: redirectTo,
         data: {
           full_name: fullName,
           phone: phone,
@@ -38,15 +42,69 @@ export default function RegisterPage() {
     if (authError) {
       setError(authError.message);
       setLoading(false);
-    } else {
-      // If Choir Master, redirect directly to create choir page
+      return;
+    }
+
+    // If session is active (auto-confirmed)
+    if (authData.session) {
       if (rolePreference === 'director') {
         router.push('/choir/create');
       } else {
         router.push('/dashboard');
       }
+    } else {
+      // Email verification required
+      setVerificationSent(true);
+      setLoading(false);
     }
   };
+
+  // State: Verification Email Sent Card
+  if (verificationSent) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-6 text-white">
+        <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 p-8 rounded-3xl shadow-2xl space-y-6 text-center">
+          <div className="inline-flex w-16 h-16 rounded-3xl bg-purple-600/20 border border-purple-500/30 items-center justify-center text-purple-400">
+            <MailCheck className="w-8 h-8" />
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-white">Check Your Email Inbox</h1>
+            <p className="text-xs text-slate-300">
+              We sent a verification link to <strong className="text-purple-400">{email}</strong>.
+            </p>
+          </div>
+
+          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-left text-xs text-slate-400 space-y-2">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span>Click the verification link in your email to activate your account.</span>
+            </div>
+            {rolePreference === 'director' ? (
+              <div className="flex items-start gap-2">
+                <Crown className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                <span>As a <strong>Choir Master</strong>, after clicking the link you will automatically be guided to <strong>Register & Create Your Choir</strong>!</span>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2">
+                <Mic className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+                <span>As a <strong>Choir Member</strong>, after clicking the link you will land on your Dashboard to join your choir.</span>
+              </div>
+            )}
+          </div>
+
+          <div className="pt-4 border-t border-slate-800 flex flex-col gap-3">
+            <Link
+              href="/login"
+              className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-600/30 transition-all text-xs"
+            >
+              Verified Email? Proceed to Sign In
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-6 text-white my-8">
