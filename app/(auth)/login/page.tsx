@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { getAppUrl } from '@/lib/utils/appUrl';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Mail, Lock, ArrowRight, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
@@ -71,7 +72,7 @@ function LoginContent() {
     setError(null);
 
     const supabase = createClient();
-    const customDomainUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://voxify.space';
+    const customDomainUrl = getAppUrl();
     const redirectTo = `${customDomainUrl}/auth/callback`;
 
     const { error: resendErr } = await supabase.auth.resend({

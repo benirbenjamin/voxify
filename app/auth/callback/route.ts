@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getAppUrl } from '@/lib/utils/appUrl';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -7,7 +8,7 @@ export async function GET(request: Request) {
   const errorParam = searchParams.get('error') || searchParams.get('error_code');
   const errorDesc = searchParams.get('error_description');
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://voxify.space';
+  const appUrl = getAppUrl();
 
   // If Supabase returned an error in query params (e.g. link expired)
   if (errorParam || errorDesc) {
