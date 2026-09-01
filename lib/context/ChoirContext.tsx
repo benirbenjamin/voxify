@@ -52,7 +52,7 @@ export const ChoirProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const userChoirs = await choirService.getMyChoirs();
       setChoirs(userChoirs);
 
-      // If explicit choir ID passed (e.g. after choir creation), select it directly
+      // If explicit choir ID passed (e.g. after choir creation/joining), select it directly
       const storedChoirId = selectNewChoirId || (typeof window !== 'undefined' ? localStorage.getItem('voxify_active_choir') : null);
       const targetChoir = userChoirs.find(c => c.id === storedChoirId) || userChoirs[0] || null;
 
@@ -108,7 +108,7 @@ export const ChoirProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  const isOwner = activeMember?.role === 'owner' || user?.is_super_admin === true;
+  const isOwner = activeMember?.role === 'owner' || (activeChoir ? activeChoir.owner_id === user?.id : false);
   const isAdmin = isOwner || activeMember?.role === 'admin';
   const isSectionLeader = isAdmin || activeMember?.role === 'section_leader';
 

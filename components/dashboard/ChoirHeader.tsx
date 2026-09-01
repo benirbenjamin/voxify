@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/context/AuthContext';
 import { useChoir } from '@/lib/context/ChoirContext';
-import { ChevronDown, Plus, Music, Bell, Shield, LogOut, Check } from 'lucide-react';
+import { ChevronDown, Plus, Music, Bell, Shield, LogOut, Check, KeyRound } from 'lucide-react';
 
 export const ChoirHeader: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -17,7 +17,7 @@ export const ChoirHeader: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand Logo & Active Choir Selector */}
         <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-3 group">
+          <Link href="/dashboard" className="flex items-center gap-3 group">
             <div className="relative w-9 h-9 rounded-xl bg-purple-600/20 p-1 border border-purple-500/30 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
               <Image
                 src="/logo.png"
@@ -75,14 +75,24 @@ export const ChoirHeader: React.FC = () => {
                     );
                   })}
 
-                  <div className="border-t border-slate-800 pt-1 mt-1">
+                  <div className="border-t border-slate-800 pt-1 mt-1 space-y-1">
                     <Link
-                      href="/choir/create"
+                      href="/dashboard"
                       onClick={() => setDropdownOpen(false)}
-                      className="w-full px-3 py-2 rounded-xl text-xs font-semibold text-purple-400 hover:bg-purple-900/30 flex items-center gap-2 transition-colors"
+                      className="w-full px-3 py-2 rounded-xl text-xs font-semibold text-indigo-400 hover:bg-indigo-900/30 flex items-center gap-2 transition-colors"
                     >
-                      <Plus className="w-4 h-4" /> Create New Choir
+                      <KeyRound className="w-4 h-4" /> Join Choir with Code
                     </Link>
+
+                    {isAdmin && (
+                      <Link
+                        href="/choir/create"
+                        onClick={() => setDropdownOpen(false)}
+                        className="w-full px-3 py-2 rounded-xl text-xs font-semibold text-purple-400 hover:bg-purple-900/30 flex items-center gap-2 transition-colors"
+                      >
+                        <Plus className="w-4 h-4" /> Create New Choir
+                      </Link>
+                    )}
                   </div>
                 </div>
               )}

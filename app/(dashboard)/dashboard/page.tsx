@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { useChoir } from '@/lib/context/ChoirContext';
 import { eventService } from '@/lib/services/eventService';
@@ -9,11 +10,12 @@ import { songService } from '@/lib/services/songService';
 import { announcementService } from '@/lib/services/announcementService';
 import { subscriptionService } from '@/lib/services/subscriptionService';
 import { Event, Song, Announcement, SubscriptionPlan } from '@/lib/types/database.types';
-import { Music, Calendar, Users, Sparkles, Volume2, ArrowRight, Share2, Copy, Check, Crown, Zap } from 'lucide-react';
+import { Music, Calendar, Users, Sparkles, Volume2, ArrowRight, Share2, Copy, Check, Crown, Zap, KeyRound, Plus } from 'lucide-react';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user } = useAuth();
-  const { activeChoir, isAdmin } = useChoir();
+  const { activeChoir, activeMember, isAdmin } = useChoir();
 
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
@@ -21,6 +23,7 @@ export default function DashboardPage() {
   const [currentPlan, setCurrentPlan] = useState<SubscriptionPlan | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [joinCodeInput, setJoinCodeInput] = useState('');
 
   useEffect(() => {
     async function loadData() {
@@ -74,19 +77,69 @@ export default function DashboardPage() {
     }
   };
 
+  const handleJoinByCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!joinCodeInput.trim()) return;
+    router.push(`/join/${joinCodeInput.trim().toUpperCase()}`);
+  };
+
+  // State: No Active Choir Joined Yet (Singers vs Directors)
   if (!activeChoir) {
     return (
-      <div className="text-center py-20 space-y-6">
+      <div className="max-w-2xl mx-auto py-12 space-y-8 text-center">
         <div className="w-16 h-16 bg-purple-600/20 text-purple-400 rounded-3xl flex items-center justify-center mx-auto border border-purple-500/30">
           <Music className="w-8 h-8" />
         </div>
-        <h2 className="text-2xl font-bold">No Active Choir Selected</h2>
-        <p className="text-sm text-slate-400 max-w-md mx-auto">
-          Create a new choir or enter a choir code to join an existing choir.
-        </p>
-        <div className="flex justify-center gap-4">
-          <Link href="/choir/create" className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-3 rounded-xl shadow-lg">
-            Create a Choir
+
+        <div className="space-y-2">
+          <h1 className="text-3xl font-extrabold text-white">Welcome to Voxify Space</h1>
+          <p className="text-sm text-slate-400">
+            Hello <strong className="text-purple-300">{user?.full_name}</strong>! Enter a 5-character Choir Code from your Choir Master to join a choir, or create your own choir.
+          </p>
+        </div>
+
+        {/* Singer / Choir Member Join Form */}
+        <div className="bg-slate-900/90 border border-slate-800 p-6 md:p-8 rounded-3xl space-y-6 text-left shadow-2xl">
+          <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+            <KeyRound className="w-6 h-6 text-purple-400" />
+            <div>
+              <h2 className="text-lg font-bold text-white">Join a Choir as a Singer / Member</h2>
+              <p className="text-xs text-slate-400">Ask your Choir Director for the 5-character choir code (e.g. ABC12)</p>
+            </div>
+          </div>
+
+          <form onSubmit={handleJoinByCode} className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              required
+              maxLength={8}
+              value={joinCodeInput}
+              onChange={e => setJoinCodeInput(e.target.value.toUpperCase())}
+              placeholder="ENTER CHOIR CODE (e.g. ABC12)"
+              className="flex-1 bg-slate-950 border border-slate-800 rounded-2xl px-4 py-3.5 text-sm font-mono tracking-widest text-purple-300 font-bold uppercase focus:outline-none focus:border-purple-500"
+            />
+            <button
+              type="submit"
+              className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-6 py-3.5 rounded-2xl shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2 text-xs shrink-0"
+            >
+              Join Choir <ArrowRight className="w-4 h-4" />
+            </button>
+          </form>
+        </div>
+
+        {/* Choir Director Option */}
+        <div className="bg-slate-900/40 border border-slate-800/80 p-6 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
+          <div>
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Crown className="w-4 h-4 text-amber-400" /> Are you a Choir Director / Master?
+            </h3>
+            <p className="text-xs text-slate-400">Create and manage your own choir organization, upload audio parts, and schedule rehearsals.</p>
+          </div>
+          <Link
+            href="/choir/create"
+            className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-1.5 shrink-0 border border-slate-700"
+          >
+            <Plus className="w-4 h-4 text-purple-400" /> Create New Choir
           </Link>
         </div>
       </div>
@@ -109,7 +162,7 @@ export default function DashboardPage() {
           </div>
           <h1 className="text-3xl font-extrabold text-white">{activeChoir.name}</h1>
           <p className="text-sm text-slate-300">
-            Welcome back, <strong className="text-purple-300">{user?.full_name}</strong>! Prepare your voice parts for upcoming Sunday services.
+            Welcome back, <strong className="text-purple-300">{user?.full_name}</strong>! Practice your voice parts for upcoming choir rehearsals and services.
           </p>
         </div>
 
@@ -201,25 +254,27 @@ export default function DashboardPage() {
         </Link>
 
         <Link
-          href={isAdmin ? "/manage" : "/dashboard"}
+          href={isAdmin ? "/manage" : "/songs"}
           className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-emerald-500/50 hover:bg-slate-800/80 transition-all group cursor-pointer block"
         >
           <div className="flex items-center justify-between text-slate-400 group-hover:text-emerald-300">
-            <span className="text-xs font-semibold uppercase tracking-wider">Role</span>
+            <span className="text-xs font-semibold uppercase tracking-wider">Your Role</span>
             <Users className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
           </div>
-          <p className="text-2xl font-bold text-emerald-400 capitalize">{isAdmin ? 'Choir Leader' : 'Active Singer'}</p>
+          <p className="text-2xl font-bold text-emerald-400 capitalize">
+            {isAdmin ? 'Choir Master / Director' : 'Choir Singer / Member'}
+          </p>
           <p className="text-xs text-slate-500 group-hover:text-slate-400">
-            {isAdmin ? 'Access Choir Admin →' : 'Voice Part Readiness'}
+            {isAdmin ? 'Access Choir Admin →' : 'Practice Voice Parts →'}
           </p>
         </Link>
       </div>
 
-      {/* Featured Service Songs / Clickable Song Cards */}
+      {/* Featured Service Songs / Practice Section for Choir Members */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Volume2 className="w-5 h-5 text-purple-400" /> Songs to Prepare
+            <Volume2 className="w-5 h-5 text-purple-400" /> Songs to Practice
           </h2>
           <Link href="/songs" className="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1">
             View All Library <ArrowRight className="w-3.5 h-3.5" />
@@ -228,7 +283,7 @@ export default function DashboardPage() {
 
         {songs.length === 0 ? (
           <div className="bg-slate-900/40 p-8 rounded-3xl border border-slate-800 text-center space-y-3">
-            <p className="text-sm text-slate-400">No songs added to library yet.</p>
+            <p className="text-sm text-slate-400">No songs added to choir library yet.</p>
             {isAdmin && (
               <Link href="/manage/songs/new" className="inline-block bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">
                 + Upload First Song
