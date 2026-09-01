@@ -60,6 +60,16 @@ export default function DashboardPage() {
     );
   }
 
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const shareableLink = `${typeof window !== 'undefined' ? window.location.origin : 'https://voxify.space'}/join/${activeChoir.choir_code}`;
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(shareableLink);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  };
+
   return (
     <div className="space-y-8">
       {/* Active Choir Welcome & Code Banner */}
@@ -76,19 +86,32 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Choir Code Share Card */}
-        <div className="bg-slate-950/80 p-4 rounded-2xl border border-slate-800 flex items-center gap-4 shrink-0">
-          <div>
+        {/* Choir Code & Shareable Invitation Link Card */}
+        <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center gap-4 shrink-0">
+          <div className="text-center sm:text-left">
             <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Choir Code</span>
             <span className="text-xl font-black font-mono tracking-widest text-purple-400">{activeChoir.choir_code}</span>
           </div>
-          <button
-            onClick={copyCode}
-            className="p-2.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 rounded-xl transition-all"
-            title="Copy Code"
-          >
-            {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-          </button>
+
+          <div className="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-800 pt-3 sm:pt-0 sm:pl-4">
+            <button
+              onClick={copyCode}
+              className="p-2.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold"
+              title="Copy Choir Code"
+            >
+              {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              <span>{copiedCode ? 'Code Copied!' : 'Copy Code'}</span>
+            </button>
+
+            <button
+              onClick={copyLink}
+              className="p-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold"
+              title="Copy Shareable Join Link"
+            >
+              {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+              <span>{copiedLink ? 'Link Copied!' : 'Share Link'}</span>
+            </button>
+          </div>
         </div>
       </div>
 

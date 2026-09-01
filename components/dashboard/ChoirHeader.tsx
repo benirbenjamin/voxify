@@ -17,7 +17,7 @@ export const ChoirHeader: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         {/* Brand Logo & Active Choir Selector */}
         <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="flex items-center gap-3 group">
+          <Link href="/" className="flex items-center gap-3 group">
             <div className="relative w-9 h-9 rounded-xl bg-purple-600/20 p-1 border border-purple-500/30 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform">
               <Image
                 src="/logo.png"
