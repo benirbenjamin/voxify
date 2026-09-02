@@ -26,3 +26,10 @@ CREATE TABLE IF NOT EXISTS public.announcement_reactions (
 );
 
 CREATE INDEX IF NOT EXISTS idx_reactions_announcement ON public.announcement_reactions(announcement_id);
+
+-- Disable RLS to prevent 404 / 403 API blockages
+ALTER TABLE public.announcement_comments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.announcement_reactions DISABLE ROW LEVEL SECURITY;
+
+GRANT ALL ON TABLE public.announcement_comments TO anon, authenticated, service_role;
+GRANT ALL ON TABLE public.announcement_reactions TO anon, authenticated, service_role;

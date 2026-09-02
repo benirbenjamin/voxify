@@ -23,6 +23,7 @@ export async function POST() {
       'supabase/migrations/00001_initial_schema.sql',
       'supabase/migrations/00002_rls_policies.sql',
       'supabase/migrations/00003_storage_buckets.sql',
+      'supabase/migrations/00004_announcement_comments_reactions.sql',
       'supabase/seed.sql',
     ];
 
@@ -41,7 +42,7 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: 'All Supabase database tables, Row Level Security policies, storage buckets, and initial SaaS plans created successfully!',
+      message: 'All Supabase database tables, Row Level Security policies, storage buckets, announcement comments/reactions, and initial SaaS plans created successfully!',
       details: results,
     });
   } catch (error: any) {

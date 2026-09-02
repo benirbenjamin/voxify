@@ -10,9 +10,10 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
 dotenv.config({ path: path.join(rootDir, '.env.local') });
+dotenv.config({ path: path.join(rootDir, '.env') });
 
-const projRef = process.env.SUPABASE_PROJECT_REF || '';
-const pass = process.env.SUPABASE_DB_PASSWORD || '';
+const projRef = process.env.SUPABASE_PROJECT_REF || 'mdubljdeimlpntyzektn';
+const pass = process.env.SUPABASE_DB_PASSWORD || 'VoxifySpace2026!';
 
 // Supabase Pooler options testing with project=mdubljdeimlpntyzektn
 const poolerHosts = [
@@ -74,6 +75,7 @@ async function runTenantSetup() {
       'supabase/migrations/00001_initial_schema.sql',
       'supabase/migrations/00002_rls_policies.sql',
       'supabase/migrations/00003_storage_buckets.sql',
+      'supabase/migrations/00004_announcement_comments_reactions.sql',
       'supabase/seed.sql'
     ];
 
@@ -85,7 +87,7 @@ async function runTenantSetup() {
       console.log(`✅ Successfully executed: ${fileRelPath}`);
     }
 
-    console.log('\n🎉 ALL 20 TABLES, RLS POLICIES, STORAGE BUCKETS AND SAAS PLANS CREATED SUCCESSFULLY IN YOUR SUPABASE PROJECT!');
+    console.log('\n🎉 ALL TABLES, RLS POLICIES, STORAGE BUCKETS AND SAAS PLANS CREATED SUCCESSFULLY IN YOUR SUPABASE PROJECT!');
 
   } catch (err) {
     console.error('\n❌ Error executing SQL migrations:', err);
