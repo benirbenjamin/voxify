@@ -6,7 +6,8 @@ import { useChoir } from '@/lib/context/ChoirContext';
 import { choirService } from '@/lib/services/choirService';
 import { attendanceService, AttendanceStats } from '@/lib/services/attendanceService';
 import { songService } from '@/lib/services/songService';
-import { ChoirMember, Song } from '@/lib/types/database.types';
+import { eventService } from '@/lib/services/eventService';
+import { ChoirMember, Song, Event } from '@/lib/types/database.types';
 import {
   Users,
   Music,
@@ -27,13 +28,19 @@ import {
   Mail,
   Phone,
   Send,
-  Loader2
+  Loader2,
+  Edit3,
+  Trash2,
+  EyeOff,
+  Clock,
+  MapPin
 } from 'lucide-react';
 
 export default function ChoirAdminPage() {
   const { activeChoir, isAdmin } = useChoir();
   const [members, setMembers] = useState<ChoirMember[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
   const [stats, setStats] = useState<AttendanceStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
 
@@ -43,19 +50,24 @@ export default function ChoirAdminPage() {
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Event Action state
+  const [actionId, setActionId] = useState<string | null>(null);
+
   useEffect(() => {
     async function loadAdminData() {
       if (!activeChoir) return;
       setLoadingStats(true);
 
-      const [memberData, songData, attendanceStats] = await Promise.all([
+      const [memberData, songData, eventData, attendanceStats] = await Promise.all([
         choirService.getChoirMembers(activeChoir.id),
         songService.getChoirSongs(activeChoir.id),
+        eventService.getChoirEvents(activeChoir.id),
         attendanceService.getChoirAttendanceStats(activeChoir.id),
       ]);
 
       setMembers(memberData);
       setSongs(songData);
+      setEvents(eventData);
       setStats(attendanceStats);
       setLoadingStats(false);
     }
@@ -78,12 +90,44 @@ export default function ChoirAdminPage() {
   const pendingMembers = members.filter(m => m.status === 'pending');
   const activeMembers = members.filter(m => m.status === 'active');
 
+  const refreshEvents = async () => {
+    if (activeChoir) {
+      const data = await eventService.getChoirEvents(activeChoir.id);
+      setEvents(data);
+    }
+  };
+
   const handleUpdateStatus = async (memberId: string, status: 'active' | 'rejected' | 'suspended') => {
     await choirService.updateMemberStatus(memberId, status);
     if (activeChoir) {
       const updated = await choirService.getChoirMembers(activeChoir.id);
       setMembers(updated);
     }
+  };
+
+  const handlePublishEvent = async (eventId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActionId(eventId);
+    await eventService.publishEvent(eventId);
+    await refreshEvents();
+    setActionId(null);
+  };
+
+  const handleUnpublishEvent = async (eventId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActionId(eventId);
+    await eventService.unpublishEvent(eventId);
+    await refreshEvents();
+    setActionId(null);
+  };
+
+  const handleDeleteEvent = async (eventId: string, eventTitle: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm(`Are you sure you want to delete event "${eventTitle}"?`)) return;
+    setActionId(eventId);
+    await eventService.deleteEvent(eventId);
+    await refreshEvents();
+    setActionId(null);
   };
 
   const handleSendInvite = async (e: React.FormEvent) => {
@@ -99,51 +143,52 @@ export default function ChoirAdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ choirId: activeChoir.id, email: inviteEmail.trim() }),
       });
-
       const data = await res.json();
-      setInviting(false);
-
-      if (res.ok && data.success) {
-        setInviteMsg({ type: 'success', text: data.message || `Invitation sent to ${inviteEmail}!` });
+      if (data.success) {
+        setInviteMsg({ type: 'success', text: `Invitation sent to ${inviteEmail}!` });
         setInviteEmail('');
       } else {
-        setInviteMsg({ type: 'error', text: data.error || 'Failed to send invitation email.' });
+        setInviteMsg({ type: 'error', text: data.error || 'Failed to send invite.' });
       }
-    } catch {
-      setInviting(false);
-      setInviteMsg({ type: 'error', text: 'Network error sending invitation.' });
+    } catch (err) {
+      setInviteMsg({ type: 'error', text: 'Server error sending email invitation.' });
     }
+    setInviting(false);
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-7xl mx-auto py-4">
       {/* Universal Back Button */}
       <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back to Dashboard
       </Link>
 
-      {/* Header Bar */}
+      {/* Choir Admin Control Center Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
-          <h1 className="text-3xl font-extrabold text-white">Choir Master Administration</h1>
-          <p className="text-sm text-slate-400">Manage members, view attendance stats, upload songs, and schedule rehearsals for {activeChoir?.name}</p>
+          <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
+            <ShieldCheck className="w-8 h-8 text-purple-400" /> Choir Master Control Center
+          </h1>
+          <p className="text-sm text-slate-400">
+            Manage <span className="text-purple-300 font-bold">{activeChoir?.name}</span> • Roster, Invitations, Sunday Services &amp; Attendance Analytics
+          </p>
         </div>
 
         <button
           onClick={() => setInviteModalOpen(true)}
-          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all self-start sm:self-auto"
+          className="bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all self-start sm:self-auto"
         >
           <Mail className="w-4 h-4" /> Invite Singer by Email
         </button>
       </div>
 
-      {/* Invite Singer Modal */}
+      {/* Email Invitation Modal */}
       {inviteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in">
           <div className="w-full max-w-md bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Mail className="w-5 h-5 text-purple-400" /> Invite Singer to {activeChoir?.name}
+                <Mail className="w-5 h-5 text-purple-400" /> Invite Singer to Choir
               </h3>
               <button
                 onClick={() => { setInviteModalOpen(false); setInviteMsg(null); }}
@@ -153,12 +198,10 @@ export default function ChoirAdminPage() {
               </button>
             </div>
 
-            <p className="text-xs text-slate-400">
-              Enter the singer&apos;s email address. We will send an email invitation with the choir join code <strong className="font-mono text-purple-400">{activeChoir?.choir_code}</strong> and a direct join link.
-            </p>
-
             {inviteMsg && (
-              <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${inviteMsg.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'}`}>
+              <div className={`p-3.5 rounded-2xl text-xs flex items-center gap-2 ${
+                inviteMsg.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'
+              }`}>
                 {inviteMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> : <XCircle className="w-4 h-4 text-rose-400 shrink-0" />}
                 <span>{inviteMsg.text}</span>
               </div>
@@ -166,15 +209,16 @@ export default function ChoirAdminPage() {
 
             <form onSubmit={handleSendInvite} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Singer Email Address</label>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Singer Email Address *</label>
                 <input
                   type="email"
                   required
+                  placeholder="singer@example.com"
                   value={inviteEmail}
                   onChange={e => setInviteEmail(e.target.value)}
-                  placeholder="singer@example.com"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-purple-500"
                 />
+                <p className="text-[11px] text-slate-500 mt-1">The singer will receive an instant invitation email with choir join instructions.</p>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
@@ -316,6 +360,109 @@ export default function ChoirAdminPage() {
           <h3 className="font-bold text-white">Choir Settings</h3>
           <p className="text-xs text-slate-400">Configure auto-approve, downloads &amp; notifications</p>
         </Link>
+      </div>
+
+      {/* Clickable Events Management Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-indigo-400" /> Manage Choir Events &amp; Services ({events.length})
+          </h2>
+          <Link
+            href="/events"
+            className="text-xs font-semibold text-indigo-400 hover:underline flex items-center gap-1"
+          >
+            View Full Calendar →
+          </Link>
+        </div>
+
+        {events.length === 0 ? (
+          <div className="bg-slate-900/40 p-8 rounded-3xl border border-slate-800 text-center space-y-2">
+            <p className="text-xs text-slate-400">No events scheduled yet for this choir.</p>
+            <Link href="/manage/events/new" className="inline-block text-xs text-indigo-400 font-bold hover:underline">
+              + Schedule First Event
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {events.map(ev => (
+              <div
+                key={ev.id}
+                className="bg-slate-900/90 p-5 rounded-3xl border border-slate-800 hover:border-indigo-500/40 transition-all space-y-4 group relative"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <Link href="/events" className="space-y-1 block flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
+                        ev.status === 'published'
+                          ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/40'
+                          : ev.status === 'ended'
+                          ? 'bg-slate-800 text-slate-400'
+                          : 'bg-amber-950 text-amber-300 border border-amber-800/40'
+                      }`}>
+                        {ev.status === 'ended' ? '🔚 Ended' : ev.status}
+                      </span>
+                      <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-indigo-400" /> {ev.event_date} ({ev.start_time})
+                      </span>
+                    </div>
+
+                    <h4 className="text-base font-bold text-white group-hover:text-indigo-300 transition-colors">
+                      {ev.title}
+                    </h4>
+
+                    {ev.location && (
+                      <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-rose-400" /> {ev.location}
+                      </p>
+                    )}
+                  </Link>
+
+                  {/* Card Controls */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {ev.status === 'draft' && (
+                      <button
+                        onClick={(e) => handlePublishEvent(ev.id, e)}
+                        disabled={actionId === ev.id}
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] px-2.5 py-1.5 rounded-xl shadow-md transition-all flex items-center gap-1"
+                        title="Publish to Singers"
+                      >
+                        <Send className="w-3 h-3" /> Publish
+                      </button>
+                    )}
+
+                    {ev.status === 'published' && (
+                      <button
+                        onClick={(e) => handleUnpublishEvent(ev.id, e)}
+                        disabled={actionId === ev.id}
+                        className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-[11px] px-2.5 py-1.5 rounded-xl shadow-md transition-all flex items-center gap-1"
+                        title="Unpublish Event"
+                      >
+                        <EyeOff className="w-3 h-3" /> Unpublish
+                      </button>
+                    )}
+
+                    <Link
+                      href="/events"
+                      className="bg-slate-800 hover:bg-slate-700 text-indigo-300 font-semibold text-[11px] px-2.5 py-1.5 rounded-xl border border-slate-700 transition-all flex items-center gap-1"
+                      title="Edit Event"
+                    >
+                      <Edit3 className="w-3 h-3" /> Edit
+                    </Link>
+
+                    <button
+                      onClick={(e) => handleDeleteEvent(ev.id, ev.title, e)}
+                      className="p-1.5 text-slate-400 hover:text-rose-400 transition-colors"
+                      title="Delete Event"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Pending Approval Requests Section */}

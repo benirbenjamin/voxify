@@ -60,7 +60,8 @@ export default function EventsPage() {
     }
   };
 
-  const handlePublishEvent = async (eventId: string) => {
+  const handlePublishEvent = async (eventId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     setActionId(eventId);
     const ok = await eventService.publishEvent(eventId);
     if (ok) {
@@ -72,7 +73,8 @@ export default function EventsPage() {
     setActionId(null);
   };
 
-  const handleUnpublishEvent = async (eventId: string) => {
+  const handleUnpublishEvent = async (eventId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     setActionId(eventId);
     const ok = await eventService.unpublishEvent(eventId);
     if (ok) {
@@ -84,7 +86,8 @@ export default function EventsPage() {
     setActionId(null);
   };
 
-  const handleDeleteEvent = async (eventId: string, eventTitle: string) => {
+  const handleDeleteEvent = async (eventId: string, eventTitle: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!confirm(`Are you sure you want to delete event "${eventTitle}"?`)) return;
     setActionId(eventId);
     const ok = await eventService.deleteEvent(eventId);
@@ -146,7 +149,7 @@ export default function EventsPage() {
           <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
             <Calendar className="w-8 h-8 text-indigo-400" /> Worship Services &amp; Rehearsals
           </h1>
-          <p className="text-sm text-slate-400">Manage upcoming Sunday worship services, rehearsal schedules, and song assignments</p>
+          <p className="text-sm text-slate-400">Click any event card to edit details, unpublish, publish or manage worship song assignments</p>
         </div>
 
         {(isAdmin || user?.is_super_admin) && (
@@ -304,9 +307,13 @@ export default function EventsPage() {
             const isPast = ev.status === 'ended';
 
             return (
-              <div key={ev.id} className={`bg-slate-900/80 p-6 md:p-8 rounded-3xl border transition-all space-y-6 ${
-                isPast ? 'border-slate-800/60 opacity-85' : 'border-slate-800 hover:border-indigo-500/40'
-              }`}>
+              <div
+                key={ev.id}
+                onClick={() => (isAdmin || user?.is_super_admin) && openEditModal(ev)}
+                className={`bg-slate-900/80 p-6 md:p-8 rounded-3xl border transition-all space-y-6 group cursor-pointer ${
+                  isPast ? 'border-slate-800/60 opacity-85 hover:border-slate-700' : 'border-slate-800 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5'
+                }`}
+              >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/60 pb-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -326,7 +333,14 @@ export default function EventsPage() {
                       </span>
                     </div>
 
-                    <h3 className="text-2xl font-extrabold text-white">{ev.title}</h3>
+                    <h3 className="text-2xl font-extrabold text-white group-hover:text-indigo-300 transition-colors flex items-center gap-2">
+                      {ev.title}
+                      {(isAdmin || user?.is_super_admin) && (
+                        <span className="text-[10px] font-semibold text-slate-500 group-hover:text-indigo-400 transition-colors">
+                          (Click card to Edit)
+                        </span>
+                      )}
+                    </h3>
 
                     {ev.location && (
                       <p className="text-xs text-slate-400 flex items-center gap-1">
@@ -346,7 +360,7 @@ export default function EventsPage() {
                       <div className="flex items-center gap-2">
                         {ev.status === 'draft' && (
                           <button
-                            onClick={() => handlePublishEvent(ev.id)}
+                            onClick={(e) => handlePublishEvent(ev.id, e)}
                             disabled={actionId === ev.id}
                             className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-2 rounded-xl shadow-md transition-all flex items-center gap-1"
                             title="Publish Event to Singers"
@@ -357,7 +371,7 @@ export default function EventsPage() {
 
                         {ev.status === 'published' && (
                           <button
-                            onClick={() => handleUnpublishEvent(ev.id)}
+                            onClick={(e) => handleUnpublishEvent(ev.id, e)}
                             disabled={actionId === ev.id}
                             className="bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs px-3 py-2 rounded-xl shadow-md transition-all flex items-center gap-1"
                             title="Unpublish Event (Move to Draft)"
@@ -367,7 +381,7 @@ export default function EventsPage() {
                         )}
 
                         <button
-                          onClick={() => openEditModal(ev)}
+                          onClick={(e) => { e.stopPropagation(); openEditModal(ev); }}
                           className="bg-slate-800 hover:bg-slate-700 text-indigo-300 font-semibold text-xs px-3 py-2 rounded-xl border border-slate-700 transition-all flex items-center gap-1"
                           title="Edit Event Details"
                         >
@@ -375,7 +389,7 @@ export default function EventsPage() {
                         </button>
 
                         <button
-                          onClick={() => handleDeleteEvent(ev.id, ev.title)}
+                          onClick={(e) => handleDeleteEvent(ev.id, ev.title, e)}
                           className="p-2 text-slate-400 hover:text-rose-400 transition-colors"
                           title="Delete Event"
                         >
@@ -391,7 +405,7 @@ export default function EventsPage() {
                 )}
 
                 {/* Assigned Songs for this Event */}
-                <div className="space-y-3">
+                <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
                   <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
                     <Music className="w-4 h-4 text-purple-400" /> Assigned Songs for Worship
                   </h4>
@@ -404,13 +418,13 @@ export default function EventsPage() {
                         <Link
                           key={asg.id}
                           href={asg.song ? `/songs/${asg.song.id}` : '#'}
-                          className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-4 hover:border-purple-500/40 transition-all group"
+                          className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-4 hover:border-purple-500/40 transition-all group/song"
                         >
                           <div className="space-y-0.5">
                             <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider">
                               Track #{asg.order_index} • {asg.song?.category || 'Worship'}
                             </span>
-                            <h5 className="font-bold text-white group-hover:text-purple-300 transition-colors">
+                            <h5 className="font-bold text-white group-hover/song:text-purple-300 transition-colors">
                               {asg.song?.title || 'Assigned Song'}
                             </h5>
                           </div>
