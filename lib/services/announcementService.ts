@@ -2,21 +2,43 @@ import { createClient } from '../supabase/client';
 import { Announcement, AnnouncementComment, NotificationPriority } from '../types/database.types';
 import { notificationService } from './notificationService';
 
-// Fallback helper when database tables announcement_comments or announcement_reactions do not exist yet (404)
-function parseMetadataJson(ann: any): { comments: AnnouncementComment[]; reactions: { user_id: string; reaction_type: string }[] } {
-  try {
-    if (ann.attachment_url && ann.attachment_url.startsWith('__VOXIFY_META__:')) {
-      const jsonStr = ann.attachment_url.replace('__VOXIFY_META__:', '');
-      return JSON.parse(jsonStr);
-    }
-  } catch (e) {
-    // ignore parse error
+// Metadata helper to parse comments and reactions embedded in announcement's attachment_url field
+function parseMetadata(ann: any): {
+  realAttachment: string | null;
+  comments: AnnouncementComment[];
+  reactions: { user_id: string; reaction_type: string }[];
+} {
+  let realAttachment: string | null = null;
+  let comments: AnnouncementComment[] = [];
+  let reactions: { user_id: string; reaction_type: string }[] = [];
+
+  if (!ann || !ann.attachment_url) {
+    return { realAttachment, comments, reactions };
   }
-  return { comments: [], reactions: [] };
+
+  const str = ann.attachment_url;
+  if (str.startsWith('__META_V2__:')) {
+    try {
+      const parsed = JSON.parse(str.replace('__META_V2__:', ''));
+      realAttachment = parsed.realAttachment || null;
+      comments = parsed.comments || [];
+      reactions = parsed.reactions || [];
+    } catch (e) {
+      // ignore
+    }
+  } else if (!str.startsWith('__VOXIFY_META__:')) {
+    realAttachment = str;
+  }
+
+  return { realAttachment, comments, reactions };
 }
 
-function stringifyMetadataJson(meta: { comments: AnnouncementComment[]; reactions: { user_id: string; reaction_type: string }[] }): string {
-  return '__VOXIFY_META__:' + JSON.stringify(meta);
+function stringifyMetadata(meta: {
+  realAttachment: string | null;
+  comments: AnnouncementComment[];
+  reactions: { user_id: string; reaction_type: string }[];
+}): string {
+  return '__META_V2__:' + JSON.stringify(meta);
 }
 
 export const announcementService = {
@@ -34,43 +56,20 @@ export const announcementService = {
 
     const announcements = data as Announcement[];
 
-    // Fetch comment counts and user reactions for each announcement
-    const enriched = await Promise.all(announcements.map(async ann => {
-      let commentsCount = 0;
-      let reactionsList: { user_id: string; reaction_type: string }[] = [];
-
-      // 1. Try fetching from dedicated DB tables first
-      const [{ data: dbComments, error: commentsErr }, { data: dbReactions, error: reactionsErr }] = await Promise.all([
-        supabase.from('announcement_comments').select('*', { count: 'exact' }).eq('announcement_id', ann.id),
-        supabase.from('announcement_reactions').select('reaction_type, user_id').eq('announcement_id', ann.id),
-      ]);
-
-      if (!commentsErr && dbComments) {
-        commentsCount = dbComments.length;
-      } else {
-        // Fallback to metadata JSON
-        const meta = parseMetadataJson(ann);
-        commentsCount = meta.comments.length;
-      }
-
-      if (!reactionsErr && dbReactions) {
-        reactionsList = dbReactions as any[];
-      } else {
-        const meta = parseMetadataJson(ann);
-        reactionsList = meta.reactions;
-      }
-
-      const userReactions = reactionsList.filter(r => r.user_id === user?.id).map(r => r.reaction_type);
+    return announcements.map(ann => {
+      const meta = parseMetadata(ann);
+      const userReactions = meta.reactions
+        .filter(r => r.user_id === user?.id)
+        .map(r => r.reaction_type);
 
       return {
         ...ann,
-        comments_count: commentsCount,
-        reactions_count: reactionsList.length,
+        attachment_url: meta.realAttachment,
+        comments_count: meta.comments.length,
+        reactions_count: meta.reactions.length,
         user_reactions: userReactions,
       };
-    }));
-
-    return enriched;
+    });
   },
 
   async createAnnouncement(payload: {
@@ -80,15 +79,28 @@ export const announcementService = {
     priority?: NotificationPriority;
     target_scope?: 'all' | 'section';
     target_section_id?: string;
+    attachment_url?: string;
   }): Promise<Announcement | null> {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
+    const initialMeta = stringifyMetadata({
+      realAttachment: payload.attachment_url || null,
+      comments: [],
+      reactions: [],
+    });
+
     const { data, error } = await supabase
       .from('announcements')
       .insert({
-        ...payload,
+        choir_id: payload.choir_id,
+        title: payload.title,
+        content: payload.content,
+        priority: payload.priority || 'normal',
+        target_scope: payload.target_scope || 'all',
+        target_section_id: payload.target_section_id || null,
+        attachment_url: initialMeta,
         created_by: user.id,
       })
       .select()
@@ -121,31 +133,15 @@ export const announcementService = {
 
   async getAnnouncementComments(announcementId: string): Promise<AnnouncementComment[]> {
     const supabase = createClient();
-
-    // 1. Try DB table first
-    const { data, error } = await supabase
-      .from('announcement_comments')
-      .select('*, user_profile:profiles(*)')
-      .eq('announcement_id', announcementId)
-      .order('created_at', { ascending: true });
-
-    if (!error && data) {
-      return data as AnnouncementComment[];
-    }
-
-    // 2. Fallback to reading metadata from announcements row
     const { data: ann } = await supabase
       .from('announcements')
       .select('attachment_url')
       .eq('id', announcementId)
       .single();
 
-    if (ann) {
-      const meta = parseMetadataJson(ann);
-      return meta.comments;
-    }
-
-    return [];
+    if (!ann) return [];
+    const meta = parseMetadata(ann);
+    return meta.comments;
   },
 
   async addComment(announcementId: string, content: string): Promise<AnnouncementComment | null> {
@@ -153,7 +149,7 @@ export const announcementService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user || !content.trim()) return null;
 
-    // Fetch user profile
+    // Fetch profile of commenting user
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
@@ -162,31 +158,19 @@ export const announcementService = {
 
     const userProfile = profile || {
       id: user.id,
-      full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Singer',
+      full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Choir Member',
       email: user.email!,
     };
 
-    // 1. Try DB table first
-    const { data, error } = await supabase
-      .from('announcement_comments')
-      .insert({
-        announcement_id: announcementId,
-        user_id: user.id,
-        content: content.trim(),
-      })
-      .select('*, user_profile:profiles(*)')
-      .single();
-
-    if (!error && data) {
-      return data as AnnouncementComment;
-    }
-
-    // 2. Fallback to storing in announcements row metadata JSON
     const { data: ann } = await supabase
       .from('announcements')
       .select('attachment_url')
       .eq('id', announcementId)
       .single();
+
+    if (!ann) return null;
+
+    const meta = parseMetadata(ann);
 
     const newComment: AnnouncementComment = {
       id: Math.random().toString(36).substring(2, 11),
@@ -198,16 +182,15 @@ export const announcementService = {
       user_profile: userProfile as any,
     };
 
-    if (ann) {
-      const meta = parseMetadataJson(ann);
-      meta.comments.push(newComment);
-      const newMetaUrl = stringifyMetadataJson(meta);
+    meta.comments.push(newComment);
+    const updatedMeta = stringifyMetadata(meta);
 
-      await supabase
-        .from('announcements')
-        .update({ attachment_url: newMetaUrl })
-        .eq('id', announcementId);
-    }
+    const { error } = await supabase
+      .from('announcements')
+      .update({ attachment_url: updatedMeta })
+      .eq('id', announcementId);
+
+    if (error) return null;
 
     return newComment;
   },
@@ -215,15 +198,27 @@ export const announcementService = {
   async deleteComment(commentId: string): Promise<boolean> {
     const supabase = createClient();
 
-    // 1. Try DB table
-    const { error } = await supabase
-      .from('announcement_comments')
-      .delete()
-      .eq('id', commentId);
+    // Fetch all announcements to find and remove the target comment
+    const { data: list } = await supabase
+      .from('announcements')
+      .select('id, attachment_url');
 
-    if (!error) return true;
+    if (!list) return false;
 
-    // 2. Fallback check for metadata deletion across announcements
+    for (const ann of list) {
+      const meta = parseMetadata(ann);
+      const commentIdx = meta.comments.findIndex(c => c.id === commentId);
+      if (commentIdx >= 0) {
+        meta.comments.splice(commentIdx, 1);
+        const updatedMeta = stringifyMetadata(meta);
+        await supabase
+          .from('announcements')
+          .update({ attachment_url: updatedMeta })
+          .eq('id', ann.id);
+        return true;
+      }
+    }
+
     return true;
   },
 
@@ -232,51 +227,32 @@ export const announcementService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return false;
 
-    // 1. Try DB table first
-    const { data: existing, error: findErr } = await supabase
-      .from('announcement_reactions')
-      .select('id')
-      .eq('announcement_id', announcementId)
-      .eq('user_id', user.id)
-      .eq('reaction_type', reactionType)
-      .maybeSingle();
-
-    if (!findErr) {
-      if (existing) {
-        await supabase.from('announcement_reactions').delete().eq('id', existing.id);
-      } else {
-        await supabase.from('announcement_reactions').insert({
-          announcement_id: announcementId,
-          user_id: user.id,
-          reaction_type: reactionType,
-        });
-      }
-      return true;
-    }
-
-    // 2. Fallback to metadata JSON in announcements table
     const { data: ann } = await supabase
       .from('announcements')
       .select('attachment_url')
       .eq('id', announcementId)
       .single();
 
-    if (ann) {
-      const meta = parseMetadataJson(ann);
-      const idx = meta.reactions.findIndex(r => r.user_id === user.id && r.reaction_type === reactionType);
-      if (idx >= 0) {
-        meta.reactions.splice(idx, 1);
-      } else {
-        meta.reactions.push({ user_id: user.id, reaction_type: reactionType });
-      }
+    if (!ann) return false;
 
-      const newMetaUrl = stringifyMetadataJson(meta);
-      await supabase
-        .from('announcements')
-        .update({ attachment_url: newMetaUrl })
-        .eq('id', announcementId);
+    const meta = parseMetadata(ann);
+    const existingIdx = meta.reactions.findIndex(
+      r => r.user_id === user.id && r.reaction_type === reactionType
+    );
+
+    if (existingIdx >= 0) {
+      meta.reactions.splice(existingIdx, 1);
+    } else {
+      meta.reactions.push({ user_id: user.id, reaction_type: reactionType });
     }
 
-    return true;
+    const updatedMeta = stringifyMetadata(meta);
+
+    const { error } = await supabase
+      .from('announcements')
+      .update({ attachment_url: updatedMeta })
+      .eq('id', announcementId);
+
+    return !error;
   }
 };
