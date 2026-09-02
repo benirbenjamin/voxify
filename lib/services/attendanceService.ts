@@ -81,6 +81,18 @@ export const attendanceService = {
     return (data as AttendanceRecord[]) || [];
   },
 
+  async getMemberAttendanceHistory(memberId: string): Promise<any[]> {
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from('attendance')
+      .select('*, rehearsal:rehearsals(*), event:events(*)')
+      .eq('member_id', memberId)
+      .order('recorded_at', { ascending: false });
+
+    if (error || !data) return [];
+    return data;
+  },
+
   async getChoirAttendanceStats(choirId: string): Promise<AttendanceStats> {
     const supabase = createClient();
 

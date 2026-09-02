@@ -21,7 +21,9 @@ import {
   Percent,
   UserCheck,
   UserX,
-  Clock3
+  Clock3,
+  ArrowLeft,
+  BarChart3
 } from 'lucide-react';
 
 export default function ChoirAdminPage() {
@@ -56,6 +58,9 @@ export default function ChoirAdminPage() {
         <ShieldCheck className="w-12 h-12 text-rose-500 mx-auto" />
         <h2 className="text-xl font-bold text-white">Access Restricted</h2>
         <p className="text-xs">You must be a Choir Owner or Administrator to access this area.</p>
+        <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs text-purple-400 hover:underline pt-2 font-semibold">
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        </Link>
       </div>
     );
   }
@@ -73,6 +78,11 @@ export default function ChoirAdminPage() {
 
   return (
     <div className="space-y-8">
+      {/* Universal Back Button */}
+      <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
+        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+      </Link>
+
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
         <div>
@@ -141,7 +151,7 @@ export default function ChoirAdminPage() {
             <p className="text-[11px] text-slate-400">Multi-track voice parts uploaded →</p>
           </Link>
 
-          {/* Clickable Attendance Breakdown (Present / Absent) Card */}
+          {/* Clickable Attendance Breakdown Card */}
           <Link
             href="/manage/attendance"
             className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-amber-500/50 hover:scale-[1.01] transition-all cursor-pointer block group"
@@ -209,10 +219,10 @@ export default function ChoirAdminPage() {
           <div className="space-y-3">
             {pendingMembers.map(m => (
               <div key={m.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-4">
-                <div>
+                <Link href={`/manage/members/${m.id}`} className="hover:underline">
                   <h4 className="font-bold text-white">{m.profile?.full_name || 'New Member'}</h4>
                   <p className="text-xs text-slate-400">{m.profile?.email}</p>
-                </div>
+                </Link>
 
                 <div className="flex items-center gap-2">
                   <button
@@ -234,27 +244,32 @@ export default function ChoirAdminPage() {
         </div>
       )}
 
-      {/* Active Choir Roster */}
+      {/* Clickable Active Choir Roster */}
       <div id="roster-section" className="bg-slate-900/60 p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Active Choir Roster ({activeMembers.length})</h2>
+          <h2 className="text-xl font-bold text-white">Active Choir Roster ({activeMembers.length} Singers)</h2>
+          <span className="text-xs text-purple-400 font-semibold">Click any singer to view individual attendance &amp; song analytics →</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-300">
             <thead className="text-xs uppercase bg-slate-950 text-slate-400 font-semibold">
               <tr>
-                <th className="p-4 rounded-l-xl">Member Name</th>
+                <th className="p-4 rounded-l-xl">Singer Name</th>
                 <th className="p-4">Email</th>
                 <th className="p-4">Role</th>
                 <th className="p-4">Status</th>
-                <th className="p-4 rounded-r-xl">Actions</th>
+                <th className="p-4 rounded-r-xl">Analytics &amp; Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {activeMembers.map(m => (
-                <tr key={m.id} className="hover:bg-slate-800/40">
-                  <td className="p-4 font-semibold text-white">{m.profile?.full_name}</td>
+                <tr key={m.id} className="hover:bg-slate-800/60 transition-colors group">
+                  <td className="p-4 font-semibold text-white">
+                    <Link href={`/manage/members/${m.id}`} className="group-hover:text-purple-300 font-bold hover:underline flex items-center gap-2">
+                      {m.profile?.full_name}
+                    </Link>
+                  </td>
                   <td className="p-4 text-xs text-slate-400">{m.profile?.email}</td>
                   <td className="p-4">
                     <span className="text-xs px-2.5 py-1 rounded-md font-semibold uppercase bg-purple-950/60 text-purple-300 border border-purple-800/40">
@@ -263,14 +278,23 @@ export default function ChoirAdminPage() {
                   </td>
                   <td className="p-4 text-xs text-emerald-400 font-semibold capitalize">{m.status}</td>
                   <td className="p-4">
-                    {m.role !== 'owner' && (
-                      <button
-                        onClick={() => handleUpdateStatus(m.id, 'suspended')}
-                        className="text-xs text-rose-400 hover:underline flex items-center gap-1"
+                    <div className="flex items-center gap-3">
+                      <Link
+                        href={`/manage/members/${m.id}`}
+                        className="text-xs font-semibold text-purple-400 hover:text-purple-300 bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/40 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shrink-0"
                       >
-                        <Ban className="w-3.5 h-3.5" /> Suspend
-                      </button>
-                    )}
+                        <BarChart3 className="w-3.5 h-3.5" /> View Analytics
+                      </Link>
+
+                      {m.role !== 'owner' && (
+                        <button
+                          onClick={() => handleUpdateStatus(m.id, 'suspended')}
+                          className="text-xs text-rose-400 hover:underline flex items-center gap-1"
+                        >
+                          <Ban className="w-3.5 h-3.5" /> Suspend
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
