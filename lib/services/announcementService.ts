@@ -1,5 +1,6 @@
 import { createClient } from '../supabase/client';
 import { Announcement, NotificationPriority } from '../types/database.types';
+import { notificationService } from './notificationService';
 
 export const announcementService = {
   async getAnnouncements(choirId: string): Promise<Announcement[]> {
@@ -35,6 +36,17 @@ export const announcementService = {
       .single();
 
     if (error || !data) return null;
+
+    // Trigger notification to all choir members
+    await notificationService.sendNotificationToChoir(
+      payload.choir_id,
+      `Announcement: ${payload.title}`,
+      payload.content.slice(0, 140),
+      'announcement',
+      '/announcements',
+      payload.priority || 'normal'
+    );
+
     return data as Announcement;
   }
 };

@@ -1,5 +1,6 @@
 import { createClient } from '../supabase/client';
 import { Event, EventSongAssignment } from '../types/database.types';
+import { notificationService } from './notificationService';
 
 export const eventService = {
   async getChoirEvents(choirId: string): Promise<Event[]> {
@@ -39,6 +40,15 @@ export const eventService = {
     if (error || !data) {
       return { event: null, error: error?.message || 'Failed to create event' };
     }
+
+    // Trigger notification to all choir members
+    await notificationService.sendNotificationToChoir(
+      payload.choir_id,
+      `New Event: ${payload.title}`,
+      `Scheduled for ${payload.event_date} at ${payload.start_time}`,
+      'event',
+      '/events'
+    );
 
     return { event: data as Event, error: null };
   },

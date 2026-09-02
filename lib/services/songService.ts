@@ -1,5 +1,6 @@
 import { createClient } from '../supabase/client';
 import { Song, SongPart, LearningStatus } from '../types/database.types';
+import { notificationService } from './notificationService';
 
 export const songService = {
   async getChoirSongs(choirId: string, search = '', category = ''): Promise<Song[]> {
@@ -60,6 +61,15 @@ export const songService = {
     if (error || !data) {
       return { song: null, error: error?.message || 'Failed to create song' };
     }
+
+    // Trigger notification to all choir members
+    await notificationService.sendNotificationToChoir(
+      payload.choir_id,
+      `New Song Added: ${payload.title}`,
+      `New song "${payload.title}" has been uploaded to your choir music library.`,
+      'song',
+      `/songs/${data.id}`
+    );
 
     return { song: data as Song, error: null };
   },

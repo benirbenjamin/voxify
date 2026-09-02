@@ -1,6 +1,16 @@
 import { createClient } from '../supabase/client';
 import { Rehearsal, AttendanceRecord, AttendanceStatus } from '../types/database.types';
 
+export interface AttendanceStats {
+  rehearsalsCount: number;
+  totalRecords: number;
+  presentCount: number;
+  absentCount: number;
+  lateCount: number;
+  excusedCount: number;
+  attendancePercentage: number;
+}
+
 export const attendanceService = {
   async getRehearsals(choirId: string): Promise<Rehearsal[]> {
     const supabase = createClient();
@@ -69,5 +79,62 @@ export const attendanceService = {
       .eq('rehearsal_id', rehearsalId);
 
     return (data as AttendanceRecord[]) || [];
+  },
+
+  async getChoirAttendanceStats(choirId: string): Promise<AttendanceStats> {
+    const supabase = createClient();
+
+    // Fetch all rehearsals for choir
+    const { data: rehearsals } = await supabase
+      .from('rehearsals')
+      .select('id')
+      .eq('choir_id', choirId);
+
+    const rehearsalIds = (rehearsals || []).map(r => r.id);
+    const rehearsalsCount = rehearsalIds.length;
+
+    if (rehearsalIds.length === 0) {
+      return {
+        rehearsalsCount: 0,
+        totalRecords: 0,
+        presentCount: 0,
+        absentCount: 0,
+        lateCount: 0,
+        excusedCount: 0,
+        attendancePercentage: 100,
+      };
+    }
+
+    // Fetch all attendance records for these rehearsals
+    const { data: records } = await supabase
+      .from('attendance')
+      .select('status')
+      .in('rehearsal_id', rehearsalIds);
+
+    const totalRecords = records?.length || 0;
+    let presentCount = 0;
+    let absentCount = 0;
+    let lateCount = 0;
+    let excusedCount = 0;
+
+    (records || []).forEach(r => {
+      if (r.status === 'present') presentCount++;
+      else if (r.status === 'absent') absentCount++;
+      else if (r.status === 'late') lateCount++;
+      else if (r.status === 'excused') excusedCount++;
+    });
+
+    const attended = presentCount + lateCount + excusedCount;
+    const attendancePercentage = totalRecords > 0 ? Math.round((attended / totalRecords) * 100) : 100;
+
+    return {
+      rehearsalsCount,
+      totalRecords,
+      presentCount,
+      absentCount,
+      lateCount,
+      excusedCount,
+      attendancePercentage,
+    };
   }
 };
