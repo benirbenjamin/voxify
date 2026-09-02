@@ -88,11 +88,14 @@ export default function ChoirAdminPage() {
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Attendance % Metric Card */}
-          <div className="bg-gradient-to-br from-emerald-950/40 to-slate-900 p-6 rounded-3xl border border-emerald-500/30 space-y-2 relative overflow-hidden">
+          {/* Clickable Attendance % Metric Card */}
+          <Link
+            href="/manage/attendance"
+            className="bg-gradient-to-br from-emerald-950/40 to-slate-900 p-6 rounded-3xl border border-emerald-500/30 space-y-2 relative overflow-hidden hover:border-emerald-400 hover:scale-[1.01] transition-all cursor-pointer block group"
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Attendance Rate</span>
-              <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+              <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 group-hover:scale-105">
                 <Percent className="w-4 h-4" />
               </div>
             </div>
@@ -105,38 +108,47 @@ export default function ChoirAdminPage() {
                 style={{ width: `${stats?.attendancePercentage || 100}%` }}
               />
             </div>
-            <p className="text-[11px] text-slate-400">Based on {stats?.rehearsalsCount || 0} rehearsal sessions</p>
-          </div>
+            <p className="text-[11px] text-slate-400">Based on {stats?.rehearsalsCount || 0} rehearsal sessions →</p>
+          </Link>
 
-          {/* Active Members Metric Card */}
-          <div className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2">
+          {/* Clickable Active Members Metric Card */}
+          <a
+            href="#roster-section"
+            className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-purple-500/50 hover:scale-[1.01] transition-all cursor-pointer block group"
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">Active Singers</span>
-              <div className="w-9 h-9 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center border border-purple-500/30">
+              <div className="w-9 h-9 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center border border-purple-500/30 group-hover:scale-105">
                 <UserCheck className="w-4 h-4" />
               </div>
             </div>
             <div className="text-3xl font-extrabold text-white">{activeMembers.length}</div>
-            <p className="text-[11px] text-slate-400">{pendingMembers.length} pending join request(s)</p>
-          </div>
+            <p className="text-[11px] text-slate-400">{pendingMembers.length} pending join request(s) →</p>
+          </a>
 
-          {/* Music Library Songs Metric Card */}
-          <div className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2">
+          {/* Clickable Music Library Songs Metric Card */}
+          <Link
+            href="/songs"
+            className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-indigo-500/50 hover:scale-[1.01] transition-all cursor-pointer block group"
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Songs in Library</span>
-              <div className="w-9 h-9 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+              <div className="w-9 h-9 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30 group-hover:scale-105">
                 <Music className="w-4 h-4" />
               </div>
             </div>
             <div className="text-3xl font-extrabold text-white">{songs.length}</div>
-            <p className="text-[11px] text-slate-400">Multi-track voice parts uploaded</p>
-          </div>
+            <p className="text-[11px] text-slate-400">Multi-track voice parts uploaded →</p>
+          </Link>
 
-          {/* Attendance Breakdown (Present / Absent) */}
-          <div className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2">
+          {/* Clickable Attendance Breakdown (Present / Absent) Card */}
+          <Link
+            href="/manage/attendance"
+            className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-amber-500/50 hover:scale-[1.01] transition-all cursor-pointer block group"
+          >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Present vs Absent</span>
-              <div className="w-9 h-9 rounded-2xl bg-amber-600/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
+              <div className="w-9 h-9 rounded-2xl bg-amber-600/20 text-amber-400 flex items-center justify-center border border-amber-500/30 group-hover:scale-105">
                 <Clock3 className="w-4 h-4" />
               </div>
             </div>
@@ -148,14 +160,14 @@ export default function ChoirAdminPage() {
                 <UserX className="w-4 h-4" /> {stats?.absentCount || 0} Absent
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">{stats?.lateCount || 0} late, {stats?.excusedCount || 0} excused</p>
-          </div>
+            <p className="text-[11px] text-slate-400">{stats?.lateCount || 0} late, {stats?.excusedCount || 0} excused →</p>
+          </Link>
         </div>
       </div>
 
       {/* Admin Action Quick Links */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Link href="/manage/songs/new" className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 hover:border-purple-500/40 transition-all space-y-3 group">
+        <Link href="/manage/songs/new" className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 hover:border-purple-500/40 hover:scale-[1.01] transition-all space-y-3 group block cursor-pointer">
           <div className="w-10 h-10 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center border border-purple-500/30 group-hover:scale-105">
             <Plus className="w-5 h-5" />
           </div>
@@ -163,7 +175,7 @@ export default function ChoirAdminPage() {
           <p className="text-xs text-slate-400">Add voice part audio tracks, lyrics &amp; sheet music PDFs</p>
         </Link>
 
-        <Link href="/manage/events/new" className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 hover:border-purple-500/40 transition-all space-y-3 group">
+        <Link href="/manage/events/new" className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 hover:border-purple-500/40 hover:scale-[1.01] transition-all space-y-3 group block cursor-pointer">
           <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30 group-hover:scale-105">
             <Calendar className="w-5 h-5" />
           </div>
@@ -171,7 +183,7 @@ export default function ChoirAdminPage() {
           <p className="text-xs text-slate-400">Assign Sunday songs to choir &amp; notify singers</p>
         </Link>
 
-        <Link href="/manage/attendance" className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 hover:border-purple-500/40 transition-all space-y-3 group">
+        <Link href="/manage/attendance" className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 hover:border-purple-500/40 hover:scale-[1.01] transition-all space-y-3 group block cursor-pointer">
           <div className="w-10 h-10 rounded-2xl bg-emerald-600/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 group-hover:scale-105">
             <Users className="w-5 h-5" />
           </div>
@@ -179,7 +191,7 @@ export default function ChoirAdminPage() {
           <p className="text-xs text-slate-400">Mark rehearsal &amp; service present/absent statuses</p>
         </Link>
 
-        <Link href="/manage/settings" className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 hover:border-purple-500/40 transition-all space-y-3 group">
+        <Link href="/manage/settings" className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 hover:border-purple-500/40 hover:scale-[1.01] transition-all space-y-3 group block cursor-pointer">
           <div className="w-10 h-10 rounded-2xl bg-amber-600/20 text-amber-400 flex items-center justify-center border border-amber-500/30 group-hover:scale-105">
             <Settings className="w-5 h-5" />
           </div>
@@ -223,7 +235,7 @@ export default function ChoirAdminPage() {
       )}
 
       {/* Active Choir Roster */}
-      <div className="bg-slate-900/60 p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6">
+      <div id="roster-section" className="bg-slate-900/60 p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">Active Choir Roster ({activeMembers.length})</h2>
         </div>

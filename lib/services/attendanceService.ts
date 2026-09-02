@@ -136,5 +136,40 @@ export const attendanceService = {
       excusedCount,
       attendancePercentage,
     };
+  },
+
+  async getMemberAttendanceStats(memberId: string): Promise<AttendanceStats> {
+    const supabase = createClient();
+
+    const { data: records } = await supabase
+      .from('attendance')
+      .select('status')
+      .eq('member_id', memberId);
+
+    const totalRecords = records?.length || 0;
+    let presentCount = 0;
+    let absentCount = 0;
+    let lateCount = 0;
+    let excusedCount = 0;
+
+    (records || []).forEach(r => {
+      if (r.status === 'present') presentCount++;
+      else if (r.status === 'absent') absentCount++;
+      else if (r.status === 'late') lateCount++;
+      else if (r.status === 'excused') excusedCount++;
+    });
+
+    const attended = presentCount + lateCount + excusedCount;
+    const attendancePercentage = totalRecords > 0 ? Math.round((attended / totalRecords) * 100) : 100;
+
+    return {
+      rehearsalsCount: totalRecords,
+      totalRecords,
+      presentCount,
+      absentCount,
+      lateCount,
+      excusedCount,
+      attendancePercentage,
+    };
   }
 };

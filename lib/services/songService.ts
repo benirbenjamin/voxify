@@ -167,10 +167,27 @@ export const songService = {
     return result;
   },
 
+  async getMemberLearningSummary(memberId: string): Promise<{ readyCount: number; learningCount: number }> {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from('learning_progress')
+      .select('status')
+      .eq('member_id', memberId);
+
+    let readyCount = 0;
+    let learningCount = 0;
+
+    (data || []).forEach(row => {
+      if (row.status === 'ready') readyCount++;
+      else if (row.status === 'learning') learningCount++;
+    });
+
+    return { readyCount, learningCount };
+  },
+
   async uploadAudioFile(file: File, choirId: string): Promise<{ url: string | null; error: string | null }> {
     const fileSizeMb = file.size / (1024 * 1024);
 
-    // 1. Try Direct Supabase Storage Upload first (no Vercel 4.5MB limit, supports large MP3/WAV files)
     try {
       const supabase = createClient();
       const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
@@ -186,7 +203,6 @@ export const songService = {
       console.warn('Direct Storage upload attempted, trying server route...', directErr);
     }
 
-    // 2. Fallback to Server Upload API Route (/api/upload)
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -219,7 +235,6 @@ export const songService = {
   async uploadPdfFile(file: File, choirId: string): Promise<{ url: string | null; error: string | null }> {
     const fileSizeMb = file.size / (1024 * 1024);
 
-    // 1. Try Direct Supabase Storage Upload first
     try {
       const supabase = createClient();
       const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
@@ -235,7 +250,6 @@ export const songService = {
       console.warn('Direct Storage upload attempted, trying server route...', directErr);
     }
 
-    // 2. Fallback to Server Upload API Route (/api/upload)
     try {
       const formData = new FormData();
       formData.append('file', file);

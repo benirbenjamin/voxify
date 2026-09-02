@@ -8,9 +8,29 @@ import { useChoir } from '@/lib/context/ChoirContext';
 import { eventService } from '@/lib/services/eventService';
 import { songService } from '@/lib/services/songService';
 import { announcementService } from '@/lib/services/announcementService';
+import { attendanceService, AttendanceStats } from '@/lib/services/attendanceService';
 import { subscriptionService } from '@/lib/services/subscriptionService';
 import { Event, Song, Announcement, SubscriptionPlan } from '@/lib/types/database.types';
-import { Music, Calendar, Users, Sparkles, Volume2, ArrowRight, Share2, Copy, Check, Crown, Zap, KeyRound, Plus } from 'lucide-react';
+import {
+  Music,
+  Calendar,
+  Users,
+  Sparkles,
+  Volume2,
+  ArrowRight,
+  Share2,
+  Copy,
+  Check,
+  Crown,
+  Zap,
+  KeyRound,
+  Plus,
+  Percent,
+  CheckCircle2,
+  BookOpen,
+  TrendingUp,
+  UserCheck
+} from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -21,6 +41,11 @@ export default function DashboardPage() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [currentPlan, setCurrentPlan] = useState<SubscriptionPlan | null>(null);
+  
+  // Personal Singer Analytics State
+  const [myAttendanceStats, setMyAttendanceStats] = useState<AttendanceStats | null>(null);
+  const [myLearningStats, setMyLearningStats] = useState<{ readyCount: number; learningCount: number }>({ readyCount: 0, learningCount: 0 });
+
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [joinCodeInput, setJoinCodeInput] = useState('');
@@ -28,19 +53,31 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadData() {
       if (!activeChoir) return;
+      
       const [eventsData, songsData, announceData, subData] = await Promise.all([
         eventService.getChoirEvents(activeChoir.id),
         songService.getChoirSongs(activeChoir.id),
         announcementService.getAnnouncements(activeChoir.id),
         subscriptionService.getChoirSubscription(activeChoir.id),
       ]);
+
       setUpcomingEvents(eventsData);
       setSongs(songsData);
       setAnnouncements(announceData);
       setCurrentPlan(subData.plan);
+
+      // Load Personal Singer Analytics if active member profile loaded
+      if (activeMember) {
+        const [attStats, learnStats] = await Promise.all([
+          attendanceService.getMemberAttendanceStats(activeMember.id),
+          songService.getMemberLearningSummary(activeMember.id),
+        ]);
+        setMyAttendanceStats(attStats);
+        setMyLearningStats(learnStats);
+      }
     }
     loadData();
-  }, [activeChoir]);
+  }, [activeChoir, activeMember]);
 
   const copyCode = () => {
     if (!activeChoir) return;
@@ -215,6 +252,89 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Personal Singer Performance & Learning Analytics Section */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-purple-400" /> Your Personal Singer Performance &amp; Song Analytics
+        </h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Singer Attendance % Hero Card */}
+          <Link
+            href="/events"
+            className="bg-gradient-to-br from-emerald-950/40 to-slate-900 p-6 rounded-3xl border border-emerald-500/30 space-y-2 hover:border-emerald-400 transition-all cursor-pointer block group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Your Attendance</span>
+              <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 group-hover:scale-105">
+                <Percent className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-3xl font-extrabold text-white">
+              {myAttendanceStats ? `${myAttendanceStats.attendancePercentage}%` : '100%'}
+            </div>
+            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+              <div
+                className="bg-emerald-500 h-full rounded-full transition-all duration-500"
+                style={{ width: `${myAttendanceStats?.attendancePercentage || 100}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-slate-400">
+              {myAttendanceStats?.presentCount || 0} Present, {myAttendanceStats?.absentCount || 0} Absent →
+            </p>
+          </Link>
+
+          {/* Songs Fully Learnt Card */}
+          <Link
+            href="/songs"
+            className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-purple-500/50 transition-all cursor-pointer block group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">Songs Fully Learnt</span>
+              <div className="w-9 h-9 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center border border-purple-500/30 group-hover:scale-105">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-3xl font-extrabold text-white">{myLearningStats.readyCount}</div>
+            <p className="text-[11px] text-slate-400">Marked &quot;Ready&quot; for Sunday services →</p>
+          </Link>
+
+          {/* Songs Currently Learning Card */}
+          <Link
+            href="/songs"
+            className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-indigo-500/50 transition-all cursor-pointer block group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Songs In Practice</span>
+              <div className="w-9 h-9 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30 group-hover:scale-105">
+                <BookOpen className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-3xl font-extrabold text-white">{myLearningStats.learningCount}</div>
+            <p className="text-[11px] text-slate-400">Currently practicing voice tracks →</p>
+          </Link>
+
+          {/* Singer Role & Voice Part */}
+          <Link
+            href={isAdmin ? "/manage" : "/songs"}
+            className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-amber-500/50 transition-all cursor-pointer block group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Voice Section</span>
+              <div className="w-9 h-9 rounded-2xl bg-amber-600/20 text-amber-400 flex items-center justify-center border border-amber-500/30 group-hover:scale-105">
+                <UserCheck className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold text-amber-300 capitalize">
+              {activeMember?.role === 'owner' ? 'Choir Master' : activeMember?.role === 'admin' ? 'Choir Director' : 'Choir Member'}
+            </div>
+            <p className="text-[11px] text-slate-400 font-semibold">
+              Status: <span className="text-emerald-400 capitalize">{activeMember?.status || 'Active'}</span> →
+            </p>
+          </Link>
+        </div>
+      </div>
+
       {/* Clickable Overview Metric Cards Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Link
@@ -238,7 +358,7 @@ export default function DashboardPage() {
             <Calendar className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" />
           </div>
           <p className="text-3xl font-bold text-white group-hover:text-indigo-300 transition-colors">{upcomingEvents.length}</p>
-          <p className="text-xs text-slate-500 group-hover:text-slate-400">Sunday services & rehearsals →</p>
+          <p className="text-xs text-slate-500 group-hover:text-slate-400">Sunday services &amp; rehearsals →</p>
         </Link>
 
         <Link
@@ -250,7 +370,7 @@ export default function DashboardPage() {
             <Sparkles className="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform" />
           </div>
           <p className="text-3xl font-bold text-white group-hover:text-amber-300 transition-colors">{announcements.length}</p>
-          <p className="text-xs text-slate-500 group-hover:text-slate-400">Choir notices & updates →</p>
+          <p className="text-xs text-slate-500 group-hover:text-slate-400">Choir notices &amp; updates →</p>
         </Link>
 
         <Link
