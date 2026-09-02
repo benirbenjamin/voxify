@@ -158,6 +158,25 @@ export const songService = {
   },
 
   async uploadAudioFile(file: File, choirId: string): Promise<{ url: string | null; error: string | null }> {
+    const fileSizeMb = file.size / (1024 * 1024);
+
+    // 1. Try Direct Supabase Storage Upload first (no Vercel 4.5MB limit, supports large MP3/WAV files)
+    try {
+      const supabase = createClient();
+      const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const { data, error } = await supabase.storage
+        .from('song-audio')
+        .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
+
+      if (!error && data) {
+        const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
+        return { url: publicUrlData.publicUrl, error: null };
+      }
+    } catch (directErr) {
+      console.warn('Direct Storage upload attempted, trying server route...', directErr);
+    }
+
+    // 2. Fallback to Server Upload API Route (/api/upload)
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -169,25 +188,44 @@ export const songService = {
         body: formData,
       });
 
+      if (res.status === 413) {
+        return {
+          url: null,
+          error: `Audio file '${file.name}' (${fileSizeMb.toFixed(1)} MB) exceeds server upload limit (4.5 MB). Please select a smaller audio file under 4.5 MB or paste a direct audio URL.`,
+        };
+      }
+
       const data = await res.json();
       if (res.ok && data.url) {
         return { url: data.url, error: null };
       }
 
-      // Fallback to browser client if API fails
-      const supabase = createClient();
-      const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      const { error } = await supabase.storage.from('song-audio').upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
-      if (error) return { url: null, error: error.message };
-
-      const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
-      return { url: publicUrlData.publicUrl, error: null };
+      return { url: null, error: data.error || `Upload failed (Status ${res.status})` };
     } catch (err: any) {
-      return { url: null, error: err.message || 'Audio file upload failed' };
+      return { url: null, error: err.message || 'Network error during audio upload' };
     }
   },
 
   async uploadPdfFile(file: File, choirId: string): Promise<{ url: string | null; error: string | null }> {
+    const fileSizeMb = file.size / (1024 * 1024);
+
+    // 1. Try Direct Supabase Storage Upload first
+    try {
+      const supabase = createClient();
+      const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const { data, error } = await supabase.storage
+        .from('song-documents')
+        .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
+
+      if (!error && data) {
+        const { data: publicUrlData } = supabase.storage.from('song-documents').getPublicUrl(cleanFileName);
+        return { url: publicUrlData.publicUrl, error: null };
+      }
+    } catch (directErr) {
+      console.warn('Direct Storage upload attempted, trying server route...', directErr);
+    }
+
+    // 2. Fallback to Server Upload API Route (/api/upload)
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -199,21 +237,21 @@ export const songService = {
         body: formData,
       });
 
+      if (res.status === 413) {
+        return {
+          url: null,
+          error: `PDF document '${file.name}' (${fileSizeMb.toFixed(1)} MB) exceeds server upload limit (4.5 MB). Please select a smaller PDF under 4.5 MB or paste a direct link.`,
+        };
+      }
+
       const data = await res.json();
       if (res.ok && data.url) {
         return { url: data.url, error: null };
       }
 
-      // Fallback to browser client if API fails
-      const supabase = createClient();
-      const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      const { error } = await supabase.storage.from('song-documents').upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
-      if (error) return { url: null, error: error.message };
-
-      const { data: publicUrlData } = supabase.storage.from('song-documents').getPublicUrl(cleanFileName);
-      return { url: publicUrlData.publicUrl, error: null };
+      return { url: null, error: data.error || `Upload failed (Status ${res.status})` };
     } catch (err: any) {
-      return { url: null, error: err.message || 'PDF sheet music upload failed' };
+      return { url: null, error: err.message || 'Network error during PDF upload' };
     }
   }
 };

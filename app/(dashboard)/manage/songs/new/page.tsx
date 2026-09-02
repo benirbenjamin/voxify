@@ -26,6 +26,7 @@ interface PartDraft {
   duration_seconds: number;
   isUploading?: boolean;
   fileName?: string;
+  uploadError?: string;
 }
 
 export default function NewSongPage() {
@@ -40,6 +41,7 @@ export default function NewSongPage() {
   const [sheetPdfUrl, setSheetPdfUrl] = useState('');
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [pdfFileName, setPdfFileName] = useState('');
+  const [pdfUploadError, setPdfUploadError] = useState<string | null>(null);
   
   const [parts, setParts] = useState<PartDraft[]>([
     { part_name: 'Full Mix', audio_url: '', duration_seconds: 180 },
@@ -93,6 +95,7 @@ export default function NewSongPage() {
 
     handlePartChange(index, 'isUploading', true);
     handlePartChange(index, 'fileName', file.name);
+    handlePartChange(index, 'uploadError', undefined);
     setError(null);
 
     const exactDuration = await getAudioDurationFromFile(file);
@@ -101,8 +104,11 @@ export default function NewSongPage() {
     const { url, error: uploadErr } = await songService.uploadAudioFile(file, activeChoir.id);
     if (url) {
       handlePartChange(index, 'audio_url', url);
+      handlePartChange(index, 'uploadError', undefined);
     } else {
-      setError(`Audio Upload Error for '${file.name}': ${uploadErr || 'Failed to upload to Supabase Storage'}`);
+      const errMsg = uploadErr || `Failed to upload '${file.name}'`;
+      handlePartChange(index, 'uploadError', errMsg);
+      setError(`Audio Upload Error for '${file.name}': ${errMsg}`);
     }
 
     handlePartChange(index, 'isUploading', false);
@@ -114,13 +120,17 @@ export default function NewSongPage() {
 
     setUploadingPdf(true);
     setPdfFileName(file.name);
+    setPdfUploadError(null);
     setError(null);
 
     const { url, error: uploadErr } = await songService.uploadPdfFile(file, activeChoir.id);
     if (url) {
       setSheetPdfUrl(url);
+      setPdfUploadError(null);
     } else {
-      setError(`PDF Upload Error for '${file.name}': ${uploadErr || 'Failed to upload to Supabase Storage'}`);
+      const errMsg = uploadErr || `Failed to upload '${file.name}'`;
+      setPdfUploadError(errMsg);
+      setError(`PDF Upload Error for '${file.name}': ${errMsg}`);
     }
 
     setUploadingPdf(false);
@@ -183,9 +193,12 @@ export default function NewSongPage() {
       </div>
 
       {error && (
-        <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-2xl text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-          <span>{error}</span>
+        <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-2xl text-xs flex items-center gap-3 shadow-lg">
+          <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+          <div className="flex-1">
+            <strong className="block text-rose-200 font-bold mb-0.5">Upload Warning / Action Required:</strong>
+            <span>{error}</span>
+          </div>
         </div>
       )}
 
@@ -301,6 +314,11 @@ export default function NewSongPage() {
                 className="w-full md:w-64 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-purple-500"
               />
             </div>
+            {pdfUploadError && (
+              <p className="text-[11px] text-rose-400 mt-1 font-semibold flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 shrink-0" /> {pdfUploadError}
+              </p>
+            )}
           </div>
         </div>
 
@@ -377,6 +395,11 @@ export default function NewSongPage() {
                         className="w-1/3 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 hidden md:block"
                       />
                     </div>
+                    {p.uploadError && (
+                      <p className="text-[11px] text-rose-400 mt-1 font-semibold flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3 shrink-0" /> {p.uploadError}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between gap-2">
