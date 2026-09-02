@@ -38,13 +38,31 @@ export const announcementService = {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
+    // Query announcements table without PostgREST relation syntax to avoid 404 join errors
     const { data, error } = await supabase
       .from('announcements')
-      .select('*, author_profile:profiles(*)')
+      .select('*')
       .eq('choir_id', choirId)
       .order('created_at', { ascending: false });
 
     if (error || !data) return [];
+
+    // Fetch author profiles in batch
+    const creatorIds = Array.from(new Set(data.map((a: any) => a.created_by).filter(Boolean)));
+    let profileMap: Record<string, any> = {};
+
+    if (creatorIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', creatorIds);
+
+      if (profiles) {
+        profiles.forEach((p: any) => {
+          profileMap[p.id] = p;
+        });
+      }
+    }
 
     const announcements = data as Announcement[];
 
@@ -54,8 +72,11 @@ export const announcementService = {
         .filter(r => r.user_id === user?.id)
         .map(r => r.reaction_type);
 
+      const authorProfile = profileMap[ann.created_by] || null;
+
       return {
         ...ann,
+        author_profile: authorProfile,
         attachment_url: meta.realAttachment,
         comments_count: meta.comments.length,
         reactions_count: meta.reactions.length,
