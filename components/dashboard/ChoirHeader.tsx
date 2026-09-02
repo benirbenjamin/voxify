@@ -14,13 +14,19 @@ import {
   Music2,
   Users,
   Building2,
-  Check
+  Check,
+  Menu,
+  X,
+  Calendar,
+  Sparkles,
+  Music
 } from 'lucide-react';
 
 export function ChoirHeader() {
   const { user, signOut } = useAuth();
   const { activeChoir, choirs, selectChoir, isAdmin } = useChoir();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -36,15 +42,15 @@ export function ChoirHeader() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-slate-800 bg-slate-900/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
         
         {/* Brand Logo & Choir Switcher */}
-        <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 sm:gap-6">
+          <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 shadow-md shadow-purple-600/30">
               <Music2 className="h-5 w-5 text-white" />
             </div>
-            <span className="text-lg font-extrabold tracking-tight text-white hidden sm:block">
+            <span className="text-base sm:text-lg font-extrabold tracking-tight text-white hidden xs:inline-block">
               Voxify<span className="text-purple-400">Space</span>
             </span>
           </Link>
@@ -53,11 +59,11 @@ export function ChoirHeader() {
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 rounded-xl bg-slate-800/80 px-3.5 py-1.5 text-xs font-semibold text-white border border-slate-700/60 hover:bg-slate-800 transition-all"
+              className="flex items-center gap-1.5 sm:gap-2 rounded-xl bg-slate-800/80 px-2.5 sm:px-3.5 py-1.5 text-xs font-semibold text-white border border-slate-700/60 hover:bg-slate-800 transition-all max-w-[130px] sm:max-w-[180px]"
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="max-w-[140px] truncate">{activeChoir?.name || 'Select Choir'}</span>
-              <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+              <span className="truncate">{activeChoir?.name || 'Select Choir'}</span>
+              <ChevronDown className="h-3.5 w-3.5 text-slate-400 shrink-0" />
             </button>
 
             {dropdownOpen && (
@@ -114,7 +120,8 @@ export function ChoirHeader() {
         </div>
 
         {/* Right Nav Options */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
+          {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1 text-xs">
             <Link href="/songs" className="px-3 py-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 font-semibold transition-colors">
               Song Library
@@ -147,9 +154,9 @@ export function ChoirHeader() {
             )}
           </Link>
 
-          {/* User Profile / Sign Out */}
+          {/* User Profile / Sign Out on Desktop */}
           {user ? (
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
               <span className="hidden lg:block text-xs font-semibold text-slate-300 max-w-[100px] truncate">
                 {user.full_name}
               </span>
@@ -164,13 +171,155 @@ export function ChoirHeader() {
           ) : (
             <Link
               href="/login"
-              className="text-xs font-semibold text-white bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded-xl shadow-md transition-all"
+              className="hidden md:inline-flex text-xs font-semibold text-white bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded-xl shadow-md transition-all"
             >
               Sign In
             </Link>
           )}
+
+          {/* Mobile Collapsible Menu Trigger Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800 transition-colors focus:outline-none"
+            aria-label="Toggle Navigation Menu"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </div>
+
+      {/* Mobile Collapsible Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-slate-800 bg-slate-900/98 backdrop-blur-xl px-4 py-5 space-y-4 animate-in fade-in slide-in-from-top-3 shadow-2xl">
+          {user && (
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold text-sm">
+                  {user.full_name?.charAt(0).toUpperCase() || 'U'}
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-white truncate max-w-[180px]">{user.full_name}</div>
+                  <div className="text-[11px] text-slate-400 truncate max-w-[180px]">{user.email}</div>
+                </div>
+              </div>
+              {user?.is_super_admin && (
+                <span className="text-[10px] uppercase font-extrabold bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/40">
+                  Admin
+                </span>
+              )}
+            </div>
+          )}
+
+          <nav className="flex flex-col space-y-1">
+            <Link
+              href="/songs"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-200 hover:bg-slate-800/80 hover:text-white transition-colors"
+            >
+              <Music className="w-4 h-4 text-purple-400" />
+              <span>Song Library</span>
+            </Link>
+
+            <Link
+              href="/events"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-200 hover:bg-slate-800/80 hover:text-white transition-colors"
+            >
+              <Calendar className="w-4 h-4 text-indigo-400" />
+              <span>Events &amp; Worship</span>
+            </Link>
+
+            <Link
+              href="/announcements"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-200 hover:bg-slate-800/80 hover:text-white transition-colors"
+            >
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>Announcements</span>
+            </Link>
+
+            <Link
+              href="/notifications"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-200 hover:bg-slate-800/80 hover:text-white transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Bell className="w-4 h-4 text-rose-400" />
+                <span>Notifications</span>
+              </div>
+              {unreadCount > 0 && (
+                <span className="bg-rose-500 text-white font-bold text-xs px-2 py-0.5 rounded-full">
+                  {unreadCount}
+                </span>
+              )}
+            </Link>
+
+            {isAdmin && (
+              <Link
+                href="/manage"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-purple-400 bg-purple-950/30 border border-purple-500/30 hover:bg-purple-900/40 transition-colors"
+              >
+                <Building2 className="w-4 h-4" />
+                <span>Choir Admin Panel</span>
+              </Link>
+            )}
+
+            {user?.is_super_admin && (
+              <Link
+                href="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold text-amber-400 bg-amber-950/30 border border-amber-500/30 hover:bg-amber-900/40 transition-colors"
+              >
+                <Shield className="w-4 h-4" />
+                <span>Platform Super Admin</span>
+              </Link>
+            )}
+          </nav>
+
+          <div className="pt-2 border-t border-slate-800 flex flex-col space-y-2">
+            <Link
+              href="/choir/create"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 text-xs font-semibold text-slate-300 hover:text-purple-400 px-3.5 py-2 rounded-xl transition-colors"
+            >
+              <Plus className="w-4 h-4 text-purple-400" />
+              <span>Create New Choir</span>
+            </Link>
+
+            <Link
+              href="/dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 text-xs font-semibold text-slate-300 hover:text-indigo-400 px-3.5 py-2 rounded-xl transition-colors"
+            >
+              <Users className="w-4 h-4 text-indigo-400" />
+              <span>Join Choir with Code</span>
+            </Link>
+
+            {user ? (
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  signOut();
+                }}
+                className="flex w-full items-center justify-center gap-2 mt-2 px-4 py-2.5 rounded-xl bg-rose-950/40 border border-rose-800/40 text-xs font-bold text-rose-300 hover:bg-rose-900/60 transition-all"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex w-full items-center justify-center gap-2 mt-2 px-4 py-2.5 rounded-xl bg-purple-600 text-xs font-bold text-white hover:bg-purple-500 transition-all shadow-md"
+              >
+                <span>Sign In / Register</span>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </header>
   );
 }
+
