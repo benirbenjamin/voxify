@@ -33,14 +33,6 @@ function parseMetadata(ann: any): {
   return { realAttachment, comments, reactions };
 }
 
-function stringifyMetadata(meta: {
-  realAttachment: string | null;
-  comments: AnnouncementComment[];
-  reactions: { user_id: string; reaction_type: string }[];
-}): string {
-  return '__META_V2__:' + JSON.stringify(meta);
-}
-
 export const announcementService = {
   async getAnnouncements(choirId: string): Promise<Announcement[]> {
     const supabase = createClient();
@@ -85,7 +77,7 @@ export const announcementService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
-    const initialMeta = stringifyMetadata({
+    const initialMeta = '__META_V2__:' + JSON.stringify({
       realAttachment: payload.attachment_url || null,
       comments: [],
       reactions: [],
@@ -145,114 +137,45 @@ export const announcementService = {
   },
 
   async addComment(announcementId: string, content: string): Promise<AnnouncementComment | null> {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !content.trim()) return null;
-
-    // Fetch profile of commenting user
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    const userProfile = profile || {
-      id: user.id,
-      full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Choir Member',
-      email: user.email!,
-    };
-
-    const { data: ann } = await supabase
-      .from('announcements')
-      .select('attachment_url')
-      .eq('id', announcementId)
-      .single();
-
-    if (!ann) return null;
-
-    const meta = parseMetadata(ann);
-
-    const newComment: AnnouncementComment = {
-      id: Math.random().toString(36).substring(2, 11),
-      announcement_id: announcementId,
-      user_id: user.id,
-      content: content.trim(),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      user_profile: userProfile as any,
-    };
-
-    meta.comments.push(newComment);
-    const updatedMeta = stringifyMetadata(meta);
-
-    const { error } = await supabase
-      .from('announcements')
-      .update({ attachment_url: updatedMeta })
-      .eq('id', announcementId);
-
-    if (error) return null;
-
-    return newComment;
+    try {
+      const res = await fetch('/api/announcements/comment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ announcementId, content }),
+      });
+      const data = await res.json();
+      if (data.success && data.comment) {
+        return data.comment as AnnouncementComment;
+      }
+      return null;
+    } catch (err) {
+      return null;
+    }
   },
 
   async deleteComment(commentId: string): Promise<boolean> {
-    const supabase = createClient();
-
-    // Fetch all announcements to find and remove the target comment
-    const { data: list } = await supabase
-      .from('announcements')
-      .select('id, attachment_url');
-
-    if (!list) return false;
-
-    for (const ann of list) {
-      const meta = parseMetadata(ann);
-      const commentIdx = meta.comments.findIndex(c => c.id === commentId);
-      if (commentIdx >= 0) {
-        meta.comments.splice(commentIdx, 1);
-        const updatedMeta = stringifyMetadata(meta);
-        await supabase
-          .from('announcements')
-          .update({ attachment_url: updatedMeta })
-          .eq('id', ann.id);
-        return true;
-      }
+    try {
+      const res = await fetch(`/api/announcements/comment?commentId=${encodeURIComponent(commentId)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      return !!data.success;
+    } catch (err) {
+      return false;
     }
-
-    return true;
   },
 
   async toggleReaction(announcementId: string, reactionType: 'love' | 'amen' | 'clap' | 'fire'): Promise<boolean> {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return false;
-
-    const { data: ann } = await supabase
-      .from('announcements')
-      .select('attachment_url')
-      .eq('id', announcementId)
-      .single();
-
-    if (!ann) return false;
-
-    const meta = parseMetadata(ann);
-    const existingIdx = meta.reactions.findIndex(
-      r => r.user_id === user.id && r.reaction_type === reactionType
-    );
-
-    if (existingIdx >= 0) {
-      meta.reactions.splice(existingIdx, 1);
-    } else {
-      meta.reactions.push({ user_id: user.id, reaction_type: reactionType });
+    try {
+      const res = await fetch('/api/announcements/react', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ announcementId, reactionType }),
+      });
+      const data = await res.json();
+      return !!data.success;
+    } catch (err) {
+      return false;
     }
-
-    const updatedMeta = stringifyMetadata(meta);
-
-    const { error } = await supabase
-      .from('announcements')
-      .update({ attachment_url: updatedMeta })
-      .eq('id', announcementId);
-
-    return !error;
   }
 };
