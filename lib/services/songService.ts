@@ -158,36 +158,62 @@ export const songService = {
   },
 
   async uploadAudioFile(file: File, choirId: string): Promise<{ url: string | null; error: string | null }> {
-    const supabase = createClient();
-    const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'song-audio');
+      formData.append('choirId', choirId);
 
-    const { data, error } = await supabase.storage
-      .from('song-audio')
-      .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
-    if (error) {
-      console.error('Audio upload error:', error);
-      return { url: null, error: error.message };
+      const data = await res.json();
+      if (res.ok && data.url) {
+        return { url: data.url, error: null };
+      }
+
+      // Fallback to browser client if API fails
+      const supabase = createClient();
+      const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const { error } = await supabase.storage.from('song-audio').upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
+      if (error) return { url: null, error: error.message };
+
+      const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
+      return { url: publicUrlData.publicUrl, error: null };
+    } catch (err: any) {
+      return { url: null, error: err.message || 'Audio file upload failed' };
     }
-
-    const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
-    return { url: publicUrlData.publicUrl, error: null };
   },
 
   async uploadPdfFile(file: File, choirId: string): Promise<{ url: string | null; error: string | null }> {
-    const supabase = createClient();
-    const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'song-documents');
+      formData.append('choirId', choirId);
 
-    const { data, error } = await supabase.storage
-      .from('song-documents')
-      .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
-    if (error) {
-      console.error('PDF upload error:', error);
-      return { url: null, error: error.message };
+      const data = await res.json();
+      if (res.ok && data.url) {
+        return { url: data.url, error: null };
+      }
+
+      // Fallback to browser client if API fails
+      const supabase = createClient();
+      const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const { error } = await supabase.storage.from('song-documents').upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
+      if (error) return { url: null, error: error.message };
+
+      const { data: publicUrlData } = supabase.storage.from('song-documents').getPublicUrl(cleanFileName);
+      return { url: publicUrlData.publicUrl, error: null };
+    } catch (err: any) {
+      return { url: null, error: err.message || 'PDF sheet music upload failed' };
     }
-
-    const { data: publicUrlData } = supabase.storage.from('song-documents').getPublicUrl(cleanFileName);
-    return { url: publicUrlData.publicUrl, error: null };
   }
 };
