@@ -183,6 +183,83 @@ export default function DashboardPage() {
     );
   }
 
+  // Pending Approval Screen for singers awaiting Choir Master approval
+  if (activeMember && activeMember.status === 'pending') {
+    return (
+      <div className="max-w-2xl mx-auto py-12 space-y-8 text-center">
+        <div className="w-16 h-16 bg-amber-500/20 text-amber-400 rounded-3xl flex items-center justify-center mx-auto border border-amber-500/30 animate-pulse">
+          <KeyRound className="w-8 h-8" />
+        </div>
+
+        <div className="space-y-3">
+          <span className="bg-amber-500/20 text-amber-300 text-xs px-3 py-1 rounded-full border border-amber-500/30 font-bold uppercase tracking-widest">
+            ⏳ Membership Approval Pending
+          </span>
+          <h1 className="text-3xl font-extrabold text-white">Join Request Submitted</h1>
+          <p className="text-sm text-slate-300">
+            Hello <strong className="text-purple-300">{user?.full_name}</strong>! Your request to join <strong className="text-amber-300">{activeChoir.name}</strong> has been sent to the Choir Master for review.
+          </p>
+        </div>
+
+        <div className="bg-slate-900/90 border border-slate-800 p-6 md:p-8 rounded-3xl space-y-6 text-left shadow-2xl">
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider">Request Information</h3>
+            <div className="grid grid-cols-2 gap-4 bg-slate-950 p-4 rounded-2xl border border-slate-800 text-xs">
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Choir Name</span>
+                <span className="font-semibold text-white">{activeChoir.name}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Choir Code</span>
+                <span className="font-mono text-purple-400 font-bold">{activeChoir.choir_code}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Status</span>
+                <span className="text-amber-400 font-bold capitalize">{activeMember.status}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 block text-[10px] uppercase font-bold">Date Requested</span>
+                <span className="text-slate-300">{new Date(activeMember.joined_at).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Once approved by your Choir Director, full access to practice tracks, Sunday worship songs, events, and announcements will automatically unlock.
+          </p>
+
+          <div className="pt-2 flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => activeChoir && useChoir().refreshChoirs(activeChoir.id)}
+              className="flex-1 bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-2xl shadow-lg transition-all text-xs flex items-center justify-center gap-2"
+            >
+              Refresh Approval Status
+            </button>
+          </div>
+        </div>
+
+        {/* Join Another Choir */}
+        <div className="bg-slate-900/40 border border-slate-800/80 p-6 rounded-3xl space-y-4 text-left">
+          <h4 className="text-xs font-bold text-white">Have code for a different choir?</h4>
+          <form onSubmit={handleJoinByCode} className="flex gap-2">
+            <input
+              type="text"
+              required
+              maxLength={8}
+              value={joinCodeInput}
+              onChange={e => setJoinCodeInput(e.target.value.toUpperCase())}
+              placeholder="ENTER OTHER CHOIR CODE"
+              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-purple-300 font-bold uppercase"
+            />
+            <button type="submit" className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2 rounded-xl border border-slate-700">
+              Submit Code
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Active Choir Welcome & Code Banner */}

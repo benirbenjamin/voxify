@@ -177,6 +177,29 @@ export interface Announcement {
   created_by: string;
   created_at: string;
   author_name?: string;
+  author_profile?: Profile;
+  comments_count?: number;
+  reactions_count?: number;
+  user_reactions?: string[];
+}
+
+export interface AnnouncementComment {
+  id: string;
+  announcement_id: string;
+  user_id: string;
+  content: string;
+  parent_id?: string | null;
+  created_at: string;
+  updated_at: string;
+  user_profile?: Profile;
+}
+
+export interface AnnouncementReaction {
+  id: string;
+  announcement_id: string;
+  user_id: string;
+  reaction_type: 'love' | 'amen' | 'clap' | 'fire';
+  created_at: string;
 }
 
 export interface NotificationItem {

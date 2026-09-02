@@ -6,8 +6,8 @@ import Image from 'next/image';
 import { useAuth } from '@/lib/context/AuthContext';
 import { subscriptionService } from '@/lib/services/subscriptionService';
 import { adminService } from '@/lib/services/adminService';
-import { SubscriptionPlan, Choir, Profile } from '@/lib/types/database.types';
-import { Shield, Layers, Users, Music, Settings, Sparkles, ArrowRight, Plus, Edit3, Trash2, Power } from 'lucide-react';
+import { SubscriptionPlan } from '@/lib/types/database.types';
+import { Shield, Layers, Users, Music, Sparkles, ArrowRight, Plus, Edit3, Trash2, Power, Calendar } from 'lucide-react';
 
 export default function SuperAdminPage() {
   const { user } = useAuth();
@@ -41,7 +41,7 @@ export default function SuperAdminPage() {
       const res = await fetch('/api/setup', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        setDbSetupMessage('✅ Database Setup Success! All 20 tables, RLS policies, storage buckets & plans created.');
+        setDbSetupMessage('✅ Database Setup Success! All tables, RLS policies, storage buckets & plans created.');
         const updatedPlans = await subscriptionService.getAllPlans();
         setPlans(updatedPlans);
       } else {
@@ -128,7 +128,7 @@ export default function SuperAdminPage() {
         </div>
       )}
 
-      {/* Platform Statistics & Management Links Row */}
+      {/* Platform Statistics & Super Admin Global Controls Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Link
           href="/admin/choirs"
@@ -154,23 +154,29 @@ export default function SuperAdminPage() {
           <p className="text-xs text-slate-500 group-hover:text-slate-400">Manage user profiles &amp; roles →</p>
         </Link>
 
-        <div className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Configured Plans</span>
-            <Layers className="w-5 h-5 text-amber-400" />
+        <Link
+          href="/admin/events"
+          className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-emerald-500/50 hover:bg-slate-800/80 transition-all group cursor-pointer block"
+        >
+          <div className="flex items-center justify-between text-slate-400 group-hover:text-emerald-300">
+            <span className="text-xs font-semibold uppercase tracking-wider">Global Events</span>
+            <Calendar className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
           </div>
-          <p className="text-3xl font-bold text-white">{plans.length}</p>
-          <p className="text-xs text-slate-500">Dynamic SaaS plans</p>
-        </div>
+          <p className="text-3xl font-bold text-white group-hover:text-emerald-300 transition-colors">Manage</p>
+          <p className="text-xs text-slate-500 group-hover:text-slate-400">View &amp; publish choir events →</p>
+        </Link>
 
-        <div className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="text-xs font-semibold uppercase tracking-wider">Platform Status</span>
-            <Sparkles className="w-5 h-5 text-emerald-400" />
+        <Link
+          href="/admin/announcements"
+          className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-amber-500/50 hover:bg-slate-800/80 transition-all group cursor-pointer block"
+        >
+          <div className="flex items-center justify-between text-slate-400 group-hover:text-amber-300">
+            <span className="text-xs font-semibold uppercase tracking-wider">Global Notices</span>
+            <Sparkles className="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform" />
           </div>
-          <p className="text-2xl font-bold text-emerald-400">Production Ready</p>
-          <p className="text-xs text-slate-500">Supabase RLS active</p>
-        </div>
+          <p className="text-3xl font-bold text-white group-hover:text-amber-300 transition-colors">Manage</p>
+          <p className="text-xs text-slate-500 group-hover:text-slate-400">Moderate &amp; hide announcements →</p>
+        </Link>
       </div>
 
       {/* Dynamic SaaS Subscription Plan Management */}
