@@ -1,6 +1,7 @@
 import { createClient } from '../supabase/client';
 import { Choir, ChoirMember, Section, ChoirSettings } from '../types/database.types';
-import { generateChoirCode } from '../utils/choirCode';
+import { subscriptionService } from './subscriptionService';
+import { notificationService } from './notificationService';
 
 export const choirService = {
   async getMyChoirs(): Promise<Choir[]> {
@@ -8,15 +9,14 @@ export const choirService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return [];
 
-    const { data: memberships, error } = await supabase
+    const { data: memberRows, error } = await supabase
       .from('choir_members')
       .select('choir_id, choirs(*)')
       .eq('user_id', user.id)
       .eq('status', 'active');
 
-    if (error || !memberships) return [];
-
-    return memberships.map((m: any) => m.choirs).filter(Boolean) as Choir[];
+    if (error || !memberRows) return [];
+    return memberRows.map((r: any) => r.choirs).filter(Boolean) as Choir[];
   },
 
   async createChoir(payload: {
@@ -27,61 +27,65 @@ export const choirService = {
     logo_url?: string;
   }): Promise<{ choir: Choir | null; error: string | null }> {
     try {
-      const res = await fetch('/api/choir/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { choir: null, error: 'User not logged in' };
 
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        // Fallback to browser client if API route fails
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return { choir: null, error: 'User must be authenticated' };
+      // Ensure profile exists in profiles table before inserting choir
+      const userFullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Choir Owner';
+      await supabase.from('profiles').upsert({
+        id: user.id,
+        full_name: userFullName,
+        email: user.email!,
+        phone: user.user_metadata?.phone || null,
+        avatar_url: user.user_metadata?.avatar_url || null,
+        is_super_admin: false,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
 
-        // Ensure profile exists before inserting choir
-        const userFullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Choir Director';
-        await supabase.from('profiles').upsert({
-          id: user.id,
-          full_name: userFullName,
-          email: user.email!,
-          phone: user.user_metadata?.phone || null,
-          avatar_url: user.user_metadata?.avatar_url || null,
-          is_super_admin: false,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'id' });
+      // Generate a unique 5-character alphanumeric choir code
+      const choirCode = Math.random().toString(36).substring(2, 7).toUpperCase();
 
-        const choirCode = generateChoirCode();
-        const { data: choir, error: choirError } = await supabase
-          .from('choirs')
-          .insert({
-            name: payload.name,
-            description: payload.description || null,
-            location: payload.location || null,
-            church_name: payload.church_name || null,
-            logo_url: payload.logo_url || null,
-            choir_code: choirCode,
-            owner_id: user.id,
-          })
-          .select()
-          .single();
+      const { data: choir, error } = await supabase
+        .from('choirs')
+        .insert({
+          ...payload,
+          owner_id: user.id,
+          choir_code: choirCode,
+        })
+        .select()
+        .single();
 
-        if (choirError || !choir) {
-          return { choir: null, error: choirError?.message || 'Failed to create choir' };
-        }
-
-        await supabase.from('choir_members').upsert({
-          choir_id: choir.id,
-          user_id: user.id,
-          role: 'owner',
-          status: 'active',
-        }, { onConflict: 'choir_id,user_id' });
-
-        return { choir: choir as Choir, error: null };
+      if (error || !choir) {
+        return { choir: null, error: error?.message || 'Failed to insert choir record' };
       }
 
-      return { choir: data.choir as Choir, error: null };
+      // Automatically assign owner as Choir Master (Role: owner, Status: active)
+      await supabase.from('choir_members').upsert({
+        choir_id: choir.id,
+        user_id: user.id,
+        role: 'owner',
+        status: 'active',
+      }, { onConflict: 'choir_id,user_id' });
+
+      // Initialize free subscription if available
+      const { plan: freePlan } = await subscriptionService.getChoirSubscription(choir.id);
+      if (freePlan) {
+        await subscriptionService.setChoirPlan(choir.id, freePlan.id);
+      }
+
+      // Double check full object
+      const { data: fullChoir } = await supabase
+        .from('choirs')
+        .select('*')
+        .eq('id', choir.id)
+        .single();
+
+      if (fullChoir) {
+        return { choir: fullChoir as Choir, error: null };
+      }
+
+      return { choir: choir as Choir, error: null };
     } catch (err: any) {
       return { choir: null, error: err.message || 'Network error creating choir' };
     }
@@ -132,10 +136,10 @@ export const choirService = {
       };
     }
 
-    // Check choir auto-approve setting
+    // Check choir details and auto-approve setting
     const { data: choir } = await supabase
       .from('choirs')
-      .select('settings')
+      .select('name, settings')
       .eq('id', choirId)
       .single();
 
@@ -150,6 +154,15 @@ export const choirService = {
     }, { onConflict: 'choir_id,user_id' });
 
     if (error) return { success: false, status: '', error: error.message };
+
+    // Notify Choir Master / Admins of join request!
+    await notificationService.sendNotificationToChoirAdmins(
+      choirId,
+      `New Membership Request: ${userFullName}`,
+      `${userFullName} (${user.email}) has requested to join ${choir?.name || 'your choir'}. Click to review and approve.`,
+      'member_request',
+      '/manage'
+    );
 
     return { success: true, status: initialStatus, alreadyMember: false, error: null };
   },
@@ -168,10 +181,34 @@ export const choirService = {
 
   async updateMemberStatus(memberId: string, status: 'active' | 'rejected' | 'suspended'): Promise<boolean> {
     const supabase = createClient();
+    const { data: member } = await supabase
+      .from('choir_members')
+      .select('user_id, choir_id')
+      .eq('id', memberId)
+      .single();
+
     const { error } = await supabase
       .from('choir_members')
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', memberId);
+
+    if (!error && member) {
+      // Notify the member of their approval status!
+      const statusTitle = status === 'active' ? 'Choir Membership Approved!' : status === 'rejected' ? 'Membership Request Update' : 'Membership Status Change';
+      const statusMsg = status === 'active'
+        ? 'Congratulations! Your membership request has been approved by the Choir Master. You now have full access to practice tracks.'
+        : `Your choir membership status has been updated to ${status}.`;
+
+      await notificationService.createNotification({
+        user_id: member.user_id,
+        choir_id: member.choir_id,
+        title: statusTitle,
+        message: statusMsg,
+        type: 'status_update',
+        priority: 'high',
+        link: '/dashboard',
+      });
+    }
 
     return !error;
   },

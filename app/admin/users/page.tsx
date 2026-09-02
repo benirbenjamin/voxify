@@ -3,13 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/context/AuthContext';
-import { adminService } from '@/lib/services/adminService';
-import { Profile } from '@/lib/types/database.types';
-import { ArrowLeft, Users, Shield, ShieldAlert, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { adminService, UserWithChoirs } from '@/lib/services/adminService';
+import { ArrowLeft, Users, Shield, ShieldAlert, Trash2, CheckCircle2, AlertCircle, Phone, Building2 } from 'lucide-react';
 
 export default function AdminUsersPage() {
   const { user } = useAuth();
-  const [users, setUsers] = useState<Profile[]>([]);
+  const [users, setUsers] = useState<UserWithChoirs[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -36,7 +35,7 @@ export default function AdminUsersPage() {
     );
   }
 
-  const handleToggleSuperAdmin = async (targetUser: Profile) => {
+  const handleToggleSuperAdmin = async (targetUser: UserWithChoirs) => {
     const nextStatus = !targetUser.is_super_admin;
     const ok = await adminService.toggleSuperAdmin(targetUser.id, nextStatus);
     if (ok) {
@@ -47,7 +46,7 @@ export default function AdminUsersPage() {
     }
   };
 
-  const handleDeleteUser = async (targetUser: Profile) => {
+  const handleDeleteUser = async (targetUser: UserWithChoirs) => {
     if (!confirm(`Are you sure you want to delete user "${targetUser.full_name}" (${targetUser.email})? This action will permanently remove their profile.`)) return;
 
     const ok = await adminService.deleteUser(targetUser.id);
@@ -60,7 +59,7 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 md:p-10 space-y-8 text-white">
+    <div className="max-w-7xl mx-auto p-6 md:p-10 space-y-8 text-white">
       <Link href="/admin" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back to Super Admin Portal
       </Link>
@@ -96,8 +95,9 @@ export default function AdminUsersPage() {
                 <tr>
                   <th className="p-4 rounded-l-xl">User Name</th>
                   <th className="p-4">Email</th>
-                  <th className="p-4">Phone</th>
-                  <th className="p-4">Super Admin Status</th>
+                  <th className="p-4">Phone Number</th>
+                  <th className="p-4">Owned Choir(s)</th>
+                  <th className="p-4">Super Admin</th>
                   <th className="p-4 rounded-r-xl">Actions</th>
                 </tr>
               </thead>
@@ -109,12 +109,33 @@ export default function AdminUsersPage() {
                       {u.id === user.id && <span className="ml-2 text-[10px] bg-purple-950 text-purple-300 border border-purple-800 px-2 py-0.5 rounded-md font-bold">You</span>}
                     </td>
                     <td className="p-4 text-xs font-mono text-slate-300">{u.email}</td>
-                    <td className="p-4 text-xs text-slate-400">{u.phone || 'N/A'}</td>
+                    <td className="p-4 text-xs text-purple-300 font-mono">
+                      {u.phone ? (
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3.5 h-3.5 text-purple-400" /> {u.phone}
+                        </span>
+                      ) : (
+                        <span className="text-slate-600 font-sans italic">Not provided</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-xs">
+                      {u.owned_choirs && u.owned_choirs.length > 0 ? (
+                        <div className="space-y-1">
+                          {u.owned_choirs.map(c => (
+                            <span key={c.id} className="inline-flex items-center gap-1 text-[11px] bg-purple-950/80 text-purple-300 px-2.5 py-1 rounded-md border border-purple-800/40 font-semibold block">
+                              <Building2 className="w-3 h-3 text-purple-400" /> {c.name} ({c.choir_code})
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-slate-500 italic">No Choirs Owned</span>
+                      )}
+                    </td>
                     <td className="p-4">
                       <span className={`text-xs px-2.5 py-1 rounded-md font-semibold uppercase ${
                         u.is_super_admin ? 'bg-amber-950/60 text-amber-300 border border-amber-800/40' : 'bg-slate-800 text-slate-400'
                       }`}>
-                        {u.is_super_admin ? 'Super Admin' : 'Standard User'}
+                        {u.is_super_admin ? 'Super Admin' : 'Standard'}
                       </span>
                     </td>
                     <td className="p-4">

@@ -22,6 +22,17 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
+      // Ensure profile row exists in database with full_name, email & phone number
+      await supabase.from('profiles').upsert({
+        id: data.user.id,
+        full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'User',
+        email: data.user.email!,
+        phone: data.user.user_metadata?.phone || null,
+        avatar_url: data.user.user_metadata?.avatar_url || null,
+        is_super_admin: false,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+
       const rolePref = data.user.user_metadata?.role_preference || 'singer';
 
       // Check if user already owns a choir

@@ -1,17 +1,31 @@
 import { createClient } from '../supabase/client';
 import { Profile, Choir } from '../types/database.types';
 
+export interface UserWithChoirs extends Profile {
+  owned_choirs?: Choir[];
+  memberships?: Array<{
+    role: string;
+    status: string;
+    choir: Choir;
+  }>;
+}
+
+export interface ChoirWithOwner extends Choir {
+  owner?: Profile;
+  member_count?: number;
+}
+
 export const adminService = {
-  // Super Admin: Fetch all registered users
-  async getAllUsers(): Promise<Profile[]> {
+  // Super Admin: Fetch all registered users with their owned choirs and memberships
+  async getAllUsers(): Promise<UserWithChoirs[]> {
     const supabase = createClient();
     const { data, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('*, owned_choirs:choirs(*), memberships:choir_members(*, choir:choirs(*))')
       .order('created_at', { ascending: false });
 
     if (error || !data) return [];
-    return data as Profile[];
+    return data as UserWithChoirs[];
   },
 
   // Super Admin: Toggle Super Admin privileges
@@ -36,12 +50,12 @@ export const adminService = {
     return !error;
   },
 
-  // Super Admin: Fetch all choirs with owner info
-  async getAllChoirs(): Promise<Choir[]> {
+  // Super Admin: Fetch all choirs with full owner info and member count
+  async getAllChoirs(): Promise<ChoirWithOwner[]> {
     const supabase = createClient();
     const { data, error } = await supabase
       .from('choirs')
-      .select('*, member_count:choir_members(count)')
+      .select('*, owner:profiles(*), member_count:choir_members(count)')
       .order('created_at', { ascending: false });
 
     if (error || !data) return [];
@@ -49,7 +63,7 @@ export const adminService = {
     return data.map((c: any) => ({
       ...c,
       member_count: Array.isArray(c.member_count) ? c.member_count[0]?.count || 0 : 0,
-    })) as Choir[];
+    })) as ChoirWithOwner[];
   },
 
   // Super Admin: Delete choir and all associated resources

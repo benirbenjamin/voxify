@@ -109,5 +109,40 @@ export const notificationService = {
 
     const { error } = await supabase.from('notifications').insert(notifications);
     return !error;
+  },
+
+  async sendNotificationToChoirAdmins(
+    choirId: string,
+    title: string,
+    message: string,
+    type = 'member_request',
+    link = '/manage',
+    priority: NotificationPriority = 'high'
+  ): Promise<boolean> {
+    const supabase = createClient();
+
+    // 1. Fetch all choir owners and admins for this choir
+    const { data: admins } = await supabase
+      .from('choir_members')
+      .select('user_id')
+      .eq('choir_id', choirId)
+      .in('role', ['owner', 'admin']);
+
+    if (!admins || admins.length === 0) return true;
+
+    // 2. Bulk insert admin notifications
+    const notifications = admins.map(a => ({
+      user_id: a.user_id,
+      choir_id: choirId,
+      title,
+      message,
+      type,
+      priority,
+      link,
+      is_read: false,
+    }));
+
+    const { error } = await supabase.from('notifications').insert(notifications);
+    return !error;
   }
 };

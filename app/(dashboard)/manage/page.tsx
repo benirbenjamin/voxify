@@ -23,7 +23,11 @@ import {
   UserX,
   Clock3,
   ArrowLeft,
-  BarChart3
+  BarChart3,
+  Mail,
+  Phone,
+  Send,
+  Loader2
 } from 'lucide-react';
 
 export default function ChoirAdminPage() {
@@ -32,6 +36,12 @@ export default function ChoirAdminPage() {
   const [songs, setSongs] = useState<Song[]>([]);
   const [stats, setStats] = useState<AttendanceStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
+
+  // Invite Singer State
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteMsg, setInviteMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     async function loadAdminData() {
@@ -76,6 +86,35 @@ export default function ChoirAdminPage() {
     }
   };
 
+  const handleSendInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeChoir || !inviteEmail.trim()) return;
+
+    setInviting(true);
+    setInviteMsg(null);
+
+    try {
+      const res = await fetch('/api/choir/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ choirId: activeChoir.id, email: inviteEmail.trim() }),
+      });
+
+      const data = await res.json();
+      setInviting(false);
+
+      if (res.ok && data.success) {
+        setInviteMsg({ type: 'success', text: data.message || `Invitation sent to ${inviteEmail}!` });
+        setInviteEmail('');
+      } else {
+        setInviteMsg({ type: 'error', text: data.error || 'Failed to send invitation email.' });
+      }
+    } catch {
+      setInviting(false);
+      setInviteMsg({ type: 'error', text: 'Network error sending invitation.' });
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Universal Back Button */}
@@ -89,7 +128,76 @@ export default function ChoirAdminPage() {
           <h1 className="text-3xl font-extrabold text-white">Choir Master Administration</h1>
           <p className="text-sm text-slate-400">Manage members, view attendance stats, upload songs, and schedule rehearsals for {activeChoir?.name}</p>
         </div>
+
+        <button
+          onClick={() => setInviteModalOpen(true)}
+          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all self-start sm:self-auto"
+        >
+          <Mail className="w-4 h-4" /> Invite Singer by Email
+        </button>
       </div>
+
+      {/* Invite Singer Modal */}
+      {inviteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Mail className="w-5 h-5 text-purple-400" /> Invite Singer to {activeChoir?.name}
+              </h3>
+              <button
+                onClick={() => { setInviteModalOpen(false); setInviteMsg(null); }}
+                className="text-slate-400 hover:text-white text-xs font-bold p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-400">
+              Enter the singer&apos;s email address. We will send an email invitation with the choir join code <strong className="font-mono text-purple-400">{activeChoir?.choir_code}</strong> and a direct join link.
+            </p>
+
+            {inviteMsg && (
+              <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${inviteMsg.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'}`}>
+                {inviteMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> : <XCircle className="w-4 h-4 text-rose-400 shrink-0" />}
+                <span>{inviteMsg.text}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSendInvite} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Singer Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={inviteEmail}
+                  onChange={e => setInviteEmail(e.target.value)}
+                  placeholder="singer@example.com"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setInviteModalOpen(false); setInviteMsg(null); }}
+                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={inviting}
+                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-md flex items-center gap-1.5"
+                >
+                  {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  {inviting ? 'Sending...' : 'Send Invitation'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Choir Performance Analytics Section */}
       <div className="space-y-4">
@@ -221,19 +329,26 @@ export default function ChoirAdminPage() {
               <div key={m.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-4">
                 <Link href={`/manage/members/${m.id}`} className="hover:underline">
                   <h4 className="font-bold text-white">{m.profile?.full_name || 'New Member'}</h4>
-                  <p className="text-xs text-slate-400">{m.profile?.email}</p>
+                  <p className="text-xs text-slate-400 flex items-center gap-2">
+                    <span>{m.profile?.email}</span>
+                    {m.profile?.phone && (
+                      <span className="flex items-center gap-1 text-purple-300">
+                        <Phone className="w-3 h-3 text-purple-400" /> {m.profile.phone}
+                      </span>
+                    )}
+                  </p>
                 </Link>
 
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleUpdateStatus(m.id, 'active')}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1 shadow-md"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Approve
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Approve Singer
                   </button>
                   <button
                     onClick={() => handleUpdateStatus(m.id, 'rejected')}
-                    className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1"
+                    className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1"
                   >
                     <XCircle className="w-3.5 h-3.5" /> Reject
                   </button>
@@ -244,7 +359,7 @@ export default function ChoirAdminPage() {
         </div>
       )}
 
-      {/* Clickable Active Choir Roster */}
+      {/* Clickable Active Choir Roster with Phone Numbers */}
       <div id="roster-section" className="bg-slate-900/60 p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold text-white">Active Choir Roster ({activeMembers.length} Singers)</h2>
@@ -257,6 +372,7 @@ export default function ChoirAdminPage() {
               <tr>
                 <th className="p-4 rounded-l-xl">Singer Name</th>
                 <th className="p-4">Email</th>
+                <th className="p-4">Phone Number</th>
                 <th className="p-4">Role</th>
                 <th className="p-4">Status</th>
                 <th className="p-4 rounded-r-xl">Analytics &amp; Actions</th>
@@ -271,6 +387,15 @@ export default function ChoirAdminPage() {
                     </Link>
                   </td>
                   <td className="p-4 text-xs text-slate-400">{m.profile?.email}</td>
+                  <td className="p-4 text-xs text-purple-300 font-mono">
+                    {m.profile?.phone ? (
+                      <span className="flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5 text-purple-400 shrink-0" /> {m.profile.phone}
+                      </span>
+                    ) : (
+                      <span className="text-slate-600 font-sans italic">Not provided</span>
+                    )}
+                  </td>
                   <td className="p-4">
                     <span className="text-xs px-2.5 py-1 rounded-md font-semibold uppercase bg-purple-950/60 text-purple-300 border border-purple-800/40">
                       {m.role}

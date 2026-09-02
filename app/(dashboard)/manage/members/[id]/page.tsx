@@ -154,7 +154,9 @@ export default function SingerAnalyticsPage() {
               </span>
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-white">{member.profile?.full_name}</h1>
-            <p className="text-xs text-slate-400">{member.profile?.email} • Joined {new Date(member.joined_at).toLocaleDateString()}</p>
+            <p className="text-xs text-slate-400">
+              {member.profile?.email} {member.profile?.phone ? `• Phone: ${member.profile.phone}` : ''} • Joined {new Date(member.joined_at).toLocaleDateString()}
+            </p>
           </div>
         </div>
 

@@ -3,13 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/context/AuthContext';
-import { adminService } from '@/lib/services/adminService';
-import { Choir } from '@/lib/types/database.types';
-import { ArrowLeft, Music, Shield, Trash2, CheckCircle2, AlertCircle, Users } from 'lucide-react';
+import { adminService, ChoirWithOwner } from '@/lib/services/adminService';
+import { ArrowLeft, Music, Shield, Trash2, CheckCircle2, AlertCircle, Users, Phone, User } from 'lucide-react';
 
 export default function AdminChoirsPage() {
   const { user } = useAuth();
-  const [choirs, setChoirs] = useState<Choir[]>([]);
+  const [choirs, setChoirs] = useState<ChoirWithOwner[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -36,7 +35,7 @@ export default function AdminChoirsPage() {
     );
   }
 
-  const handleDeleteChoir = async (targetChoir: Choir) => {
+  const handleDeleteChoir = async (targetChoir: ChoirWithOwner) => {
     if (!confirm(`Are you sure you want to delete choir "${targetChoir.name}" (Code: ${targetChoir.choir_code})? This will delete all songs, events, and memberships associated with it.`)) return;
 
     const ok = await adminService.deleteChoir(targetChoir.id);
@@ -49,7 +48,7 @@ export default function AdminChoirsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 md:p-10 space-y-8 text-white">
+    <div className="max-w-7xl mx-auto p-6 md:p-10 space-y-8 text-white">
       <Link href="/admin" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back to Super Admin Portal
       </Link>
@@ -85,7 +84,8 @@ export default function AdminChoirsPage() {
                 <tr>
                   <th className="p-4 rounded-l-xl">Choir Name</th>
                   <th className="p-4">Choir Code</th>
-                  <th className="p-4">Church / Location</th>
+                  <th className="p-4">Choir Master (Owner)</th>
+                  <th className="p-4">Owner Phone Number</th>
                   <th className="p-4">Member Count</th>
                   <th className="p-4 rounded-r-xl">Actions</th>
                 </tr>
@@ -93,16 +93,39 @@ export default function AdminChoirsPage() {
               <tbody className="divide-y divide-slate-800">
                 {choirs.map(c => (
                   <tr key={c.id} className="hover:bg-slate-800/40">
-                    <td className="p-4 font-semibold text-white">{c.name}</td>
+                    <td className="p-4 font-semibold text-white">
+                      <div>{c.name}</div>
+                      {c.church_name && <div className="text-xs text-slate-400">{c.church_name}</div>}
+                    </td>
                     <td className="p-4 font-mono font-bold text-purple-400">{c.choir_code}</td>
-                    <td className="p-4 text-xs text-slate-400">{c.church_name || c.location || 'N/A'}</td>
-                    <td className="p-4 text-xs font-bold text-emerald-400 flex items-center gap-1">
+                    <td className="p-4 text-xs">
+                      {c.owner ? (
+                        <div>
+                          <div className="font-bold text-white flex items-center gap-1">
+                            <User className="w-3 h-3 text-purple-400" /> {c.owner.full_name}
+                          </div>
+                          <div className="text-slate-400 font-mono">{c.owner.email}</div>
+                        </div>
+                      ) : (
+                        <span className="text-slate-500 italic">Unknown Owner</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-xs text-purple-300 font-mono">
+                      {c.owner?.phone ? (
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3.5 h-3.5 text-purple-400" /> {c.owner.phone}
+                        </span>
+                      ) : (
+                        <span className="text-slate-600 font-sans italic">Not provided</span>
+                      )}
+                    </td>
+                    <td className="p-4 text-xs font-bold text-emerald-400 flex items-center gap-1 pt-6">
                       <Users className="w-3.5 h-3.5" /> {c.member_count || 0} Members
                     </td>
                     <td className="p-4">
                       <button
                         onClick={() => handleDeleteChoir(c)}
-                        className="text-xs text-rose-400 hover:underline flex items-center gap-1"
+                        className="text-xs text-rose-400 hover:underline flex items-center gap-1 font-semibold"
                       >
                         <Trash2 className="w-3.5 h-3.5" /> Delete Choir
                       </button>
