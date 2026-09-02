@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/lib/context/AuthContext';
 import { statsService, PlatformStats } from '@/lib/services/statsService';
+import { subscriptionService } from '@/lib/services/subscriptionService';
+import { SubscriptionPlan } from '@/lib/types/database.types';
 import { ShieldCheck, Calendar, Sparkles, Volume2, ArrowRight, CheckCircle2, Play, Pause, Repeat, Zap, Crown, LogOut, LayoutDashboard } from 'lucide-react';
 
 export default function LandingPage() {
@@ -17,16 +19,25 @@ export default function LandingPage() {
     totalMembers: 0,
   });
 
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+
   const [activeVoicePart, setActiveVoicePart] = useState<'Full Mix' | 'Soprano' | 'Alto' | 'Tenor' | 'Bass'>('Soprano');
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState('1.0x');
 
   useEffect(() => {
-    async function loadStats() {
-      const data = await statsService.getPlatformStats();
-      setStats(data);
+    async function loadData() {
+      setLoadingPlans(true);
+      const [statsData, plansData] = await Promise.all([
+        statsService.getPlatformStats(),
+        subscriptionService.getAllPlans(),
+      ]);
+      setStats(statsData);
+      setPlans(plansData);
+      setLoadingPlans(false);
     }
-    loadStats();
+    loadData();
   }, []);
 
   return (
@@ -222,7 +233,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Waveform Visualizer Bar (Responsive Bar Count) */}
+          {/* Waveform Visualizer Bar */}
           <div className="bg-slate-950 p-4 sm:p-6 rounded-2xl border border-slate-800 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] sm:text-xs text-slate-400 font-mono">
               <span>00:42 / 03:15</span>
@@ -322,77 +333,163 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* SaaS Pricing Plans Section */}
+      {/* Dynamic Database SaaS Pricing Plans Section */}
       <section id="pricing" className="max-w-7xl mx-auto px-4 sm:px-6 py-16 sm:py-20 border-t border-slate-900 space-y-10 sm:space-y-12">
         <div className="text-center space-y-3 sm:space-y-4">
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-purple-950/60 border border-purple-500/40 text-purple-300 text-[10px] sm:text-xs font-bold uppercase tracking-wider">
-            <Crown className="w-3.5 h-3.5 text-purple-400 shrink-0" /> Transparent Choir Plans
+            <Crown className="w-3.5 h-3.5 text-purple-400 shrink-0" /> Live Database SaaS Plans
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white">Choose Your Choir SaaS Plan</h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-          <div className="bg-slate-900/60 p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6 flex flex-col justify-between hover:border-slate-700 transition-all duration-300">
-            <div className="space-y-4">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Community</span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl sm:text-4xl font-black text-white">$0</span>
-                <span className="text-xs text-slate-500">/ forever free</span>
-              </div>
-              <p className="text-xs text-slate-400">Perfect for small church choirs getting started with voice practice.</p>
-              <ul className="space-y-2 text-xs text-slate-300 pt-4 border-t border-slate-800">
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Up to 30 Active Singers</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> 100 Voice Part Audio Tracks</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> 500 MB Storage</li>
-              </ul>
-            </div>
-            <Link href="/register" className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-xs text-center block transition-colors">
-              Start Free
-            </Link>
+        {loadingPlans ? (
+          <div className="text-center py-12 text-slate-400 text-xs font-semibold">
+            Loading active subscription plans from database...
           </div>
+        ) : plans.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+            {plans.map((plan, index) => {
+              const isHighlighted = !plan.is_free && index === 1;
+              return (
+                <div
+                  key={plan.id}
+                  className={`p-6 sm:p-8 rounded-3xl space-y-6 flex flex-col justify-between transition-all duration-300 relative ${
+                    isHighlighted
+                      ? 'bg-gradient-to-b from-purple-950/80 to-slate-900/90 border-2 border-purple-500 shadow-2xl shadow-purple-600/20'
+                      : 'bg-slate-900/60 border border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  {isHighlighted && (
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-[10px] font-extrabold uppercase tracking-widest px-3.5 py-1 rounded-full shadow-lg shrink-0">
+                      Most Popular
+                    </div>
+                  )}
 
-          <div className="bg-gradient-to-b from-purple-950/80 to-slate-900/90 p-6 sm:p-8 rounded-3xl border-2 border-purple-500 space-y-6 flex flex-col justify-between shadow-2xl relative">
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-[10px] font-extrabold uppercase tracking-widest px-3.5 py-1 rounded-full shadow-lg shrink-0">
-              Most Popular
-            </div>
-            <div className="space-y-4 pt-2 sm:pt-0">
-              <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">Choir Pro</span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl sm:text-4xl font-black text-white">$19</span>
-                <span className="text-xs text-slate-400">/ month</span>
-              </div>
-              <p className="text-xs text-slate-300">For active church &amp; cathedral choirs with regular Sunday services.</p>
-              <ul className="space-y-2 text-xs text-slate-200 pt-4 border-t border-purple-900/60">
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" /> Up to 150 Active Singers</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" /> Unlimited Audio &amp; PDF Uploads</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" /> 10 GB Supabase Storage</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" /> Resend Email Notifications</li>
-              </ul>
-            </div>
-            <Link href="/register" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs text-center block shadow-lg shadow-purple-600/30 transition-colors">
-              Upgrade to Choir Pro
-            </Link>
-          </div>
+                  <div className="space-y-4 pt-2 sm:pt-0">
+                    <span className={`text-xs font-bold uppercase tracking-widest ${isHighlighted ? 'text-purple-400' : plan.is_free ? 'text-slate-400' : 'text-amber-400'}`}>
+                      {plan.name}
+                    </span>
 
-          <div className="bg-slate-900/60 p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6 flex flex-col justify-between hover:border-slate-700 transition-all duration-300">
-            <div className="space-y-4">
-              <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">Cathedral Enterprise</span>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl sm:text-4xl font-black text-white">$49</span>
-                <span className="text-xs text-slate-500">/ month</span>
-              </div>
-              <p className="text-xs text-slate-400">For large music ministries managing multiple choir groups.</p>
-              <ul className="space-y-2 text-xs text-slate-300 pt-4 border-t border-slate-800">
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" /> Unlimited Singers &amp; Choirs</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" /> 100 GB Storage &amp; Dedicated Support</li>
-                <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" /> Multi-Choir Super Admin</li>
-              </ul>
-            </div>
-            <Link href="/register" className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-xs text-center block transition-colors">
-              Get Enterprise
-            </Link>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl sm:text-4xl font-black text-white">
+                        {plan.is_free ? '$0' : `$${plan.price_monthly}`}
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        {plan.is_free ? '/ forever free' : '/ month'}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      {plan.description || 'Flexible SaaS subscription plan for choir management & music learning.'}
+                    </p>
+
+                    <div className="pt-4 border-t border-slate-800 space-y-2">
+                      <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Plan Capacity &amp; Features:</span>
+                      <ul className="space-y-2 text-xs text-slate-200">
+                        {plan.limits?.max_members && (
+                          <li className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                            <span>Up to {plan.limits.max_members} Active Singers</span>
+                          </li>
+                        )}
+                        {plan.limits?.max_storage_mb && (
+                          <li className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                            <span>
+                              {plan.limits.max_storage_mb >= 1024
+                                ? `${(plan.limits.max_storage_mb / 1024).toFixed(0)} GB Storage`
+                                : `${plan.limits.max_storage_mb} MB Storage`}
+                            </span>
+                          </li>
+                        )}
+                        {(plan.features || []).map((feat, idx) => (
+                          <li key={idx} className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" />
+                            <span>{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  <Link
+                    href="/register"
+                    className={`w-full font-bold py-3 rounded-xl text-xs text-center block transition-colors ${
+                      isHighlighted
+                        ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30'
+                        : 'bg-slate-800 hover:bg-slate-700 text-white'
+                    }`}
+                  >
+                    {plan.is_free ? 'Start Free' : `Choose ${plan.name}`}
+                  </Link>
+                </div>
+              );
+            })}
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+            <div className="bg-slate-900/60 p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6 flex flex-col justify-between hover:border-slate-700 transition-all duration-300">
+              <div className="space-y-4">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Community</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl sm:text-4xl font-black text-white">$0</span>
+                  <span className="text-xs text-slate-500">/ forever free</span>
+                </div>
+                <p className="text-xs text-slate-400">Perfect for small church choirs getting started with voice practice.</p>
+                <ul className="space-y-2 text-xs text-slate-300 pt-4 border-t border-slate-800">
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Up to 30 Active Singers</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> 100 Voice Part Audio Tracks</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> 500 MB Storage</li>
+                </ul>
+              </div>
+              <Link href="/register" className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-xs text-center block transition-colors">
+                Start Free
+              </Link>
+            </div>
+
+            <div className="bg-gradient-to-b from-purple-950/80 to-slate-900/90 p-6 sm:p-8 rounded-3xl border-2 border-purple-500 space-y-6 flex flex-col justify-between shadow-2xl relative">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-[10px] font-extrabold uppercase tracking-widest px-3.5 py-1 rounded-full shadow-lg shrink-0">
+                Most Popular
+              </div>
+              <div className="space-y-4 pt-2 sm:pt-0">
+                <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">Choir Pro</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl sm:text-4xl font-black text-white">$19</span>
+                  <span className="text-xs text-slate-400">/ month</span>
+                </div>
+                <p className="text-xs text-slate-300">For active church &amp; cathedral choirs with regular Sunday services.</p>
+                <ul className="space-y-2 text-xs text-slate-200 pt-4 border-t border-purple-900/60">
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" /> Up to 150 Active Singers</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" /> Unlimited Audio &amp; PDF Uploads</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" /> 10 GB Supabase Storage</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-purple-400 shrink-0" /> Resend Email Notifications</li>
+                </ul>
+              </div>
+              <Link href="/register" className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl text-xs text-center block shadow-lg shadow-purple-600/30 transition-colors">
+                Upgrade to Choir Pro
+              </Link>
+            </div>
+
+            <div className="bg-slate-900/60 p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6 flex flex-col justify-between hover:border-slate-700 transition-all duration-300">
+              <div className="space-y-4">
+                <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">Cathedral Enterprise</span>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl sm:text-4xl font-black text-white">$49</span>
+                  <span className="text-xs text-slate-500">/ month</span>
+                </div>
+                <p className="text-xs text-slate-400">For large music ministries managing multiple choir groups.</p>
+                <ul className="space-y-2 text-xs text-slate-300 pt-4 border-t border-slate-800">
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" /> Unlimited Singers &amp; Choirs</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" /> 100 GB Storage &amp; Dedicated Support</li>
+                  <li className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" /> Multi-Choir Super Admin</li>
+                </ul>
+              </div>
+              <Link href="/register" className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-xs text-center block transition-colors">
+                Get Enterprise
+              </Link>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Footer */}
