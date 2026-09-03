@@ -160,9 +160,31 @@ export default function EditPlanPage() {
       </div>
 
       {error && (
-        <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-2xl text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-          <span>{error}</span>
+        <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-2xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>{error}</span>
+          </div>
+
+          {(error.includes('schema cache') || error.includes('column')) && (
+            <button
+              type="button"
+              onClick={async () => {
+                setError('Applying database schema update (00006_platform_settings_and_discounts.sql)...');
+                const res = await fetch('/api/setup', { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                  setError(null);
+                  alert('✅ Database schema updated! You can now edit and save plan discount percentages.');
+                } else {
+                  setError(`Schema update error: ${data.error}`);
+                }
+              }}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-1.5 rounded-xl text-xs shrink-0 cursor-pointer transition-all"
+            >
+              ⚡ Fix &amp; Update DB Schema
+            </button>
+          )}
         </div>
       )}
 

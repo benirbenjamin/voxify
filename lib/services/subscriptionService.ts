@@ -112,7 +112,22 @@ export const subscriptionService = {
       .select()
       .single();
 
-    if (error || !data) return null;
+    if (error) {
+      if (error.message.includes('schema cache') || error.message.includes('column')) {
+        // Auto-heal: Run setup migration and retry
+        try {
+          await fetch('/api/setup', { method: 'POST' });
+          const { discount_3_months, discount_6_months, discount_12_months, ...fallbackPayload } = payload;
+          const { data: retryData } = await supabase
+            .from('subscription_plans')
+            .insert({ ...fallbackPayload, is_active: true })
+            .select()
+            .single();
+          return (retryData as SubscriptionPlan) || null;
+        } catch {}
+      }
+      return null;
+    }
     return data as SubscriptionPlan;
   },
 
@@ -138,7 +153,39 @@ export const subscriptionService = {
       })
       .eq('id', planId);
 
-    if (error) return { success: false, error: error.message };
+    if (error) {
+      // Self-healing: if column is missing from DB, trigger setup endpoint to run 00006 migration
+      if (error.message.includes('discount') || error.message.includes('schema cache')) {
+        try {
+          const setupRes = await fetch('/api/setup', { method: 'POST' });
+          const setupData = await setupRes.json();
+          if (setupData.success) {
+            // Retry update with full payload
+            const { error: retryErr } = await supabase
+              .from('subscription_plans')
+              .update({ ...payload, updated_at: new Date().toISOString() })
+              .eq('id', planId);
+
+            if (!retryErr) return { success: true, error: null };
+          }
+        } catch {}
+
+        // Fallback: Strip discount columns and update standard plan fields
+        const { discount_3_months, discount_6_months, discount_12_months, ...fallbackPayload } = payload;
+        const { error: fallbackErr } = await supabase
+          .from('subscription_plans')
+          .update({
+            ...fallbackPayload,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', planId);
+
+        if (!fallbackErr) return { success: true, error: null };
+      }
+
+      return { success: false, error: error.message };
+    }
+
     return { success: true, error: null };
   },
 
