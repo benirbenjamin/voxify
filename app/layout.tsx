@@ -3,6 +3,7 @@ import './globals.css';
 import { AuthProvider } from '../lib/context/AuthContext';
 import { ChoirProvider } from '../lib/context/ChoirContext';
 import { PWARegister } from '../components/pwa/PWARegister';
+import { AnalyticsTracker } from '../components/analytics/AnalyticsTracker';
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://voxify.space';
 
@@ -74,6 +75,7 @@ export default function RootLayout({
           <ChoirProvider>
             {children}
             <PWARegister />
+            <AnalyticsTracker />
           </ChoirProvider>
         </AuthProvider>
       </body>

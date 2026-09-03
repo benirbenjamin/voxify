@@ -258,3 +258,61 @@ export interface AuditLog {
   created_at: string;
   user_email?: string;
 }
+
+export interface SiteVisit {
+  id: string;
+  session_id: string;
+  user_id?: string | null;
+  page_path: string;
+  referrer: string;
+  referrer_domain: string;
+  user_agent?: string | null;
+  device_type: 'mobile' | 'tablet' | 'desktop';
+  browser: string;
+  country: string;
+  session_duration_seconds: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrafficSourceItem {
+  source: string;
+  count: number;
+  percentage: number;
+  color: string;
+}
+
+export interface VisitorTrendItem {
+  date: string;
+  visitors: number;
+  pageviews: number;
+}
+
+export interface TopPageItem {
+  path: string;
+  label: string;
+  views: number;
+  percentage: number;
+}
+
+export interface DeviceBreakdownItem {
+  device: string;
+  count: number;
+  percentage: number;
+}
+
+export interface AnalyticsSummary {
+  timeframe: 'today' | '7d' | '30d' | '365d' | 'all';
+  uniqueVisitorsCount: number;
+  totalPageviewsCount: number;
+  avgTimeSpentSeconds: number;
+  avgTimeSpentFormatted: string;
+  activeUsersCount: number;
+  trafficSources: TrafficSourceItem[];
+  visitorTrends: VisitorTrendItem[];
+  topPages: TopPageItem[];
+  deviceBreakdown: DeviceBreakdownItem[];
+  choirsCount: number;
+  songsCount: number;
+  eventsCount: number;
+}

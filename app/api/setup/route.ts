@@ -23,6 +23,7 @@ export async function POST() {
       'supabase/migrations/00002_rls_policies.sql',
       'supabase/migrations/00003_storage_buckets.sql',
       'supabase/migrations/00004_announcement_comments_reactions.sql',
+      'supabase/migrations/00005_platform_analytics.sql',
       'supabase/seed.sql',
     ];
 

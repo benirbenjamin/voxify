@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { subscriptionService } from '@/lib/services/subscriptionService';
 import { adminService } from '@/lib/services/adminService';
 import { SubscriptionPlan } from '@/lib/types/database.types';
-import { Shield, Layers, Users, Music, Sparkles, ArrowRight, Plus, Edit3, Trash2, Power, Calendar } from 'lucide-react';
+import { Shield, Layers, Users, Music, Sparkles, ArrowRight, Plus, Edit3, Trash2, Power, Calendar, BarChart3, Globe, TrendingUp } from 'lucide-react';
 
 export default function SuperAdminPage() {
   const { user } = useAuth();
@@ -106,19 +106,19 @@ export default function SuperAdminPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Link
+            href="/admin/analytics"
+            className="bg-purple-600 hover:bg-purple-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all"
+          >
+            <BarChart3 className="w-4 h-4" /> View Platform Analytics Hub
+          </Link>
           <button
             onClick={handleOneClickDbSetup}
             disabled={settingUpDb}
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold px-4 py-2.5 rounded-xl text-xs shadow-lg shadow-purple-600/30 transition-all"
-          >
-            {settingUpDb ? 'Creating Tables & Buckets...' : '⚡ Run One-Click Supabase DB Setup'}
-          </button>
-          <Link
-            href="/dashboard"
             className="bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 font-semibold px-4 py-2.5 rounded-xl text-xs flex items-center gap-2"
           >
-            <ArrowRight className="w-4 h-4 rotate-180" /> Return to Choir App
-          </Link>
+            {settingUpDb ? 'Creating Tables...' : '⚡ Run DB Setup'}
+          </button>
         </div>
       </div>
 
@@ -127,6 +127,30 @@ export default function SuperAdminPage() {
           {dbSetupMessage}
         </div>
       )}
+
+      {/* Featured Platform Web & App Analytics Hero Banner */}
+      <Link
+        href="/admin/analytics"
+        className="bg-gradient-to-r from-purple-950/60 via-slate-900 to-indigo-950/60 border border-purple-500/40 p-6 md:p-8 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-6 hover:border-purple-400 hover:scale-[1.005] transition-all shadow-2xl group block"
+      >
+        <div className="space-y-2 flex-1">
+          <div className="inline-flex items-center gap-2 bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full text-xs font-bold border border-purple-500/30">
+            <Globe className="w-3.5 h-3.5" /> Traffic Sources, Session Time &amp; Visitor Trends
+          </div>
+          <h2 className="text-2xl font-extrabold text-white group-hover:text-purple-300 transition-colors">
+            Real-Time Web Traffic &amp; Performance Analytics
+          </h2>
+          <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+            Monitor where visitors originate (Google, Direct, Social, Referrals), daily/weekly/yearly visitor counts, time spent on site, and top visited pages.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0 self-start md:self-center">
+          <span className="bg-purple-600 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-lg shadow-purple-600/30 flex items-center gap-2 group-hover:bg-purple-500 transition-all">
+            Open Analytics Dashboard <ArrowRight className="w-4 h-4" />
+          </span>
+        </div>
+      </Link>
 
       {/* Platform Statistics & Super Admin Global Controls Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
