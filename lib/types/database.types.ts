@@ -244,6 +244,8 @@ export interface SubscriptionPlan {
 export interface PlatformPaymentSettings {
   google_pay_enabled: boolean;
   flutterwave_enabled: boolean;
+  flutterwave_secret_key?: string | null;
+  flutterwave_public_key?: string | null;
   updated_at?: string;
 }
 

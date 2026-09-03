@@ -21,6 +21,8 @@ export const platformSettingsService = {
       return {
         google_pay_enabled: data.google_pay_enabled ?? true,
         flutterwave_enabled: data.flutterwave_enabled ?? true,
+        flutterwave_secret_key: data.flutterwave_secret_key || null,
+        flutterwave_public_key: data.flutterwave_public_key || null,
       };
     } catch {
       return {

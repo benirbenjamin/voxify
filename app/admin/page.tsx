@@ -24,6 +24,8 @@ export default function SuperAdminPage() {
   // Payment Method Controls State
   const [googlePayEnabled, setGooglePayEnabled] = useState(true);
   const [flutterwaveEnabled, setFlutterwaveEnabled] = useState(true);
+  const [flutterwaveSecretKey, setFlutterwaveSecretKey] = useState('');
+  const [savingFlwKey, setSavingFlwKey] = useState(false);
   const [updatingSettings, setUpdatingSettings] = useState(false);
 
   useEffect(() => {
@@ -40,6 +42,9 @@ export default function SuperAdminPage() {
       setUsersCount(usersData.length);
       setGooglePayEnabled(platformSettings.google_pay_enabled);
       setFlutterwaveEnabled(platformSettings.flutterwave_enabled);
+      if (platformSettings.flutterwave_secret_key) {
+        setFlutterwaveSecretKey(platformSettings.flutterwave_secret_key);
+      }
       setLoading(false);
     }
     loadData();
@@ -55,6 +60,13 @@ export default function SuperAdminPage() {
     const nextVal = !flutterwaveEnabled;
     setFlutterwaveEnabled(nextVal);
     await platformSettingsService.updateSettings({ flutterwave_enabled: nextVal });
+  };
+
+  const handleSaveFlwSecretKey = async () => {
+    setSavingFlwKey(true);
+    await platformSettingsService.updateSettings({ flutterwave_secret_key: flutterwaveSecretKey });
+    setSavingFlwKey(false);
+    alert('✅ Flutterwave Secret Key saved successfully!');
   };
 
   const handleOneClickDbSetup = async () => {
@@ -222,32 +234,61 @@ export default function SuperAdminPage() {
           </div>
 
           {/* Flutterwave Toggle */}
-          <div className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${
+          <div className={`p-4 rounded-2xl border space-y-3 transition-all ${
             flutterwaveEnabled ? 'bg-slate-950 border-amber-500/50' : 'bg-slate-950/50 border-slate-800 opacity-60'
           }`}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-black text-xs text-amber-300">
-                FLW
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-black text-xs text-amber-300">
+                  FLW
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Flutterwave Gateway</h4>
+                  <span className={`text-[10px] font-semibold ${flutterwaveEnabled ? 'text-emerald-400' : 'text-slate-500'}`}>
+                    {flutterwaveEnabled ? '● ENABLED (USD, RWF, UGX, KES, NGN)' : '○ DISABLED (Hidden)'}
+                  </span>
+                </div>
               </div>
-              <div>
-                <h4 className="text-sm font-bold text-white">Flutterwave Gateway</h4>
-                <span className={`text-[10px] font-semibold ${flutterwaveEnabled ? 'text-emerald-400' : 'text-slate-500'}`}>
-                  {flutterwaveEnabled ? '● ENABLED (USD, RWF, UGX, KES, NGN)' : '○ DISABLED (Hidden)'}
-                </span>
-              </div>
+
+              <button
+                type="button"
+                onClick={handleToggleFlutterwave}
+                className={`p-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  flutterwaveEnabled
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
+                    : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
+                }`}
+              >
+                {flutterwaveEnabled ? <ToggleRight className="w-6 h-6 text-amber-400" /> : <ToggleLeft className="w-6 h-6 text-slate-500" />}
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={handleToggleFlutterwave}
-              className={`p-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                flutterwaveEnabled
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
-                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
-              }`}
-            >
-              {flutterwaveEnabled ? <ToggleRight className="w-6 h-6 text-amber-400" /> : <ToggleLeft className="w-6 h-6 text-slate-500" />}
-            </button>
+            {/* Secret Key Input Configuration */}
+            <div className="pt-2 border-t border-slate-800 space-y-2">
+              <label className="text-[11px] font-semibold text-slate-300 block">
+                Flutterwave Secret Key (<code className="text-amber-400">FLWSECK_TEST-...</code> or <code className="text-amber-400">FLWSECK-...</code>)
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={flutterwaveSecretKey}
+                  onChange={e => setFlutterwaveSecretKey(e.target.value)}
+                  placeholder="Paste your FLWSECK_TEST- or FLWSECK- secret key here..."
+                  className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveFlwSecretKey}
+                  disabled={savingFlwKey}
+                  className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-3 py-2 rounded-xl text-xs shrink-0 cursor-pointer transition-all"
+                >
+                  {savingFlwKey ? 'Saving...' : 'Save Key'}
+                </button>
+              </div>
+              <p className="text-[10px] text-slate-500">
+                Found in <strong className="text-slate-400">Flutterwave Dashboard -&gt; Settings -&gt; API Keys &amp; Webhooks</strong>.
+              </p>
+            </div>
           </div>
         </div>
       </div>
