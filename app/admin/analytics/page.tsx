@@ -196,26 +196,34 @@ export default function SuperAdminAnalyticsPage() {
               </div>
 
               <div className="space-y-4">
-                {analytics?.trafficSources.map((item) => (
-                  <div key={item.source} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs font-semibold">
-                      <span className="text-white flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                        {item.source}
-                      </span>
-                      <div className="flex items-center gap-3 font-mono">
-                        <span className="text-slate-400">{item.count} visit(s)</span>
-                        <span className="text-purple-300 font-bold">{item.percentage}%</span>
+                {!analytics?.trafficSources || analytics.trafficSources.length === 0 ? (
+                  <div className="py-10 text-center text-slate-500 space-y-2">
+                    <Globe className="w-8 h-8 mx-auto text-slate-600 opacity-60" />
+                    <p className="text-xs font-semibold">No visitor traffic sources recorded yet for this timeframe.</p>
+                    <p className="text-[11px] text-slate-600">Real visits will populate here automatically as users navigate Voxify.</p>
+                  </div>
+                ) : (
+                  analytics.trafficSources.map((item) => (
+                    <div key={item.source} className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs font-semibold">
+                        <span className="text-white flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                          {item.source}
+                        </span>
+                        <div className="flex items-center gap-3 font-mono">
+                          <span className="text-slate-400">{item.count} visit(s)</span>
+                          <span className="text-purple-300 font-bold">{item.percentage}%</span>
+                        </div>
+                      </div>
+                      <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800">
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${Math.max(item.percentage, 5)}%`, backgroundColor: item.color }}
+                        />
                       </div>
                     </div>
-                    <div className="w-full bg-slate-950 h-2.5 rounded-full overflow-hidden border border-slate-800">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${Math.max(item.percentage, 5)}%`, backgroundColor: item.color }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
@@ -231,23 +239,31 @@ export default function SuperAdminAnalyticsPage() {
               </div>
 
               <div className="space-y-3">
-                {analytics?.topPages.map((page, idx) => (
-                  <div key={page.path} className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800/80 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-6 h-6 rounded-xl bg-indigo-950/80 text-indigo-300 text-xs font-mono font-bold flex items-center justify-center shrink-0 border border-indigo-800/40">
-                        #{idx + 1}
-                      </span>
-                      <div className="min-w-0">
-                        <h4 className="text-xs font-bold text-white truncate">{page.label}</h4>
-                        <p className="text-[10px] font-mono text-slate-500 truncate">{page.path}</p>
+                {!analytics?.topPages || analytics.topPages.length === 0 ? (
+                  <div className="py-10 text-center text-slate-500 space-y-2">
+                    <Layers className="w-8 h-8 mx-auto text-slate-600 opacity-60" />
+                    <p className="text-xs font-semibold">No page view data recorded yet for this timeframe.</p>
+                    <p className="text-[11px] text-slate-600">Routes visited by users will be listed here in real time.</p>
+                  </div>
+                ) : (
+                  analytics.topPages.map((page, idx) => (
+                    <div key={page.path} className="bg-slate-950 p-3.5 rounded-2xl border border-slate-800/80 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="w-6 h-6 rounded-xl bg-indigo-950/80 text-indigo-300 text-xs font-mono font-bold flex items-center justify-center shrink-0 border border-indigo-800/40">
+                          #{idx + 1}
+                        </span>
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-bold text-white truncate">{page.label}</h4>
+                          <p className="text-[10px] font-mono text-slate-500 truncate">{page.path}</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="text-xs font-bold text-indigo-300 font-mono">{page.views} views</div>
+                        <div className="text-[10px] text-slate-500 font-semibold">{page.percentage}% of total</div>
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-xs font-bold text-indigo-300 font-mono">{page.views} views</div>
-                      <div className="text-[10px] text-slate-500 font-semibold">{page.percentage}% of total</div>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 

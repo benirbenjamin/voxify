@@ -148,22 +148,14 @@ export const analyticsService = {
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    // If no real traffic events recorded yet, provide fallback demonstration data
-    const finalTrafficSources = trafficSourcesList.length > 0 ? trafficSourcesList : [
-      { source: 'Direct / Bookmark', count: 120, percentage: 45, color: '#9333ea' },
-      { source: 'Google Search', count: 80, percentage: 30, color: '#3b82f6' },
-      { source: 'Facebook / Social', count: 40, percentage: 15, color: '#10b981' },
-      { source: 'Referral Domain', count: 26, percentage: 10, color: '#f59e0b' },
-    ];
-
     return {
       timeframe,
-      uniqueVisitorsCount: uniqueVisitors || 1,
-      totalPageviewsCount: totalPageviews || 1,
-      avgTimeSpentSeconds: avgTimeSpentSeconds || 180,
-      avgTimeSpentFormatted: formatDuration(avgTimeSpentSeconds || 180),
+      uniqueVisitorsCount: uniqueVisitors,
+      totalPageviewsCount: totalPageviews,
+      avgTimeSpentSeconds: avgTimeSpentSeconds,
+      avgTimeSpentFormatted: formatDuration(avgTimeSpentSeconds),
       activeUsersCount: usersCount || 0,
-      trafficSources: finalTrafficSources,
+      trafficSources: trafficSourcesList,
       visitorTrends: visitorTrendsList,
       topPages: topPagesList,
       deviceBreakdown: deviceBreakdownList,
