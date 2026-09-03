@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Loader2, CheckCircle2, AlertCircle, Globe, CreditCard } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, Globe, CreditCard, ExternalLink } from 'lucide-react';
 import { currencyService, SupportedCurrency } from '@/lib/services/currencyService';
 
 interface FlutterwaveButtonProps {
@@ -31,7 +31,6 @@ export function FlutterwaveButton({
   userName,
   onSuccess,
 }: FlutterwaveButtonProps) {
-  const [sdkLoaded, setSdkLoaded] = useState(false);
   const [currency, setCurrency] = useState<SupportedCurrency>('USD');
   const [exchangeRates, setExchangeRates] = useState<Record<SupportedCurrency, number>>({
     USD: 1.0, RWF: 1350, UGX: 3700, KES: 130, NGN: 1500,
@@ -41,22 +40,10 @@ export function FlutterwaveButton({
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const flutterwavePublicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '01d4d3c3-9892-4f25-bd5b-2ec07a4003c3';
+  const flutterwavePublicKey = process.env.NEXT_PUBLIC_FLUTTERWAVE_PUBLIC_KEY || '';
 
   useEffect(() => {
-    // Load Flutterwave inline SDK
-    if (window.FlutterwaveCheckout) {
-      setSdkLoaded(true);
-    } else {
-      const script = document.createElement('script');
-      script.src = 'https://checkout.flutterwave.com/v3.js';
-      script.async = true;
-      script.onload = () => setSdkLoaded(true);
-      script.onerror = () => setError('Failed to load Flutterwave checkout script.');
-      document.body.appendChild(script);
-    }
-
-    // Load live exchange rates
+    // Fetch live exchange rates
     async function fetchRates() {
       const rates = await currencyService.getExchangeRates();
       setExchangeRates(rates);
@@ -70,71 +57,91 @@ export function FlutterwaveButton({
     setConvertedAmount(calc);
   }, [currency, usdAmount, exchangeRates]);
 
-  const handleFlutterwavePayment = () => {
-    if (!sdkLoaded || !window.FlutterwaveCheckout) {
-      setError('Flutterwave gateway loading. Please try again in a moment.');
-      return;
-    }
-
+  const handleFlutterwavePayment = async () => {
     setProcessing(true);
     setError(null);
     setSuccessMsg(null);
 
-    const txRef = `VXF-${choirId.substring(0, 5)}-${Date.now()}`;
-    const currencyMeta = currencyService.getCurrencyMeta(currency);
-
-    window.FlutterwaveCheckout({
-      public_key: flutterwavePublicKey,
-      tx_ref: txRef,
-      amount: convertedAmount,
-      currency: currency,
-      payment_options: 'card, mobilemoneyrwanda, mobilemoneyuganda, mobilemoneyghana, ussd, banktransfer',
-      customer: {
-        email: userEmail || 'user@voxify.space',
-        name: userName || 'Voxify Member',
-      },
-      customizations: {
-        title: `Voxify ${planName} Subscription`,
-        description: `Plan renewal for ${monthsCount} Month(s) (${currencyMeta.symbol}${convertedAmount.toLocaleString()})`,
-        logo: 'https://voxify.space/icon.png',
-      },
-      callback: async (response: any) => {
-        if (response.status === 'successful' || response.status === 'completed') {
-          // Verify on backend
-          try {
-            const res = await fetch('/api/payments/flutterwave/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                transactionId: response.transaction_id,
-                txRef: response.tx_ref,
-                choirId,
-                planId,
-                monthsCount,
-                chargedAmount: convertedAmount,
-                currency,
-              }),
-            });
-
-            const data = await res.json();
-            if (res.ok && data.success) {
-              setSuccessMsg(`Payment Verified! ${planName} Plan activated for ${monthsCount} month(s).`);
-              if (onSuccess) onSuccess();
+    // Option 1: Inline JS SDK if valid FLWPUBK key is provided
+    if (flutterwavePublicKey && flutterwavePublicKey.startsWith('FLWPUBK') && window.FlutterwaveCheckout) {
+      try {
+        const txRef = `VXF-${choirId.substring(0, 5)}-${Date.now()}`;
+        window.FlutterwaveCheckout({
+          public_key: flutterwavePublicKey,
+          tx_ref: txRef,
+          amount: convertedAmount,
+          currency: currency,
+          payment_options: 'card, mobilemoneyrwanda, mobilemoneyuganda, mobilemoneyghana, ussd, banktransfer',
+          customer: {
+            email: userEmail || 'user@voxify.space',
+            name: userName || 'Voxify Member',
+          },
+          customizations: {
+            title: `Voxify ${planName} Subscription`,
+            description: `${monthsCount} Month(s) Subscription`,
+            logo: 'https://voxify.space/icon.png',
+          },
+          callback: async (response: any) => {
+            if (response.status === 'successful' || response.status === 'completed') {
+              const res = await fetch('/api/payments/flutterwave/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  transactionId: response.transaction_id,
+                  txRef: response.tx_ref,
+                  choirId,
+                  planId,
+                  monthsCount,
+                  chargedAmount: convertedAmount,
+                  currency,
+                }),
+              });
+              const data = await res.json();
+              if (res.ok && data.success) {
+                setSuccessMsg(`Payment Verified! ${planName} Plan activated.`);
+                if (onSuccess) onSuccess();
+              } else {
+                setError(data.error || 'Failed to verify payment.');
+              }
             } else {
-              setError(data.error || 'Failed to verify transaction on server.');
+              setError('Payment not completed.');
             }
-          } catch (err: any) {
-            setError(err.message || 'Error verifying payment.');
-          }
-        } else {
-          setError('Payment was not completed.');
-        }
+            setProcessing(false);
+          },
+          onclose: () => setProcessing(false),
+        });
+        return;
+      } catch (err: any) {
+        console.warn('Inline checkout fallback to hosted session:', err);
+      }
+    }
+
+    // Option 2: Server-Side Hosted Checkout Link (100% reliable, no PBFPubKey errors)
+    try {
+      const res = await fetch('/api/payments/flutterwave/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          choirId,
+          planId,
+          monthsCount,
+          amount: convertedAmount,
+          currency,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.paymentUrl) {
+        // Redirect browser to official Flutterwave checkout page
+        window.location.href = data.paymentUrl;
+      } else {
+        setError(data.error || 'Failed to open Flutterwave checkout. Please check server secret key.');
         setProcessing(false);
-      },
-      onclose: () => {
-        setProcessing(false);
-      },
-    });
+      }
+    } catch (err: any) {
+      setError(err.message || 'Server error starting Flutterwave payment.');
+      setProcessing(false);
+    }
   };
 
   const currencyMeta = currencyService.getCurrencyMeta(currency);
@@ -158,7 +165,7 @@ export function FlutterwaveButton({
       {/* Currency Selector */}
       <div className="flex items-center justify-between bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs">
         <span className="text-slate-400 flex items-center gap-1.5 font-semibold">
-          <Globe className="w-3.5 h-3.5 text-amber-400" /> Select Currency:
+          <Globe className="w-3.5 h-3.5 text-amber-400" /> Pay in Currency:
         </span>
         <select
           value={currency}
@@ -176,13 +183,13 @@ export function FlutterwaveButton({
       <button
         type="button"
         onClick={handleFlutterwavePayment}
-        disabled={processing || !sdkLoaded}
+        disabled={processing}
         className="w-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-extrabold py-3.5 px-4 rounded-xl shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition-all cursor-pointer hover:scale-[1.01]"
       >
         {processing ? (
           <>
             <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
-            <span className="text-xs">Processing Flutterwave...</span>
+            <span className="text-xs">Connecting to Flutterwave...</span>
           </>
         ) : (
           <>

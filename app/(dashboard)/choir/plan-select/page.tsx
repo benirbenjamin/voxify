@@ -45,10 +45,37 @@ function PlanSelectContent() {
         const defaultPlan = data.find(p => p.is_free) || data[0];
         setSelectedPlanId(defaultPlan.id);
       }
+
+      // Handle Flutterwave Redirect Auto-Verification
+      const statusParam = searchParams.get('status');
+      const txIdParam = searchParams.get('transaction_id');
+      const planIdParam = searchParams.get('planId');
+      const monthsCountParam = Number(searchParams.get('monthsCount')) || 1;
+
+      if ((statusParam === 'successful' || statusParam === 'completed' || txIdParam) && choirId && planIdParam) {
+        try {
+          const verifyRes = await fetch('/api/payments/flutterwave/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              transactionId: txIdParam || 'flw_redirect_tx',
+              choirId,
+              planId: planIdParam,
+              monthsCount: monthsCountParam,
+            }),
+          });
+          const verifyData = await verifyRes.json();
+          if (verifyData.success) {
+            await refreshChoirs(choirId);
+            router.push('/dashboard');
+          }
+        } catch {}
+      }
+
       setLoading(false);
     }
     loadPlans();
-  }, []);
+  }, [searchParams, choirId]);
 
   const handleConfirmPlan = async () => {
     if (!choirId || !selectedPlanId) {
