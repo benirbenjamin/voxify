@@ -4,7 +4,7 @@ import { AuthProvider } from '../lib/context/AuthContext';
 import { ChoirProvider } from '../lib/context/ChoirContext';
 import { PWARegister } from '../components/pwa/PWARegister';
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://voxify-space.vercel.app';
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://voxify.space';
 
 export const viewport: Viewport = {
   themeColor: '#9333ea',
