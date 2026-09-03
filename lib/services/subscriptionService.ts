@@ -95,6 +95,9 @@ export const subscriptionService = {
     name: string;
     description?: string;
     price_monthly: number;
+    discount_3_months?: number;
+    discount_6_months?: number;
+    discount_12_months?: number;
     is_free: boolean;
     features: string[];
     limits: PlanLimits;
@@ -118,6 +121,9 @@ export const subscriptionService = {
     name?: string;
     description?: string;
     price_monthly?: number;
+    discount_3_months?: number;
+    discount_6_months?: number;
+    discount_12_months?: number;
     is_free?: boolean;
     features?: string[];
     limits?: PlanLimits;

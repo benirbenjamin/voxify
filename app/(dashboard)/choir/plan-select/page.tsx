@@ -8,15 +8,26 @@ import { subscriptionService } from '@/lib/services/subscriptionService';
 import { SubscriptionPlan } from '@/lib/types/database.types';
 import { Crown, CheckCircle2, ArrowRight, Sparkles, Shield, AlertCircle } from 'lucide-react';
 import { GooglePayButton } from '@/components/payments/GooglePayButton';
+import { FlutterwaveButton } from '@/components/payments/FlutterwaveButton';
+import { platformSettingsService } from '@/lib/services/platformSettingsService';
+import { PlatformPaymentSettings } from '@/lib/types/database.types';
+import { useAuth } from '@/lib/context/AuthContext';
 
 function PlanSelectContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const { activeChoir, refreshChoirs } = useChoir();
 
   const choirId = searchParams.get('choirId') || activeChoir?.id;
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [billingInterval, setBillingInterval] = useState<'1M' | '3M' | '6M' | '12M'>('1M');
+  const [platformSettings, setPlatformSettings] = useState<PlatformPaymentSettings>({
+    google_pay_enabled: true,
+    flutterwave_enabled: true,
+  });
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -24,10 +35,13 @@ function PlanSelectContent() {
   useEffect(() => {
     async function loadPlans() {
       setLoading(true);
-      const data = await subscriptionService.getAllPlans();
+      const [data, settings] = await Promise.all([
+        subscriptionService.getAllPlans(),
+        platformSettingsService.getSettings(),
+      ]);
       setPlans(data);
+      setPlatformSettings(settings);
       if (data.length > 0) {
-        // Default select free plan or first
         const defaultPlan = data.find(p => p.is_free) || data[0];
         setSelectedPlanId(defaultPlan.id);
       }
@@ -84,10 +98,89 @@ function PlanSelectContent() {
         </div>
       )}
 
+      {/* Billing Duration Selector Tabs with Discount Badges */}
+      <div className="flex justify-center">
+        <div className="bg-slate-900/90 p-1.5 rounded-2xl border border-slate-800 flex flex-wrap justify-center gap-1.5 shadow-xl max-w-2xl w-full">
+          <button
+            type="button"
+            onClick={() => setBillingInterval('1M')}
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer ${
+              billingInterval === '1M'
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            Monthly Pay (1 Mo)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setBillingInterval('3M')}
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer ${
+              billingInterval === '3M'
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            3 Months <span className="bg-amber-500/20 text-amber-300 text-[10px] px-2 py-0.5 rounded-full border border-amber-500/30">SAVE %</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setBillingInterval('6M')}
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer ${
+              billingInterval === '6M'
+                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            6 Months <span className="bg-emerald-500/20 text-emerald-300 text-[10px] px-2 py-0.5 rounded-full border border-emerald-500/30">SAVE MORE</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setBillingInterval('12M')}
+            className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer ${
+              billingInterval === '12M'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-slate-950 shadow-lg shadow-amber-500/30 font-black'
+                : 'text-amber-400 hover:bg-slate-800'
+            }`}
+          >
+            Yearly (12 Mo) <Sparkles className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-2xl text-xs flex items-center gap-2 max-w-lg mx-auto">
+          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
       {/* Subscription Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {plans.map(plan => {
           const isSelected = selectedPlanId === plan.id;
+          
+          // Calculate interval parameters
+          let monthsCount = 1;
+          let discountPct = 0;
+          if (billingInterval === '3M') {
+            monthsCount = 3;
+            discountPct = plan.discount_3_months ?? 10;
+          } else if (billingInterval === '6M') {
+            monthsCount = 6;
+            discountPct = plan.discount_6_months ?? 20;
+          } else if (billingInterval === '12M') {
+            monthsCount = 12;
+            discountPct = plan.discount_12_months ?? 30;
+          }
+
+          const rawTotal = (plan.price_monthly || 0) * monthsCount;
+          const finalTotal = plan.is_free ? 0 : Number((rawTotal * (1 - discountPct / 100)).toFixed(2));
+          const effectiveMonthly = plan.is_free ? 0 : Number((finalTotal / monthsCount).toFixed(2));
+
           return (
             <div
               key={plan.id}
@@ -108,9 +201,24 @@ function PlanSelectContent() {
                   )}
                 </div>
 
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-black text-white">${plan.price_monthly}</span>
-                  <span className="text-xs text-slate-400">/ month</span>
+                <div className="space-y-1">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-4xl font-black text-white">
+                      ${plan.is_free ? '0' : finalTotal}
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      / {monthsCount === 1 ? 'month' : `${monthsCount} months`}
+                    </span>
+                  </div>
+
+                  {!plan.is_free && monthsCount > 1 && (
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="line-through text-slate-500">${rawTotal}</span>
+                      <span className="text-amber-400 font-extrabold bg-amber-950/60 border border-amber-800/40 px-2 py-0.5 rounded-full text-[10px]">
+                        {discountPct}% OFF ({`$${effectiveMonthly}/mo`})
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <p className="text-xs text-slate-300 leading-relaxed">{plan.description}</p>
@@ -156,18 +264,41 @@ function PlanSelectContent() {
                 </div>
               </div>
 
-              <div className="pt-2">
+              {/* Payment Buttons Section */}
+              <div className="pt-2 space-y-2.5">
                 {!plan.is_free && choirId ? (
-                  <GooglePayButton
-                    planId={plan.id}
-                    planName={plan.name}
-                    priceMonthly={plan.price_monthly}
-                    choirId={choirId}
-                    onSuccess={async () => {
-                      await refreshChoirs(choirId);
-                      router.push('/dashboard');
-                    }}
-                  />
+                  <>
+                    {/* Google Pay Gateway Button */}
+                    {platformSettings.google_pay_enabled && (
+                      <GooglePayButton
+                        planId={plan.id}
+                        planName={plan.name}
+                        priceMonthly={finalTotal}
+                        choirId={choirId}
+                        onSuccess={async () => {
+                          await refreshChoirs(choirId);
+                          router.push('/dashboard');
+                        }}
+                      />
+                    )}
+
+                    {/* Flutterwave Gateway Button */}
+                    {platformSettings.flutterwave_enabled && (
+                      <FlutterwaveButton
+                        planId={plan.id}
+                        planName={plan.name}
+                        usdAmount={finalTotal}
+                        monthsCount={monthsCount}
+                        choirId={choirId}
+                        userEmail={user?.email}
+                        userName={user?.full_name || 'Choir Director'}
+                        onSuccess={async () => {
+                          await refreshChoirs(choirId);
+                          router.push('/dashboard');
+                        }}
+                      />
+                    )}
+                  </>
                 ) : (
                   <button
                     type="button"
@@ -177,7 +308,7 @@ function PlanSelectContent() {
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     }`}
                   >
-                    {isSelected ? 'Current Selection' : 'Choose This Plan'}
+                    {isSelected ? 'Current Selection' : 'Choose Free Plan'}
                   </button>
                 )}
               </div>

@@ -230,12 +230,21 @@ export interface SubscriptionPlan {
   name: string;
   description?: string | null;
   price_monthly: number;
+  discount_3_months?: number;
+  discount_6_months?: number;
+  discount_12_months?: number;
   is_free: boolean;
   is_active: boolean;
   features: string[];
   limits: PlanLimits;
   created_at: string;
   updated_at: string;
+}
+
+export interface PlatformPaymentSettings {
+  google_pay_enabled: boolean;
+  flutterwave_enabled: boolean;
+  updated_at?: string;
 }
 
 export interface Subscription {

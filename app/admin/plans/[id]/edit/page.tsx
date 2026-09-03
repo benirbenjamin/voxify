@@ -16,6 +16,9 @@ export default function EditPlanPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [priceMonthly, setPriceMonthly] = useState<number>(0);
+  const [discount3Months, setDiscount3Months] = useState<number>(10);
+  const [discount6Months, setDiscount6Months] = useState<number>(20);
+  const [discount12Months, setDiscount12Months] = useState<number>(30);
   const [isFree, setIsFree] = useState<boolean>(true);
   const [maxMembers, setMaxMembers] = useState<number>(50);
   const [maxSongs, setMaxSongs] = useState<number>(50);
@@ -46,6 +49,9 @@ export default function EditPlanPage() {
         setName(plan.name || '');
         setDescription(plan.description || '');
         setPriceMonthly(plan.price_monthly || 0);
+        setDiscount3Months(plan.discount_3_months ?? 10);
+        setDiscount6Months(plan.discount_6_months ?? 20);
+        setDiscount12Months(plan.discount_12_months ?? 30);
         setIsFree(plan.is_free ?? true);
         setIsActive(plan.is_active ?? true);
         setMaxMembers(plan.limits?.max_members ?? 50);
@@ -86,6 +92,9 @@ export default function EditPlanPage() {
       name,
       description,
       price_monthly: isFree ? 0 : priceMonthly,
+      discount_3_months: isFree ? 0 : discount3Months,
+      discount_6_months: isFree ? 0 : discount6Months,
+      discount_12_months: isFree ? 0 : discount12Months,
       is_free: isFree,
       is_active: isActive,
       features,
@@ -197,16 +206,57 @@ export default function EditPlanPage() {
             </div>
 
             {!isFree && (
-              <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1.5">Monthly Price (USD)</label>
-                <input
-                  type="number"
-                  min={0}
-                  step={0.01}
-                  value={priceMonthly}
-                  onChange={e => setPriceMonthly(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white"
-                />
+              <div className="space-y-4 col-span-1 md:col-span-2">
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 block mb-1.5">Base Monthly Price (USD)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={priceMonthly}
+                    onChange={e => setPriceMonthly(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white"
+                  />
+                </div>
+
+                <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 space-y-3">
+                  <label className="text-xs font-bold text-amber-400 block">Interval Discount Percentages (% OFF)</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">3 Months Pay (% Off)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={discount3Months}
+                        onChange={e => setDiscount3Months(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">6 Months Pay (% Off)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={discount6Months}
+                        onChange={e => setDiscount6Months(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] text-slate-400 block mb-1">Yearly Pay (% Off)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        value={discount12Months}
+                        onChange={e => setDiscount12Months(Number(e.target.value))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

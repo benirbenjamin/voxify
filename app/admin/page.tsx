@@ -9,6 +9,9 @@ import { adminService } from '@/lib/services/adminService';
 import { SubscriptionPlan } from '@/lib/types/database.types';
 import { Shield, Layers, Users, Music, Sparkles, ArrowRight, Plus, Edit3, Trash2, Power, Calendar, BarChart3, Globe, TrendingUp } from 'lucide-react';
 
+import { platformSettingsService } from '@/lib/services/platformSettingsService';
+import { CreditCard, ToggleLeft, ToggleRight, Check } from 'lucide-react';
+
 export default function SuperAdminPage() {
   const { user } = useAuth();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -18,21 +21,41 @@ export default function SuperAdminPage() {
   const [settingUpDb, setSettingUpDb] = useState(false);
   const [dbSetupMessage, setDbSetupMessage] = useState<string | null>(null);
 
+  // Payment Method Controls State
+  const [googlePayEnabled, setGooglePayEnabled] = useState(true);
+  const [flutterwaveEnabled, setFlutterwaveEnabled] = useState(true);
+  const [updatingSettings, setUpdatingSettings] = useState(false);
+
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      const [plansData, choirsData, usersData] = await Promise.all([
+      const [plansData, choirsData, usersData, platformSettings] = await Promise.all([
         subscriptionService.getAllPlans(),
         adminService.getAllChoirs(),
         adminService.getAllUsers(),
+        platformSettingsService.getSettings(),
       ]);
       setPlans(plansData);
       setChoirsCount(choirsData.length);
       setUsersCount(usersData.length);
+      setGooglePayEnabled(platformSettings.google_pay_enabled);
+      setFlutterwaveEnabled(platformSettings.flutterwave_enabled);
       setLoading(false);
     }
     loadData();
   }, []);
+
+  const handleToggleGooglePay = async () => {
+    const nextVal = !googlePayEnabled;
+    setGooglePayEnabled(nextVal);
+    await platformSettingsService.updateSettings({ google_pay_enabled: nextVal });
+  };
+
+  const handleToggleFlutterwave = async () => {
+    const nextVal = !flutterwaveEnabled;
+    setFlutterwaveEnabled(nextVal);
+    await platformSettingsService.updateSettings({ flutterwave_enabled: nextVal });
+  };
 
   const handleOneClickDbSetup = async () => {
     setSettingUpDb(true);
@@ -151,6 +174,83 @@ export default function SuperAdminPage() {
           </span>
         </div>
       </Link>
+
+      {/* Payment Gateway Enable/Disable Controls Card */}
+      <div className="bg-slate-900 border border-slate-800 p-6 rounded-3xl space-y-4 shadow-xl">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-amber-400" />
+            <h2 className="text-lg font-bold text-white">Payment Method Controls</h2>
+          </div>
+          <span className="text-[10px] bg-amber-950/80 text-amber-300 border border-amber-800/40 px-2.5 py-0.5 rounded-full font-extrabold uppercase">
+            Live Gateway Toggles
+          </span>
+        </div>
+
+        <p className="text-xs text-slate-400">
+          Enable or disable payment methods across the entire platform in real-time. Disabling a gateway hides it from the plan checkout page.
+        </p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          {/* Google Pay Toggle */}
+          <div className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${
+            googlePayEnabled ? 'bg-slate-950 border-purple-500/50' : 'bg-slate-950/50 border-slate-800 opacity-60'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-black border border-slate-700 flex items-center justify-center font-black text-xs text-white">
+                GPay
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white">Google Pay Gateway</h4>
+                <span className={`text-[10px] font-semibold ${googlePayEnabled ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  {googlePayEnabled ? '● ENABLED (Active on Checkout)' : '○ DISABLED (Hidden)'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleToggleGooglePay}
+              className={`p-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                googlePayEnabled
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              {googlePayEnabled ? <ToggleRight className="w-6 h-6 text-emerald-400" /> : <ToggleLeft className="w-6 h-6 text-slate-500" />}
+            </button>
+          </div>
+
+          {/* Flutterwave Toggle */}
+          <div className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${
+            flutterwaveEnabled ? 'bg-slate-950 border-amber-500/50' : 'bg-slate-950/50 border-slate-800 opacity-60'
+          }`}>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-black text-xs text-amber-300">
+                FLW
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-white">Flutterwave Gateway</h4>
+                <span className={`text-[10px] font-semibold ${flutterwaveEnabled ? 'text-emerald-400' : 'text-slate-500'}`}>
+                  {flutterwaveEnabled ? '● ENABLED (USD, RWF, UGX, KES, NGN)' : '○ DISABLED (Hidden)'}
+                </span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleToggleFlutterwave}
+              className={`p-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                flutterwaveEnabled
+                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30'
+                  : 'bg-slate-800 text-slate-400 border border-slate-700 hover:bg-slate-700'
+              }`}
+            >
+              {flutterwaveEnabled ? <ToggleRight className="w-6 h-6 text-amber-400" /> : <ToggleLeft className="w-6 h-6 text-slate-500" />}
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Platform Statistics & Super Admin Global Controls Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
