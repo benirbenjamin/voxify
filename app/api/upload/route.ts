@@ -32,7 +32,18 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const fileBuffer = Buffer.from(arrayBuffer);
 
-    const { data, error } = await adminSupabase.storage
+    // Ensure bucket exists or create it automatically with public access
+    const { data: bucketData } = await adminSupabase.storage.getBucket(bucket);
+    if (!bucketData) {
+      await adminSupabase.storage.createBucket(bucket, {
+        public: true,
+        fileSizeLimit: 15728640,
+      }).catch((createErr) => {
+        console.log(`Auto-create bucket ${bucket} note:`, createErr);
+      });
+    }
+
+    let uploadResult = await adminSupabase.storage
       .from(bucket)
       .upload(cleanFileName, fileBuffer, {
         contentType: file.type || 'application/octet-stream',
@@ -40,9 +51,21 @@ export async function POST(request: Request) {
         upsert: true,
       });
 
-    if (error) {
-      console.error(`Storage upload error for bucket ${bucket}:`, error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    // If bucket was missing or RLS error, attempt creating public bucket and retrying
+    if (uploadResult.error && (uploadResult.error.message.toLowerCase().includes('not found') || uploadResult.error.message.toLowerCase().includes('bucket'))) {
+      await adminSupabase.storage.createBucket(bucket, { public: true, fileSizeLimit: 15728640 }).catch(() => {});
+      uploadResult = await adminSupabase.storage
+        .from(bucket)
+        .upload(cleanFileName, fileBuffer, {
+          contentType: file.type || 'application/octet-stream',
+          cacheControl: '3600',
+          upsert: true,
+        });
+    }
+
+    if (uploadResult.error) {
+      console.error(`Storage upload error for bucket ${bucket}:`, uploadResult.error);
+      return NextResponse.json({ error: uploadResult.error.message }, { status: 500 });
     }
 
     const { data: publicUrlData } = adminSupabase.storage.from(bucket).getPublicUrl(cleanFileName);

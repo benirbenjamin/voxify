@@ -55,8 +55,9 @@ self.addEventListener('fetch', (event) => {
         return caches.match(event.request).then((cachedResponse) => {
           if (cachedResponse) return cachedResponse;
           if (event.request.headers.get('accept')?.includes('text/html')) {
-            return caches.match('/');
+            return caches.match('/').then((rootCached) => rootCached || new Response('Offline', { status: 503, statusText: 'Offline' }));
           }
+          return new Response('Network error', { status: 408, statusText: 'Request Timeout' });
         });
       })
   );

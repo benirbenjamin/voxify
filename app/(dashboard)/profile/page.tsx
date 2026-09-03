@@ -55,6 +55,10 @@ export default function ProfileSettingsPage() {
       return;
     }
 
+    // Instant local preview
+    const previewUrl = URL.createObjectURL(file);
+    setAvatarUrl(previewUrl);
+
     setUploadingAvatar(true);
     setMessage(null);
 
@@ -72,7 +76,7 @@ export default function ProfileSettingsPage() {
       const data = await res.json();
       if (data.url) {
         setAvatarUrl(data.url);
-        setMessage({ type: 'success', text: 'Profile picture uploaded! Click "Save Changes" to apply.' });
+        setMessage({ type: 'success', text: 'Profile picture uploaded! Click "Save Changes" to save your profile.' });
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to upload profile picture.' });
       }
