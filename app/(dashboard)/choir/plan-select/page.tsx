@@ -7,6 +7,7 @@ import { useChoir } from '@/lib/context/ChoirContext';
 import { subscriptionService } from '@/lib/services/subscriptionService';
 import { SubscriptionPlan } from '@/lib/types/database.types';
 import { Crown, CheckCircle2, ArrowRight, Sparkles, Shield, AlertCircle } from 'lucide-react';
+import { GooglePayButton } from '@/components/payments/GooglePayButton';
 
 function PlanSelectContent() {
   const router = useRouter();
@@ -155,16 +156,31 @@ function PlanSelectContent() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                className={`w-full py-3.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
-                  isSelected
-                    ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
-                    : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                }`}
-              >
-                {isSelected ? 'Current Selection' : 'Choose This Plan'}
-              </button>
+              <div className="pt-2">
+                {!plan.is_free && choirId ? (
+                  <GooglePayButton
+                    planId={plan.id}
+                    planName={plan.name}
+                    priceMonthly={plan.price_monthly}
+                    choirId={choirId}
+                    onSuccess={async () => {
+                      await refreshChoirs(choirId);
+                      router.push('/dashboard');
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className={`w-full py-3.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
+                      isSelected
+                        ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
+                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                    }`}
+                  >
+                    {isSelected ? 'Current Selection' : 'Choose This Plan'}
+                  </button>
+                )}
+              </div>
             </div>
           );
         })}

@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useAuth } from '@/lib/context/AuthContext';
+import { useChoir } from '@/lib/context/ChoirContext';
 import { createClient } from '@/lib/supabase/client';
 import {
   User,
@@ -16,13 +16,15 @@ import {
   ArrowLeft,
   Loader2,
   ShieldCheck,
-  Smartphone,
   Lock,
-  KeyRound
+  KeyRound,
+  Crown,
+  CreditCard
 } from 'lucide-react';
 
 export default function ProfileSettingsPage() {
   const { user, refreshProfile } = useAuth();
+  const { activeChoir, refreshChoirs } = useChoir();
 
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -37,6 +39,10 @@ export default function ProfileSettingsPage() {
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Subscription Cancellation State
+  const [cancelingSub, setCancelingSub] = useState(false);
+  const [subMsg, setSubMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -55,7 +61,6 @@ export default function ProfileSettingsPage() {
       return;
     }
 
-    // Instant local preview
     const previewUrl = URL.createObjectURL(file);
     setAvatarUrl(previewUrl);
 
@@ -103,7 +108,6 @@ export default function ProfileSettingsPage() {
         updated_at: new Date().toISOString(),
       };
 
-      // 1. Update profiles table
       const { error: dbError } = await supabase
         .from('profiles')
         .update(updatedFields)
@@ -111,7 +115,6 @@ export default function ProfileSettingsPage() {
 
       if (dbError) throw dbError;
 
-      // 2. Update Supabase Auth metadata
       await supabase.auth.updateUser({
         data: {
           full_name: fullName.trim(),
@@ -120,9 +123,7 @@ export default function ProfileSettingsPage() {
         },
       });
 
-      // 3. Refresh profile context across app
       await refreshProfile();
-
       setMessage({ type: 'success', text: 'Your profile settings have been updated successfully!' });
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to save profile changes.' });
@@ -164,6 +165,34 @@ export default function ProfileSettingsPage() {
       setPasswordMsg({ type: 'error', text: 'An unexpected error occurred.' });
     } finally {
       setUpdatingPassword(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!activeChoir) return;
+    if (!confirm(`Are you sure you want to cancel the subscription for "${activeChoir.name}"? You will be downgraded to the Free tier.`)) return;
+
+    setCancelingSub(true);
+    setSubMsg(null);
+
+    try {
+      const res = await fetch('/api/payments/cancel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ choirId: activeChoir.id }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSubMsg({ type: 'success', text: 'Subscription canceled. Your choir has been downgraded to the Free plan.' });
+        await refreshChoirs(activeChoir.id);
+      } else {
+        setSubMsg({ type: 'error', text: data.error || 'Failed to cancel subscription.' });
+      }
+    } catch (err: any) {
+      setSubMsg({ type: 'error', text: 'Server error processing subscription cancellation.' });
+    } finally {
+      setCancelingSub(false);
     }
   };
 
@@ -245,6 +274,52 @@ export default function ProfileSettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Subscription & Billing Card */}
+      {activeChoir && (
+        <div className="bg-slate-900/70 border border-slate-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-xl">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Crown className="w-5 h-5 text-amber-400" /> Choir Subscription &amp; Billing
+            </h3>
+            <Link
+              href={`/choir/plan-select?choirId=${activeChoir.id}`}
+              className="text-xs font-bold text-purple-400 hover:text-purple-300 flex items-center gap-1 bg-purple-950/40 border border-purple-800/40 px-3 py-1.5 rounded-xl transition-all"
+            >
+              Change Plan →
+            </Link>
+          </div>
+
+          {subMsg && (
+            <div className={`p-4 rounded-2xl text-xs flex items-center gap-2.5 ${
+              subMsg.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'
+            }`}>
+              {subMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
+              <span>{subMsg.text}</span>
+            </div>
+          )}
+
+          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="text-xs text-slate-400">Current Active Choir: <strong className="text-white">{activeChoir.name}</strong></div>
+              <div className="text-sm font-extrabold text-purple-300 flex items-center gap-2">
+                <span>Active Subscription Tier</span>
+                <span className="text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-800/40 px-2 py-0.5 rounded-full font-mono uppercase">
+                  Recurring Monthly
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={handleCancelSubscription}
+              disabled={cancelingSub}
+              className="bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 text-rose-300 font-bold text-xs px-4 py-2.5 rounded-xl transition-all self-start sm:self-auto cursor-pointer"
+            >
+              {cancelingSub ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Cancel Subscription Anytime'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Profile Details Form */}
       <form onSubmit={handleSave} className="bg-slate-900/70 border border-slate-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-xl">
