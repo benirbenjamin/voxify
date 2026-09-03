@@ -16,7 +16,9 @@ import {
   ArrowLeft,
   Loader2,
   ShieldCheck,
-  Smartphone
+  Smartphone,
+  Lock,
+  KeyRound
 } from 'lucide-react';
 
 export default function ProfileSettingsPage() {
@@ -29,6 +31,12 @@ export default function ProfileSettingsPage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Password Change State
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -119,6 +127,42 @@ export default function ProfileSettingsPage() {
     }
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordMsg(null);
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordMsg({ type: 'error', text: 'New passwords do not match.' });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordMsg({ type: 'error', text: 'Password must be at least 6 characters long.' });
+      return;
+    }
+
+    setUpdatingPassword(true);
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        setPasswordMsg({ type: 'error', text: error.message || 'Failed to update password.' });
+      } else {
+        setPasswordMsg({ type: 'success', text: 'Your password has been changed successfully!' });
+        setNewPassword('');
+        setConfirmNewPassword('');
+      }
+    } catch (err: any) {
+      setPasswordMsg({ type: 'error', text: 'An unexpected error occurred.' });
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+
   if (!user) {
     return (
       <div className="py-20 text-center text-slate-400 space-y-4 max-w-xl mx-auto">
@@ -140,7 +184,7 @@ export default function ProfileSettingsPage() {
           <User className="w-8 h-8 text-purple-400" /> Account &amp; Profile Settings
         </h1>
         <p className="text-sm text-slate-400">
-          Update your personal details, contact number, and profile picture visible to your choir directors and singers
+          Update your personal details, contact number, profile picture, and account security
         </p>
       </div>
 
@@ -198,7 +242,7 @@ export default function ProfileSettingsPage() {
         </div>
       </div>
 
-      {/* Settings Form */}
+      {/* Profile Details Form */}
       <form onSubmit={handleSave} className="bg-slate-900/70 border border-slate-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-xl">
         <h3 className="text-lg font-bold text-white border-b border-slate-800 pb-3 flex items-center gap-2">
           <User className="w-5 h-5 text-purple-400" /> Personal Details
@@ -260,6 +304,67 @@ export default function ProfileSettingsPage() {
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {saving ? 'Saving Profile...' : 'Save Profile Changes'}
+          </button>
+        </div>
+      </form>
+
+      {/* Password & Security Settings Card */}
+      <form onSubmit={handlePasswordChange} className="bg-slate-900/70 border border-slate-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-xl">
+        <h3 className="text-lg font-bold text-white border-b border-slate-800 pb-3 flex items-center gap-2">
+          <KeyRound className="w-5 h-5 text-indigo-400" /> Security &amp; Password Reset
+        </h3>
+
+        {passwordMsg && (
+          <div className={`p-4 rounded-2xl text-xs flex items-center gap-2.5 ${
+            passwordMsg.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border border-rose-500/30 text-rose-300'
+          }`}>
+            {passwordMsg.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />}
+            <span>{passwordMsg.text}</span>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1.5">New Password</label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+              <input
+                type="password"
+                required
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+                minLength={6}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1.5">Confirm New Password</label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+              <input
+                type="password"
+                required
+                value={confirmNewPassword}
+                onChange={e => setConfirmNewPassword(e.target.value)}
+                placeholder="••••••••"
+                minLength={6}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="pt-4 border-t border-slate-800">
+          <button
+            type="submit"
+            disabled={updatingPassword}
+            className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-6 py-3.5 rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+          >
+            {updatingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+            {updatingPassword ? 'Updating Password...' : 'Change Password'}
           </button>
         </div>
       </form>

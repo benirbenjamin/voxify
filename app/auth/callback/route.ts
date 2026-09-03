@@ -59,5 +59,9 @@ export async function GET(request: Request) {
   }
 
   // Fallback if no code or error
+  if (next) {
+    return NextResponse.redirect(`${appUrl}${next}`);
+  }
+
   return NextResponse.redirect(`${appUrl}/login?verified=true`);
 }
