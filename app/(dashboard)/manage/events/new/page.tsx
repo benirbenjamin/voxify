@@ -22,6 +22,9 @@ import {
   Send
 } from 'lucide-react';
 
+import { planEnforcementService, PlanCheckResult } from '@/lib/services/planEnforcementService';
+import { PlanLimitModal } from '@/components/plans/PlanLimitModal';
+
 interface SongAssignmentDraft {
   song_id: string;
   order_index: number;
@@ -38,6 +41,10 @@ export default function ScheduleEventPage() {
   const [endTime, setEndTime] = useState('11:30');
   const [location, setLocation] = useState('');
   const [description, setDescription] = useState('');
+
+  // Plan Limit Enforcement State
+  const [limitCheckResult, setLimitCheckResult] = useState<PlanCheckResult | null>(null);
+  const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
   const [status, setStatus] = useState<'draft' | 'published'>('published');
 
   const [availableSongs, setAvailableSongs] = useState<Song[]>([]);
@@ -91,6 +98,15 @@ export default function ScheduleEventPage() {
 
     setLoading(true);
     setError(null);
+
+    // Enforce Monthly Event Limit Check
+    const limitCheck = await planEnforcementService.checkLimit(activeChoir.id, 'events');
+    if (!limitCheck.allowed) {
+      setLimitCheckResult(limitCheck);
+      setIsLimitModalOpen(true);
+      setLoading(false);
+      return;
+    }
 
     const { event, error: eventErr } = await eventService.createEvent({
       choir_id: activeChoir.id,
@@ -338,6 +354,13 @@ export default function ScheduleEventPage() {
           {loading ? 'Creating Event...' : 'Schedule & Publish Event'} <Send className="w-4 h-4" />
         </button>
       </form>
+
+      <PlanLimitModal
+        isOpen={isLimitModalOpen}
+        onClose={() => setIsLimitModalOpen(false)}
+        result={limitCheckResult}
+        choirId={activeChoir?.id}
+      />
     </div>
   );
 }

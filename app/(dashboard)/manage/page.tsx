@@ -35,6 +35,8 @@ import {
   Clock,
   MapPin
 } from 'lucide-react';
+import { planEnforcementService, PlanCheckResult } from '@/lib/services/planEnforcementService';
+import { PlanLimitModal } from '@/components/plans/PlanLimitModal';
 
 export default function ChoirAdminPage() {
   const { activeChoir, isAdmin } = useChoir();
@@ -49,6 +51,10 @@ export default function ChoirAdminPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [inviteMsg, setInviteMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Plan Limit Enforcement State
+  const [limitCheckResult, setLimitCheckResult] = useState<PlanCheckResult | null>(null);
+  const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
 
   // Event Action state
   const [actionId, setActionId] = useState<string | null>(null);
@@ -98,6 +104,15 @@ export default function ChoirAdminPage() {
   };
 
   const handleUpdateStatus = async (memberId: string, status: 'active' | 'rejected' | 'suspended') => {
+    if (status === 'active' && activeChoir) {
+      const limitCheck = await planEnforcementService.checkLimit(activeChoir.id, 'members');
+      if (!limitCheck.allowed) {
+        setLimitCheckResult(limitCheck);
+        setIsLimitModalOpen(true);
+        return;
+      }
+    }
+
     await choirService.updateMemberStatus(memberId, status);
     if (activeChoir) {
       const updated = await choirService.getChoirMembers(activeChoir.id);
@@ -590,6 +605,13 @@ export default function ChoirAdminPage() {
           </table>
         </div>
       </div>
+
+      <PlanLimitModal
+        isOpen={isLimitModalOpen}
+        onClose={() => setIsLimitModalOpen(false)}
+        result={limitCheckResult}
+        choirId={activeChoir?.id}
+      />
     </div>
   );
 }

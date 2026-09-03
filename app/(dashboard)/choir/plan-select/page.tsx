@@ -114,13 +114,41 @@ function PlanSelectContent() {
 
                 <p className="text-xs text-slate-300 leading-relaxed">{plan.description}</p>
 
-                <div className="pt-4 border-t border-slate-800 space-y-2">
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Included Features:</span>
+                {/* Plan Limits Badges */}
+                <div className="bg-slate-950/80 p-3 rounded-2xl border border-slate-800 space-y-1.5 text-xs font-mono">
+                  <div className="flex justify-between text-slate-300">
+                    <span className="text-slate-400">Max Singers:</span>
+                    <strong className="text-purple-300 font-bold">
+                      {plan.limits?.max_members < 0 || (plan.limits?.max_members || 0) >= 999000 ? 'Unlimited' : `${plan.limits?.max_members || 15} Members`}
+                    </strong>
+                  </div>
+                  <div className="flex justify-between text-slate-300">
+                    <span className="text-slate-400">Song Library:</span>
+                    <strong className="text-indigo-300 font-bold">
+                      {plan.limits?.max_songs < 0 || (plan.limits?.max_songs || 0) >= 999000 ? 'Unlimited' : `${plan.limits?.max_songs || 5} Songs`}
+                    </strong>
+                  </div>
+                  <div className="flex justify-between text-slate-300">
+                    <span className="text-slate-400">Monthly Events:</span>
+                    <strong className="text-emerald-300 font-bold">
+                      {plan.limits?.max_events_per_month < 0 || (plan.limits?.max_events_per_month || 0) >= 999000 ? 'Unlimited' : `${plan.limits?.max_events_per_month || 4} Events/Mo`}
+                    </strong>
+                  </div>
+                  <div className="flex justify-between text-slate-300">
+                    <span className="text-slate-400">Announcements:</span>
+                    <strong className="text-amber-300 font-bold">
+                      {plan.limits?.max_announcements_per_month < 0 || (plan.limits?.max_announcements_per_month || 0) >= 999000 ? 'Unlimited' : `${plan.limits?.max_announcements_per_month || 3} Notices/Mo`}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800 space-y-2">
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Included Feature Flags:</span>
                   <ul className="space-y-2 text-xs text-slate-200">
                     {(plan.features || []).map((feat, idx) => (
                       <li key={idx} className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <span>{feat}</span>
+                        <span className="capitalize">{feat.replace(/_/g, ' ')}</span>
                       </li>
                     ))}
                   </ul>

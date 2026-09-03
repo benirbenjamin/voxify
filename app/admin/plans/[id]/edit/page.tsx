@@ -18,6 +18,9 @@ export default function EditPlanPage() {
   const [priceMonthly, setPriceMonthly] = useState<number>(0);
   const [isFree, setIsFree] = useState<boolean>(true);
   const [maxMembers, setMaxMembers] = useState<number>(50);
+  const [maxSongs, setMaxSongs] = useState<number>(50);
+  const [maxEventsPerMonth, setMaxEventsPerMonth] = useState<number>(20);
+  const [maxAnnouncementsPerMonth, setMaxAnnouncementsPerMonth] = useState<number>(15);
   const [maxStorageMb, setMaxStorageMb] = useState<number>(1000);
   const [isActive, setIsActive] = useState<boolean>(true);
   
@@ -45,8 +48,11 @@ export default function EditPlanPage() {
         setPriceMonthly(plan.price_monthly || 0);
         setIsFree(plan.is_free ?? true);
         setIsActive(plan.is_active ?? true);
-        setMaxMembers(plan.limits?.max_members || 50);
-        setMaxStorageMb(plan.limits?.max_storage_mb || 1000);
+        setMaxMembers(plan.limits?.max_members ?? 50);
+        setMaxSongs(plan.limits?.max_songs ?? 50);
+        setMaxEventsPerMonth(plan.limits?.max_events_per_month ?? 20);
+        setMaxAnnouncementsPerMonth(plan.limits?.max_announcements_per_month ?? 15);
+        setMaxStorageMb(plan.limits?.max_storage_mb ?? 1000);
         if (plan.features) setFeatures(plan.features);
       }
       setInitialLoading(false);
@@ -85,10 +91,12 @@ export default function EditPlanPage() {
       features,
       limits: {
         max_members: maxMembers,
+        max_songs: maxSongs,
+        max_events_per_month: maxEventsPerMonth,
+        max_announcements_per_month: maxAnnouncementsPerMonth,
         max_storage_mb: maxStorageMb,
         max_choirs: 1,
         max_audio_files: 200,
-        max_events_per_month: 20,
       },
     });
 
@@ -205,14 +213,52 @@ export default function EditPlanPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
             <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1.5">Member Limit</label>
+              <label className="text-xs font-semibold text-slate-300 block mb-1.5">Member Limit (Singers)</label>
               <input
                 type="number"
-                min={5}
+                min={-1}
                 value={maxMembers}
                 onChange={e => setMaxMembers(Number(e.target.value))}
+                placeholder="-1 or 999999 for Unlimited"
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white"
               />
+              <span className="text-[10px] text-slate-500">Use 999999 for Unlimited</span>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-300 block mb-1.5">Max Songs Uploaded</label>
+              <input
+                type="number"
+                min={-1}
+                value={maxSongs}
+                onChange={e => setMaxSongs(Number(e.target.value))}
+                placeholder="-1 or 999999 for Unlimited"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white"
+              />
+              <span className="text-[10px] text-slate-500">Use 999999 for Unlimited</span>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-300 block mb-1.5">Max Events (Per Month)</label>
+              <input
+                type="number"
+                min={-1}
+                value={maxEventsPerMonth}
+                onChange={e => setMaxEventsPerMonth(Number(e.target.value))}
+                placeholder="-1 or 999999 for Unlimited"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white"
+              />
+              <span className="text-[10px] text-slate-500">Use 999999 for Unlimited</span>
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-300 block mb-1.5">Max Announcements (Per Month)</label>
+              <input
+                type="number"
+                min={-1}
+                value={maxAnnouncementsPerMonth}
+                onChange={e => setMaxAnnouncementsPerMonth(Number(e.target.value))}
+                placeholder="-1 or 999999 for Unlimited"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white"
+              />
+              <span className="text-[10px] text-slate-500">Use 999999 for Unlimited</span>
             </div>
             <div>
               <label className="text-xs font-semibold text-slate-300 block mb-1.5">Storage Limit (MB)</label>

@@ -20,6 +20,9 @@ import {
   Send
 } from 'lucide-react';
 
+import { planEnforcementService, PlanCheckResult } from '@/lib/services/planEnforcementService';
+import { PlanLimitModal } from '@/components/plans/PlanLimitModal';
+
 interface PartDraft {
   part_name: VoicePart;
   audio_url: string;
@@ -38,6 +41,10 @@ export default function NewSongPage() {
   const [category, setCategory] = useState('Worship');
   const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard' | 'Advanced'>('Medium');
   const [lyrics, setLyrics] = useState('');
+
+  // Plan Limit Enforcement State
+  const [limitCheckResult, setLimitCheckResult] = useState<PlanCheckResult | null>(null);
+  const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
   const [sheetPdfUrl, setSheetPdfUrl] = useState('');
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [pdfFileName, setPdfFileName] = useState('');
@@ -147,6 +154,15 @@ export default function NewSongPage() {
 
     setLoading(true);
     setError(null);
+
+    // Enforce Plan Song Limit Check
+    const limitCheck = await planEnforcementService.checkLimit(activeChoir.id, 'songs');
+    if (!limitCheck.allowed) {
+      setLimitCheckResult(limitCheck);
+      setIsLimitModalOpen(true);
+      setLoading(false);
+      return;
+    }
 
     const { song, error: songErr } = await songService.createSong({
       choir_id: activeChoir.id,
@@ -439,6 +455,13 @@ export default function NewSongPage() {
           )}
         </button>
       </form>
+
+      <PlanLimitModal
+        isOpen={isLimitModalOpen}
+        onClose={() => setIsLimitModalOpen(false)}
+        result={limitCheckResult}
+        choirId={activeChoir?.id}
+      />
     </div>
   );
 }

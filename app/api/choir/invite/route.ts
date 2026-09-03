@@ -33,6 +33,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Only Choir Owners or Admins can send invitations.' }, { status: 403 });
     }
 
+    // Check choir member limit against active subscription plan
+    const { count: memberCount } = await supabase
+      .from('choir_members')
+      .select('id', { count: 'exact', head: true })
+      .eq('choir_id', choirId)
+      .eq('status', 'approved');
+
+    const { data: sub } = await supabase
+      .from('subscriptions')
+      .select('*, plan:plan_id(*)')
+      .eq('choir_id', choirId)
+      .single();
+
+    const maxMembers = (sub as any)?.plan?.limits?.max_members ?? 15;
+    const isUnlimited = maxMembers < 0 || maxMembers >= 999000;
+
+    if (!isUnlimited && (memberCount || 0) >= maxMembers) {
+      return NextResponse.json({
+        error: `Member Limit Reached: Your choir's plan allows up to ${maxMembers} members (Current: ${memberCount}/${maxMembers}). Please upgrade your plan to invite more singers.`,
+        limitReached: true,
+        choirId,
+      }, { status: 403 });
+    }
+
     // Fetch Choir details
     const { data: choir, error: choirErr } = await supabase
       .from('choirs')

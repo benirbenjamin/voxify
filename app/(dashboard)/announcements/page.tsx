@@ -21,6 +21,9 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+import { planEnforcementService, PlanCheckResult } from '@/lib/services/planEnforcementService';
+import { PlanLimitModal } from '@/components/plans/PlanLimitModal';
+
 export default function AnnouncementsPage() {
   const { user } = useAuth();
   const { activeChoir, isAdmin } = useChoir();
@@ -35,6 +38,10 @@ export default function AnnouncementsPage() {
   const [priority, setPriority] = useState<NotificationPriority>('normal');
   const [posting, setPosting] = useState(false);
   const [postMsg, setPostMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Plan Limit Enforcement State
+  const [limitCheckResult, setLimitCheckResult] = useState<PlanCheckResult | null>(null);
+  const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
 
   // Expanded Comments State (by announcement ID)
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
@@ -59,6 +66,15 @@ export default function AnnouncementsPage() {
 
     setPosting(true);
     setPostMsg(null);
+
+    // Enforce Monthly Announcements Limit Check
+    const limitCheck = await planEnforcementService.checkLimit(activeChoir.id, 'announcements');
+    if (!limitCheck.allowed) {
+      setLimitCheckResult(limitCheck);
+      setIsLimitModalOpen(true);
+      setPosting(false);
+      return;
+    }
 
     const created = await announcementService.createAnnouncement({
       choir_id: activeChoir.id,
@@ -430,6 +446,13 @@ export default function AnnouncementsPage() {
           })}
         </div>
       )}
+
+      <PlanLimitModal
+        isOpen={isLimitModalOpen}
+        onClose={() => setIsLimitModalOpen(false)}
+        result={limitCheckResult}
+        choirId={activeChoir?.id}
+      />
     </div>
   );
 }

@@ -221,6 +221,8 @@ export interface PlanLimits {
   max_choirs: number;
   max_audio_files: number;
   max_events_per_month: number;
+  max_songs: number;
+  max_announcements_per_month: number;
 }
 
 export interface SubscriptionPlan {
