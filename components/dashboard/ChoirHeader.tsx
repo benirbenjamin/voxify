@@ -19,7 +19,8 @@ import {
   X,
   Calendar,
   Sparkles,
-  Music
+  Music,
+  User
 } from 'lucide-react';
 
 export function ChoirHeader() {
@@ -157,12 +158,25 @@ export function ChoirHeader() {
           {/* User Profile / Sign Out on Desktop */}
           {user ? (
             <div className="hidden md:flex items-center gap-2">
-              <span className="hidden lg:block text-xs font-semibold text-slate-300 max-w-[100px] truncate">
-                {user.full_name}
-              </span>
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl hover:bg-slate-800 transition-colors group"
+                title="My Profile & Settings"
+              >
+                {user.avatar_url ? (
+                  <img src={user.avatar_url} alt={user.full_name} className="w-7 h-7 rounded-xl object-cover border border-purple-500/40" />
+                ) : (
+                  <div className="w-7 h-7 rounded-xl bg-purple-600/20 text-purple-300 font-bold text-xs flex items-center justify-center border border-purple-500/30">
+                    {user.full_name?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                )}
+                <span className="hidden lg:block text-xs font-semibold text-slate-300 group-hover:text-white max-w-[100px] truncate">
+                  {user.full_name}
+                </span>
+              </Link>
               <button
                 onClick={() => signOut()}
-                className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors"
+                className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors cursor-pointer"
                 title="Sign Out"
               >
                 <LogOut className="w-5 h-5" />
@@ -192,14 +206,22 @@ export function ChoirHeader() {
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-slate-800 bg-slate-900/98 backdrop-blur-xl px-4 py-5 space-y-4 animate-in fade-in slide-in-from-top-3 shadow-2xl">
           {user && (
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+            <Link
+              href="/profile"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center justify-between pb-3 border-b border-slate-800/80 hover:opacity-80 transition-opacity"
+            >
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold text-sm">
-                  {user.full_name?.charAt(0).toUpperCase() || 'U'}
-                </div>
+                {user.avatar_url ? (
+                  <img src={user.avatar_url} alt={user.full_name} className="w-9 h-9 rounded-xl object-cover border border-purple-500/40" />
+                ) : (
+                  <div className="w-9 h-9 rounded-xl bg-purple-600/20 border border-purple-500/30 flex items-center justify-center text-purple-300 font-bold text-sm">
+                    {user.full_name?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                )}
                 <div>
                   <div className="text-sm font-bold text-white truncate max-w-[180px]">{user.full_name}</div>
-                  <div className="text-[11px] text-slate-400 truncate max-w-[180px]">{user.email}</div>
+                  <div className="text-[11px] text-purple-400 font-medium">Edit Profile &amp; Settings →</div>
                 </div>
               </div>
               {user?.is_super_admin && (
@@ -207,7 +229,7 @@ export function ChoirHeader() {
                   Admin
                 </span>
               )}
-            </div>
+            </Link>
           )}
 
           <nav className="flex flex-col space-y-1">

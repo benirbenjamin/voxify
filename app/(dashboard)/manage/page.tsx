@@ -474,28 +474,37 @@ export default function ChoirAdminPage() {
           <div className="space-y-3">
             {pendingMembers.map(m => (
               <div key={m.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-4">
-                <Link href={`/manage/members/${m.id}`} className="hover:underline">
-                  <h4 className="font-bold text-white">{m.profile?.full_name || 'New Member'}</h4>
-                  <p className="text-xs text-slate-400 flex items-center gap-2">
-                    <span>{m.profile?.email}</span>
-                    {m.profile?.phone && (
-                      <span className="flex items-center gap-1 text-purple-300">
-                        <Phone className="w-3 h-3 text-purple-400" /> {m.profile.phone}
-                      </span>
-                    )}
-                  </p>
+                <Link href={`/manage/members/${m.id}`} className="hover:underline flex items-center gap-3">
+                  {m.profile?.avatar_url ? (
+                    <img src={m.profile.avatar_url} alt={m.profile.full_name} className="w-10 h-10 rounded-xl object-cover border border-purple-500/40 shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-300 font-bold text-sm flex items-center justify-center border border-purple-500/30 shrink-0">
+                      {m.profile?.full_name?.charAt(0).toUpperCase() || 'S'}
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="font-bold text-white">{m.profile?.full_name || 'New Member'}</h4>
+                    <p className="text-xs text-slate-400 flex items-center gap-2">
+                      <span>{m.profile?.email}</span>
+                      {m.profile?.phone && (
+                        <span className="flex items-center gap-1 text-purple-300">
+                          <Phone className="w-3 h-3 text-purple-400" /> {m.profile.phone}
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </Link>
 
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleUpdateStatus(m.id, 'active')}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1 shadow-md"
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1 shadow-md cursor-pointer"
                   >
                     <CheckCircle2 className="w-3.5 h-3.5" /> Approve Singer
                   </button>
                   <button
                     onClick={() => handleUpdateStatus(m.id, 'rejected')}
-                    className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1"
+                    className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1 cursor-pointer"
                   >
                     <XCircle className="w-3.5 h-3.5" /> Reject
                   </button>
@@ -529,8 +538,15 @@ export default function ChoirAdminPage() {
               {activeMembers.map(m => (
                 <tr key={m.id} className="hover:bg-slate-800/60 transition-colors group">
                   <td className="p-4 font-semibold text-white">
-                    <Link href={`/manage/members/${m.id}`} className="group-hover:text-purple-300 font-bold hover:underline flex items-center gap-2">
-                      {m.profile?.full_name}
+                    <Link href={`/manage/members/${m.id}`} className="group-hover:text-purple-300 font-bold hover:underline flex items-center gap-3">
+                      {m.profile?.avatar_url ? (
+                        <img src={m.profile.avatar_url} alt={m.profile.full_name} className="w-8 h-8 rounded-xl object-cover border border-purple-500/40 shrink-0" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-xl bg-purple-600/20 text-purple-300 font-bold text-xs flex items-center justify-center border border-purple-500/30 shrink-0">
+                          {m.profile?.full_name?.charAt(0).toUpperCase() || 'S'}
+                        </div>
+                      )}
+                      <span>{m.profile?.full_name}</span>
                     </Link>
                   </td>
                   <td className="p-4 text-xs text-slate-400">{m.profile?.email}</td>

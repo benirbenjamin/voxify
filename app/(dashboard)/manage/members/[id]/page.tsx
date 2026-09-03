@@ -141,9 +141,17 @@ export default function SingerAnalyticsPage() {
       {/* Header Profile Card */}
       <div className="bg-slate-900/80 p-6 md:p-8 rounded-3xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-2xl shadow-xl shadow-purple-600/30 shrink-0">
-            {member.profile?.full_name?.charAt(0) || 'S'}
-          </div>
+          {member.profile?.avatar_url ? (
+            <img
+              src={member.profile.avatar_url}
+              alt={member.profile.full_name}
+              className="w-16 h-16 rounded-2xl object-cover border-2 border-purple-500/40 shadow-xl shrink-0"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-2xl shadow-xl shadow-purple-600/30 shrink-0">
+              {member.profile?.full_name?.charAt(0) || 'S'}
+            </div>
+          )}
           <div>
             <div className="flex items-center gap-2 flex-wrap mb-1">
               <span className="text-xs font-bold px-2.5 py-0.5 rounded-md uppercase bg-purple-950/60 text-purple-300 border border-purple-800/40">

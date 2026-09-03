@@ -17,6 +17,8 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${appUrl}/login?error=${reason}`);
   }
 
+  const next = searchParams.get('next');
+
   if (code) {
     const supabase = await createServerSupabaseClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
@@ -32,6 +34,11 @@ export async function GET(request: Request) {
         is_super_admin: false,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' });
+
+      // If next param was specified (e.g., /reset-password)
+      if (next) {
+        return NextResponse.redirect(`${appUrl}${next}`);
+      }
 
       const rolePref = data.user.user_metadata?.role_preference || 'singer';
 
