@@ -1,4 +1,4 @@
-const CACHE_NAME = 'voxify-pwa-v1';
+const CACHE_NAME = 'voxify-pwa-v2';
 const STATIC_ASSETS = [
   '/',
   '/dashboard',
