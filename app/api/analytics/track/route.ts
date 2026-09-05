@@ -42,7 +42,13 @@ function parseDevice(ua: string, clientDevice?: string): 'mobile' | 'tablet' | '
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
+    let body: any = {};
+    try {
+      const text = await request.text();
+      body = text ? JSON.parse(text) : {};
+    } catch {
+      body = {};
+    }
     const {
       sessionId,
       userId,

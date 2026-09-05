@@ -15,8 +15,11 @@ function formatDuration(seconds: number): string {
 const COLOR_PALETTE = ['#9333ea', '#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4'];
 
 export const analyticsService = {
-  async getAnalyticsSummary(timeframe: 'today' | '7d' | '30d' | '365d' | 'all' = '30d'): Promise<AnalyticsSummary> {
-    const supabase = createClient();
+  async getAnalyticsSummary(
+    timeframe: 'today' | '7d' | '30d' | '365d' | 'all' = '30d',
+    customSupabase?: any
+  ): Promise<AnalyticsSummary> {
+    const supabase = customSupabase || createClient();
 
     // 1. Calculate startDate based on timeframe
     let startDate: Date | null = new Date();

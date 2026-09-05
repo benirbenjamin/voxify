@@ -22,6 +22,7 @@ function PlanSelectContent() {
   const choirId = searchParams.get('choirId') || activeChoir?.id;
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+  const [currentActivePlanId, setCurrentActivePlanId] = useState<string | null>(null);
   const [billingInterval, setBillingInterval] = useState<'1M' | '3M' | '6M' | '12M'>('1M');
   const [platformSettings, setPlatformSettings] = useState<PlatformPaymentSettings>({
     google_pay_enabled: true,
@@ -35,13 +36,20 @@ function PlanSelectContent() {
   useEffect(() => {
     async function loadPlans() {
       setLoading(true);
-      const [data, settings] = await Promise.all([
+      const [data, settings, activeSubData] = await Promise.all([
         subscriptionService.getAllPlans(),
         platformSettingsService.getSettings(),
+        choirId ? subscriptionService.getChoirSubscription(choirId) : Promise.resolve(null),
       ]);
       setPlans(data);
       setPlatformSettings(settings);
-      if (data.length > 0) {
+
+      let activePlanId: string | null = null;
+      if (activeSubData?.plan?.id) {
+        activePlanId = activeSubData.plan.id;
+        setCurrentActivePlanId(activePlanId);
+        setSelectedPlanId(activePlanId);
+      } else if (data.length > 0) {
         const defaultPlan = data.find(p => p.is_free) || data[0];
         setSelectedPlanId(defaultPlan.id);
       }
@@ -189,7 +197,8 @@ function PlanSelectContent() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {plans.map(plan => {
           const isSelected = selectedPlanId === plan.id;
-          
+          const isCurrentActive = currentActivePlanId === plan.id;
+
           // Calculate interval parameters
           let monthsCount = 1;
           let discountPct = 0;
@@ -213,19 +222,25 @@ function PlanSelectContent() {
               key={plan.id}
               onClick={() => setSelectedPlanId(plan.id)}
               className={`p-8 rounded-3xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-6 ${
-                isSelected
+                isCurrentActive
+                  ? 'bg-gradient-to-b from-emerald-950/80 via-purple-950/60 to-slate-900/90 border-emerald-500 shadow-2xl shadow-emerald-500/20 scale-[1.02]'
+                  : isSelected
                   ? 'bg-gradient-to-b from-purple-950/80 to-slate-900/90 border-purple-500 shadow-2xl shadow-purple-600/20 scale-[1.02]'
                   : 'bg-slate-900/60 border-slate-800 hover:border-slate-700 opacity-80 hover:opacity-100'
               }`}
             >
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">{plan.name}</span>
-                  {isSelected && (
+                  {isCurrentActive ? (
+                    <span className="bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full flex items-center gap-1 shadow-md">
+                      ✓ Active Subscription
+                    </span>
+                  ) : isSelected ? (
                     <span className="bg-purple-600 text-white text-[10px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full">
                       Selected
                     </span>
-                  )}
+                  ) : null}
                 </div>
 
                 <div className="space-y-1">
@@ -330,12 +345,14 @@ function PlanSelectContent() {
                   <button
                     type="button"
                     className={`w-full py-3.5 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${
-                      isSelected
+                      isCurrentActive
+                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/30 font-black'
+                        : isSelected
                         ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30'
                         : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
                     }`}
                   >
-                    {isSelected ? 'Current Selection' : 'Choose Free Plan'}
+                    {isCurrentActive ? '✓ Current Active Plan' : isSelected ? 'Selected Free Plan' : 'Choose Free Plan'}
                   </button>
                 )}
               </div>

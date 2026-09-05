@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const timeframe = (searchParams.get('timeframe') as 'today' | '7d' | '30d' | '365d' | 'all') || '30d';
 
-    const summary = await analyticsService.getAnalyticsSummary(timeframe);
+    const summary = await analyticsService.getAnalyticsSummary(timeframe, supabase);
     return NextResponse.json(summary);
 
   } catch (err: any) {

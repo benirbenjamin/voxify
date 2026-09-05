@@ -38,12 +38,32 @@ export function PWARegister() {
 
     if (typeof window === 'undefined') return;
 
-    // 2. Detect Standalone Mode
+    // 2. Detect Standalone Mode & Existing Installation
+    const alreadyInstalledInStorage = localStorage.getItem('voxify_pwa_installed') === 'true';
     const isStandaloneMode =
+      alreadyInstalledInStorage ||
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as any).standalone === true ||
       document.referrer.includes('android-app://');
+
     setIsStandalone(isStandaloneMode);
+
+    if (isStandaloneMode) {
+      setShowInstallBanner(false);
+    }
+
+    // Check for native installed related apps
+    if (!isStandaloneMode && 'getInstalledRelatedApps' in navigator) {
+      (navigator as any).getInstalledRelatedApps().then((relatedApps: any[]) => {
+        if (relatedApps && relatedApps.length > 0) {
+          try {
+            localStorage.setItem('voxify_pwa_installed', 'true');
+          } catch {}
+          setIsStandalone(true);
+          setShowInstallBanner(false);
+        }
+      }).catch(() => {});
+    }
 
     // 3. Detect iOS
     const userAgent = window.navigator.userAgent;
@@ -57,12 +77,15 @@ export function PWARegister() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      if (!isStandaloneMode && !isRecentlyDismissed) {
+      if (!isStandaloneMode && !isRecentlyDismissed && localStorage.getItem('voxify_pwa_installed') !== 'true') {
         setShowInstallBanner(true);
       }
     };
 
     const handleAppInstalled = () => {
+      try {
+        localStorage.setItem('voxify_pwa_installed', 'true');
+      } catch {}
       setIsStandalone(true);
       setShowInstallBanner(false);
       setDeferredPrompt(null);
@@ -73,7 +96,7 @@ export function PWARegister() {
 
     // Initial check timer for visitors on non-installed apps (iOS or desktop/Android)
     const installTimer = setTimeout(() => {
-      if (!isStandaloneMode && !isRecentlyDismissed) {
+      if (!isStandaloneMode && !isRecentlyDismissed && localStorage.getItem('voxify_pwa_installed') !== 'true') {
         setShowInstallBanner(true);
       }
     }, 1500);
@@ -134,6 +157,10 @@ export function PWARegister() {
         await deferredPrompt.prompt();
         const choiceResult = await deferredPrompt.userChoice;
         if (choiceResult.outcome === 'accepted') {
+          try {
+            localStorage.setItem('voxify_pwa_installed', 'true');
+          } catch {}
+          setIsStandalone(true);
           setShowInstallBanner(false);
         }
       } catch (err) {

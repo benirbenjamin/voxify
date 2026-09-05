@@ -16,11 +16,20 @@ ON CONFLICT (id) DO NOTHING;
 -- Enable RLS on platform_settings
 ALTER TABLE platform_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Platform settings read policy" ON platform_settings;
 CREATE POLICY "Platform settings read policy" ON platform_settings
   FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Platform settings update policy" ON platform_settings;
 CREATE POLICY "Platform settings update policy" ON platform_settings
   FOR ALL USING (
+    EXISTS (
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+      AND profiles.is_super_admin = true
+    )
+  )
+  WITH CHECK (
     EXISTS (
       SELECT 1 FROM profiles
       WHERE profiles.id = auth.uid()

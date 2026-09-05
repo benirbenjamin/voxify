@@ -53,20 +53,32 @@ export default function SuperAdminPage() {
   const handleToggleGooglePay = async () => {
     const nextVal = !googlePayEnabled;
     setGooglePayEnabled(nextVal);
-    await platformSettingsService.updateSettings({ google_pay_enabled: nextVal });
+    const ok = await platformSettingsService.updateSettings({ google_pay_enabled: nextVal });
+    if (!ok) {
+      setGooglePayEnabled(!nextVal);
+      alert('❌ Failed to update Google Pay setting. Please try again.');
+    }
   };
 
   const handleToggleFlutterwave = async () => {
     const nextVal = !flutterwaveEnabled;
     setFlutterwaveEnabled(nextVal);
-    await platformSettingsService.updateSettings({ flutterwave_enabled: nextVal });
+    const ok = await platformSettingsService.updateSettings({ flutterwave_enabled: nextVal });
+    if (!ok) {
+      setFlutterwaveEnabled(!nextVal);
+      alert('❌ Failed to update Flutterwave setting. Please try again.');
+    }
   };
 
   const handleSaveFlwSecretKey = async () => {
     setSavingFlwKey(true);
-    await platformSettingsService.updateSettings({ flutterwave_secret_key: flutterwaveSecretKey });
+    const ok = await platformSettingsService.updateSettings({ flutterwave_secret_key: flutterwaveSecretKey });
     setSavingFlwKey(false);
-    alert('✅ Flutterwave Secret Key saved successfully!');
+    if (ok) {
+      alert('✅ Flutterwave Secret Key saved successfully!');
+    } else {
+      alert('❌ Failed to save Flutterwave Secret Key.');
+    }
   };
 
   const handleOneClickDbSetup = async () => {
