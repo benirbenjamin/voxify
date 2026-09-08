@@ -2,10 +2,11 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { createClient } from '../supabase/client';
-import { Profile } from '../types/database.types';
+import { ArtistProfile, Profile } from '../types/database.types';
 
 interface AuthContextType {
   user: Profile | null;
+  artistProfile: ArtistProfile | null;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -13,6 +14,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  artistProfile: null,
   loading: true,
   signOut: async () => {},
   refreshProfile: async () => {},
@@ -20,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<Profile | null>(null);
+  const [artistProfile, setArtistProfile] = useState<ArtistProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async () => {
@@ -29,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (!session?.user) {
         setUser(null);
+        setArtistProfile(null);
         setLoading(false);
         return;
       }
@@ -48,12 +52,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           full_name: session.user.user_metadata?.full_name || 'Member',
           avatar_url: session.user.user_metadata?.avatar_url || null,
           is_super_admin: false,
+          user_type: 'regular',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         });
       }
+
+      // Fetch artist profile if available
+      const { data: artist } = await supabase
+        .from('artist_profiles')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      if (artist) {
+        setArtistProfile(artist as ArtistProfile);
+      } else {
+        setArtistProfile(null);
+      }
     } catch {
       setUser(null);
+      setArtistProfile(null);
     } finally {
       setLoading(false);
     }
@@ -74,10 +93,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const supabase = createClient();
     await supabase.auth.signOut();
     setUser(null);
+    setArtistProfile(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signOut, refreshProfile: fetchProfile }}>
+    <AuthContext.Provider value={{ user, artistProfile, loading, signOut, refreshProfile: fetchProfile }}>
       {children}
     </AuthContext.Provider>
   );

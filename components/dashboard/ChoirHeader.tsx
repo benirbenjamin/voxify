@@ -125,15 +125,27 @@ export function ChoirHeader() {
         <div className="flex items-center gap-1.5 sm:gap-3">
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1 text-xs">
+            <Link href="/marketplace" className="px-3 py-1.5 text-amber-500 hover:text-amber-400 rounded-lg hover:bg-slate-800 font-bold transition-colors flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Marketplace
+            </Link>
             <Link href="/songs" className="px-3 py-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 font-semibold transition-colors">
-              Song Library
+              Choir Songs
             </Link>
             <Link href="/events" className="px-3 py-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 font-semibold transition-colors">
-              Events &amp; Worship
+              Events
             </Link>
-            <Link href="/announcements" className="px-3 py-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 font-semibold transition-colors">
-              Announcements
+            <Link href="/purchases" className="px-3 py-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 font-semibold transition-colors">
+              My Music
             </Link>
+            {artistProfile ? (
+              <Link href="/artist/dashboard" className="px-3 py-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl font-bold text-xs hover:bg-amber-500/30 transition-all flex items-center gap-1">
+                <Mic className="w-3.5 h-3.5 text-amber-400" /> Artist Portal
+              </Link>
+            ) : user ? (
+              <Link href="/onboarding/artist" className="px-3 py-1.5 bg-amber-600/10 text-amber-400 border border-amber-500/20 rounded-xl font-semibold text-xs hover:bg-amber-600/20 transition-all">
+                Become Artist
+              </Link>
+            ) : null}
             {isAdmin && (
               <Link href="/manage" className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-xs shadow-sm transition-all">
                 Choir Admin

@@ -7,6 +7,13 @@ export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 export type NotificationPriority = 'normal' | 'high';
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'expired';
 
+export type UserType = 'regular' | 'artist' | 'choir_admin';
+export type MusicTypeCategory = 'gospel' | 'secular' | 'both';
+export type ArtistStatus = 'pending' | 'approved' | 'suspended';
+export type MarketplaceSongStatus = 'draft' | 'processing' | 'published' | 'archived' | 'hidden';
+export type WithdrawalStatus = 'pending' | 'processing' | 'paid' | 'rejected';
+export type LedgerEntryType = 'sale' | 'withdrawal' | 'fee' | 'adjustment';
+
 export interface Profile {
   id: string;
   full_name: string;
@@ -14,7 +21,134 @@ export interface Profile {
   phone?: string | null;
   avatar_url?: string | null;
   is_super_admin: boolean;
+  user_type?: UserType;
   created_at: string;
+  updated_at: string;
+}
+
+export interface Genre {
+  id: string;
+  name: string;
+  slug: string;
+  category: MusicTypeCategory;
+  is_local: boolean;
+  description?: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ArtistProfile {
+  id: string;
+  user_id: string;
+  stage_name: string;
+  bio?: string | null;
+  genres: string[];
+  music_type: MusicTypeCategory;
+  location?: string | null;
+  country?: string | null;
+  social_links?: Record<string, string>;
+  payout_details?: Record<string, string>;
+  avatar_url?: string | null;
+  banner_url?: string | null;
+  status: ArtistStatus;
+  created_at: string;
+  updated_at: string;
+  profile?: Profile;
+}
+
+export interface MarketplaceSong {
+  id: string;
+  artist_id: string;
+  title: string;
+  description?: string | null;
+  genre_id?: string | null;
+  music_type: 'gospel' | 'secular';
+  language?: string | null;
+  audio_file_path: string;
+  preview_audio_path?: string | null;
+  preview_start_time: number;
+  preview_end_time: number;
+  cover_image_url?: string | null;
+  lyrics?: string | null;
+  price: number;
+  currency: string;
+  status: MarketplaceSongStatus;
+  views_count: number;
+  likes_count: number;
+  purchases_count: number;
+  created_at: string;
+  published_at?: string | null;
+  artist?: ArtistProfile;
+  genre?: Genre;
+  is_purchased?: boolean;
+  is_liked?: boolean;
+}
+
+export interface UserPurchase {
+  id: string;
+  buyer_id: string;
+  song_id: string;
+  order_ref: string;
+  amount_paid: number;
+  currency: string;
+  purchased_at: string;
+  song?: MarketplaceSong;
+}
+
+export interface SongLike {
+  id: string;
+  song_id: string;
+  user_id?: string | null;
+  session_id?: string | null;
+  created_at: string;
+}
+
+export interface SongComment {
+  id: string;
+  song_id: string;
+  user_id?: string | null;
+  author_name: string;
+  content: string;
+  status: 'visible' | 'hidden' | 'flagged';
+  created_at: string;
+}
+
+export interface FinancialLedgerEntry {
+  id: string;
+  artist_id: string;
+  order_id?: string | null;
+  type: LedgerEntryType;
+  amount: number;
+  platform_fee_amount: number;
+  net_artist_amount: number;
+  currency: string;
+  balance_after: number;
+  description?: string | null;
+  created_at: string;
+}
+
+export interface WithdrawalRequest {
+  id: string;
+  artist_id: string;
+  amount: number;
+  fee_amount: number;
+  net_payout_amount: number;
+  currency: string;
+  payout_method: string;
+  payout_details: Record<string, any>;
+  status: WithdrawalStatus;
+  admin_note?: string | null;
+  created_at: string;
+  processed_at?: string | null;
+  artist?: ArtistProfile;
+}
+
+export interface MarketplaceSettings {
+  id: string;
+  platform_commission_percent: number;
+  min_withdrawal_amount: number;
+  withdrawal_fee_percent: number;
+  allow_auto_artist_approval: boolean;
   updated_at: string;
 }
 

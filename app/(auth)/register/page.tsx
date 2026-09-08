@@ -16,14 +16,18 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [rolePreference, setRolePreference] = useState<'director' | 'singer'>('director');
+  const [rolePreference, setRolePreference] = useState<'director' | 'singer' | 'artist'>('director');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
 
   React.useEffect(() => {
     if (user) {
-      router.push('/dashboard');
+      if (user.user_type === 'artist') {
+        router.push('/artist/dashboard');
+      } else {
+        router.push('/dashboard');
+      }
     }
   }, [user, router]);
 
@@ -45,6 +49,7 @@ export default function RegisterPage() {
           full_name: fullName,
           phone: phone,
           role_preference: rolePreference,
+          user_type: rolePreference === 'artist' ? 'artist' : rolePreference === 'director' ? 'choir_admin' : 'regular',
         },
       },
     });
@@ -57,7 +62,9 @@ export default function RegisterPage() {
 
     // If session is active (auto-confirmed)
     if (authData.session) {
-      if (rolePreference === 'director') {
+      if (rolePreference === 'artist') {
+        router.push('/onboarding/artist');
+      } else if (rolePreference === 'director') {
         router.push('/choir/create');
       } else {
         router.push('/dashboard');
@@ -90,7 +97,12 @@ export default function RegisterPage() {
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
               <span>Click the verification link in your email to activate your account.</span>
             </div>
-            {rolePreference === 'director' ? (
+            {rolePreference === 'artist' ? (
+              <div className="flex items-start gap-2">
+                <Mic className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>As a <strong>Music Artist</strong>, after clicking the link you will be guided to complete your Artist Profile!</span>
+              </div>
+            ) : rolePreference === 'director' ? (
               <div className="flex items-start gap-2">
                 <Crown className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
                 <span>As a <strong>Choir Master</strong>, after clicking the link you will automatically be guided to <strong>Register & Create Your Choir</strong>!</span>
@@ -98,7 +110,7 @@ export default function RegisterPage() {
             ) : (
               <div className="flex items-start gap-2">
                 <Mic className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
-                <span>As a <strong>Choir Member</strong>, after clicking the link you will land on your Dashboard to join your choir.</span>
+                <span>As a <strong>Member / Listener</strong>, after clicking the link you will land on your Voxify Dashboard.</span>
               </div>
             )}
           </div>
@@ -124,7 +136,7 @@ export default function RegisterPage() {
             <Image src="/logo.png" alt="Voxify Logo" width={44} height={44} className="object-contain" />
           </div>
           <h1 className="text-2xl font-bold">Create Your Voxify Account</h1>
-          <p className="text-xs text-slate-400">Join Voxify Space platform as a Choir Master or Choir Member</p>
+          <p className="text-xs text-slate-400">Join Voxify as a Choir Master, Music Artist, or Listener</p>
         </div>
 
         {error && (
@@ -138,33 +150,47 @@ export default function RegisterPage() {
           {/* Role Preference Selection */}
           <div>
             <label className="text-xs font-semibold text-slate-300 block mb-2">I am registering as *</label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-2.5">
               <button
                 type="button"
                 onClick={() => setRolePreference('director')}
-                className={`p-4 rounded-2xl border text-left transition-all ${
+                className={`p-3 rounded-2xl border text-left transition-all ${
                   rolePreference === 'director'
                     ? 'bg-purple-950/60 border-purple-500 text-white shadow-lg shadow-purple-500/20'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
                 }`}
               >
-                <Crown className={`w-5 h-5 mb-2 ${rolePreference === 'director' ? 'text-purple-400' : 'text-slate-500'}`} />
-                <span className="text-xs font-bold block text-white">Choir Master / Director</span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">I want to create & manage a choir</span>
+                <Crown className={`w-5 h-5 mb-1.5 ${rolePreference === 'director' ? 'text-purple-400' : 'text-slate-500'}`} />
+                <span className="text-xs font-bold block text-white">Choir Master</span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">Manage choir</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setRolePreference('artist')}
+                className={`p-3 rounded-2xl border text-left transition-all ${
+                  rolePreference === 'artist'
+                    ? 'bg-amber-950/60 border-amber-500 text-white shadow-lg shadow-amber-500/20'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <Mic className={`w-5 h-5 mb-1.5 ${rolePreference === 'artist' ? 'text-amber-400' : 'text-slate-500'}`} />
+                <span className="text-xs font-bold block text-white">Music Artist</span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">Sell music</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setRolePreference('singer')}
-                className={`p-4 rounded-2xl border text-left transition-all ${
+                className={`p-3 rounded-2xl border text-left transition-all ${
                   rolePreference === 'singer'
                     ? 'bg-purple-950/60 border-purple-500 text-white shadow-lg shadow-purple-500/20'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
                 }`}
               >
-                <Mic className={`w-5 h-5 mb-2 ${rolePreference === 'singer' ? 'text-purple-400' : 'text-slate-500'}`} />
-                <span className="text-xs font-bold block text-white">Choir Member / Singer</span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">I want to join a choir & practice</span>
+                <User className={`w-5 h-5 mb-1.5 ${rolePreference === 'singer' ? 'text-purple-400' : 'text-slate-500'}`} />
+                <span className="text-xs font-bold block text-white">Listener / Member</span>
+                <span className="text-[10px] text-slate-400 block mt-0.5">Join & listen</span>
               </button>
             </div>
           </div>

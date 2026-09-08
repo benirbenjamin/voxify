@@ -25,6 +25,7 @@ export async function POST() {
       'supabase/migrations/00004_announcement_comments_reactions.sql',
       'supabase/migrations/00005_platform_analytics.sql',
       'supabase/migrations/00006_platform_settings_and_discounts.sql',
+      'supabase/migrations/00007_artist_marketplace_schema.sql',
       'supabase/seed.sql',
     ];
 
