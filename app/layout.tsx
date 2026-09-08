@@ -69,17 +69,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-purple-600 selection:text-white">
-        <AuthProvider>
-          <ChoirProvider>
-            {children}
-            <PWARegister />
-            <AnalyticsTracker />
-          </ChoirProvider>
-        </AuthProvider>
+    <html lang="en" className="light">
+      <body className="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen font-sans antialiased selection:bg-purple-600 selection:text-white transition-colors duration-200">
+        <ThemeProvider>
+          <AuthProvider>
+            <ChoirProvider>
+              {children}
+              <PWARegister />
+              <AnalyticsTracker />
+            </ChoirProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
 }
-

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/context/AuthContext';
 import { useChoir } from '@/lib/context/ChoirContext';
 import { notificationService } from '@/lib/services/notificationService';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import {
   Bell,
   ChevronDown,
@@ -144,6 +145,9 @@ export function ChoirHeader() {
               </Link>
             )}
           </nav>
+
+          {/* Dark / Light Theme Toggle Switch */}
+          <ThemeToggle showLabel={false} />
 
           {/* In-App Notifications Bell */}
           <Link href="/notifications" className="relative p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 transition-colors">
@@ -298,6 +302,11 @@ export function ChoirHeader() {
               </Link>
             )}
           </nav>
+
+          <div className="pt-2 border-t border-slate-800 flex items-center justify-between px-1 py-1">
+            <span className="text-xs font-semibold text-slate-400">Switch Theme:</span>
+            <ThemeToggle showLabel={true} />
+          </div>
 
           <div className="pt-2 border-t border-slate-800 flex flex-col space-y-2">
             <Link

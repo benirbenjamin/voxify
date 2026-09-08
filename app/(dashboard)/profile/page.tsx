@@ -19,8 +19,10 @@ import {
   Lock,
   KeyRound,
   Crown,
-  CreditCard
+  CreditCard,
+  Palette
 } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 
 export default function ProfileSettingsPage() {
   const { user, refreshProfile } = useAuth();
@@ -386,6 +388,23 @@ export default function ProfileSettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* Appearance & Display Theme Card */}
+      <div className="bg-slate-900/70 border border-slate-800 p-6 md:p-8 rounded-3xl space-y-4 shadow-xl">
+        <h3 className="text-lg font-bold text-white border-b border-slate-800 pb-3 flex items-center gap-2">
+          <Palette className="w-5 h-5 text-amber-400" /> Appearance &amp; Display Theme
+        </h3>
+        <p className="text-xs text-slate-400">
+          Choose your preferred color theme. Light Mode is active by default. You can toggle to Dark Mode anytime.
+        </p>
+        <div className="pt-2 flex items-center justify-between bg-slate-950 p-4 rounded-2xl border border-slate-800">
+          <div>
+            <div className="text-xs font-bold text-slate-200">Color Theme Preference</div>
+            <div className="text-[11px] text-slate-400">Toggle between Light and Dark mode appearance across Voxify.</div>
+          </div>
+          <ThemeToggle showLabel={true} className="px-4 py-2" />
+        </div>
+      </div>
 
       {/* Password & Security Settings Card */}
       <form onSubmit={handlePasswordChange} className="bg-slate-900/70 border border-slate-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-xl">

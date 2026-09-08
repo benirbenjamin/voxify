@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { statsService, PlatformStats } from '@/lib/services/statsService';
 import { subscriptionService } from '@/lib/services/subscriptionService';
 import { SubscriptionPlan } from '@/lib/types/database.types';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { ShieldCheck, Calendar, Sparkles, Volume2, ArrowRight, CheckCircle2, Play, Pause, Repeat, Zap, Crown, LogOut, LayoutDashboard } from 'lucide-react';
 
 export default function LandingPage() {
@@ -68,8 +69,9 @@ export default function LandingPage() {
             <a href="#pricing" className="hover:text-purple-400 transition-colors">Pricing Plans</a>
           </nav>
 
-          {/* Auth-Aware Action Buttons */}
+          {/* Auth-Aware Action Buttons & Theme Switcher */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <ThemeToggle showLabel={false} />
             {user ? (
               <div className="flex items-center gap-2 sm:gap-3">
                 <Link
