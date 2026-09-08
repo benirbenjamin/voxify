@@ -41,75 +41,111 @@ body {
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Apple-Style Light Mode Token Overrides */
-html.light {
-  background-color: #FCFEFF !important;
-  color: #475569 !important;
+/* ----------------------------------------------------
+   LIGHT MODE OVERRIDES (html.light) - Google App Style
+   Full contrast black text (#000000), pure white cards (#ffffff)
+   ---------------------------------------------------- */
+html.light,
+html.light body {
+  background-color: #f8fafc !important;
+  color: #000000 !important;
 }
 
+html.light .bg-\[\#FCFEFF\],
+html.light .bg-\[\#F5FAFF\],
 html.light .bg-slate-950,
 html.light .bg-slate-900,
+html.light .bg-slate-900\/98,
 html.light .bg-slate-900\/90,
 html.light .bg-slate-900\/80,
 html.light .bg-slate-900\/70,
-html.light .bg-slate-900\/60,
-html.light .bg-slate-900\/50,
-html.light .bg-slate-900\/40,
 html.light .bg-purple-950,
-html.light .bg-purple-900,
 html.light .bg-indigo-950 {
-  background-color: #FFFFFF !important;
-  color: #475569 !important;
+  background-color: #ffffff !important;
+  color: #000000 !important;
 }
 
-html.light .bg-slate-800,
-html.light .bg-slate-800\/90,
-html.light .bg-slate-800\/50,
+html.light .bg-\[\#FCFEFF\]\/80,
+html.light .bg-\[\#FCFEFF\]\/90 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  color: #000000 !important;
+}
+
+html.light .bg-\[\#DFF1FF\],
 html.light .bg-purple-950\/60,
-html.light .bg-purple-900\/40 {
-  background-color: #F5FAFF !important;
-  color: #475569 !important;
+html.light .bg-purple-900\/40,
+html.light .bg-slate-800 {
+  background-color: #f1f5f9 !important;
+  color: #000000 !important;
 }
 
-html.light .bg-purple-950\/80,
-html.light .bg-purple-900\/60,
-html.light .bg-purple-900\/80,
-html.light .bg-purple-600\/20,
-html.light .bg-purple-500\/10 {
-  background-color: #DFF1FF !important;
-  color: #475569 !important;
-}
-
+html.light .border-\[\#E6F2FC\],
 html.light .border-slate-800,
 html.light .border-slate-700,
-html.light .border-slate-600,
-html.light .border-purple-800\/40,
-html.light .border-purple-500\/40 {
-  border-color: #E6F2FC !important;
+html.light .border-slate-600 {
+  border-color: #e2e8f0 !important;
 }
 
-/* Light mode text colors for card titles and subheadings */
-html.light h1:not(.bg-purple-600 *):not(.bg-indigo-600 *):not(.bg-blue-600 *),
-html.light h2:not(.bg-purple-600 *):not(.bg-indigo-600 *):not(.bg-blue-600 *),
-html.light h3:not(.bg-purple-600 *):not(.bg-indigo-600 *):not(.bg-blue-600 *),
+html.light .text-\[\#475569\],
+html.light .text-\[\#A8B5C2\],
 html.light .text-slate-100,
 html.light .text-slate-200,
 html.light .text-slate-300,
-html.light .text-slate-400 {
-  color: #475569 !important;
-}
-
+html.light .text-slate-400,
 html.light .text-slate-500,
 html.light .text-slate-600 {
-  color: #A8B5C2 !important;
+  color: #000000 !important;
 }
 
-/* SOLID BUTTON TEXT CONTRAST GUARANTEE: Solid color fills MUST maintain bright white text */
+/* ----------------------------------------------------
+   DARK MODE OVERRIDES (html.dark)
+   Full dark navy/black background (#030712), bright white text (#ffffff)
+   ---------------------------------------------------- */
+html.dark,
+html.dark body {
+  background-color: #030712 !important;
+  color: #ffffff !important;
+}
+
+html.dark .bg-\[\#FCFEFF\],
+html.dark .bg-\[\#F5FAFF\],
+html.dark .bg-\[\#FFFFFF\] {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+}
+
+html.dark .bg-\[\#FCFEFF\]\/80,
+html.dark .bg-\[\#FCFEFF\]\/90 {
+  background-color: rgba(15, 23, 42, 0.92) !important;
+  color: #ffffff !important;
+}
+
+html.dark .bg-\[\#DFF1FF\],
+html.dark .bg-\[\#B9E2FF\] {
+  background-color: #1e1b4b !important;
+  color: #ffffff !important;
+}
+
+html.dark .border-\[\#E6F2FC\],
+html.dark .border-\[\#B9E2FC\] {
+  border-color: #334155 !important;
+}
+
+html.dark .text-\[\#475569\],
+html.dark .text-\[\#A8B5C2\] {
+  color: #ffffff !important;
+}
+
+/* ----------------------------------------------------
+   SOLID BUTTON TEXT CONTRAST GUARANTEE
+   All action buttons MUST have bold bright white text (#ffffff)
+   ---------------------------------------------------- */
 .bg-purple-600,
 .bg-indigo-600,
 .bg-blue-600,
 .bg-emerald-600,
 .bg-rose-600,
+.bg-amber-600,
 .bg-purple-700,
 .bg-indigo-700,
 .bg-blue-700 {
@@ -121,6 +157,7 @@ html.light .text-slate-600 {
 .bg-blue-600 *,
 .bg-emerald-600 *,
 .bg-rose-600 *,
+.bg-amber-600 *,
 .bg-purple-700 *,
 .bg-indigo-700 *,
 .bg-blue-700 * {
