@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { ThemeProvider } from '../lib/context/ThemeContext';
 import { AuthProvider } from '../lib/context/AuthContext';
 import { ChoirProvider } from '../lib/context/ChoirContext';
 import { PWARegister } from '../components/pwa/PWARegister';
