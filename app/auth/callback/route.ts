@@ -24,13 +24,18 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && data.user) {
-      // Ensure profile row exists in database with full_name, email & phone number
+      const userMeta = data.user.user_metadata || {};
+      const rolePref = userMeta.role_preference || 'singer';
+      const userType = userMeta.user_type || (rolePref === 'artist' ? 'artist' : rolePref === 'director' ? 'choir_admin' : 'regular');
+
+      // Ensure profile row exists in database with user_type, full_name, email & phone number
       await supabase.from('profiles').upsert({
         id: data.user.id,
-        full_name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'User',
+        full_name: userMeta.full_name || data.user.email?.split('@')[0] || 'User',
         email: data.user.email!,
-        phone: data.user.user_metadata?.phone || null,
-        avatar_url: data.user.user_metadata?.avatar_url || null,
+        phone: userMeta.phone || null,
+        avatar_url: userMeta.avatar_url || null,
+        user_type: userType,
         is_super_admin: false,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' });
@@ -40,17 +45,29 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${appUrl}${next}`);
       }
 
-      const rolePref = data.user.user_metadata?.role_preference || 'singer';
+      // Check artist account redirect
+      if (userType === 'artist' || rolePref === 'artist') {
+        const { data: artistProf } = await supabase
+          .from('artist_profiles')
+          .select('id')
+          .eq('user_id', data.user.id)
+          .maybeSingle();
 
-      // Check if user already owns a choir
+        if (!artistProf) {
+          return NextResponse.redirect(`${appUrl}/onboarding/artist`);
+        }
+        return NextResponse.redirect(`${appUrl}/artist/dashboard`);
+      }
+
+      // Check director / choir master redirect
       const { data: choir } = await supabase
         .from('choirs')
         .select('id')
         .eq('owner_id', data.user.id)
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (rolePref === 'director' && !choir) {
+      if ((rolePref === 'director' || userType === 'choir_admin') && !choir) {
         return NextResponse.redirect(`${appUrl}/choir/create`);
       }
 

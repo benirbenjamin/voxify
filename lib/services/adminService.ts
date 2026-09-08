@@ -39,6 +39,17 @@ export const adminService = {
     return !error;
   },
 
+  // Super Admin: Update User Type (artist, choir_admin, regular)
+  async updateUserType(userId: string, userType: string): Promise<boolean> {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('profiles')
+      .update({ user_type: userType, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+
+    return !error;
+  },
+
   // Super Admin: Delete user profile and memberships
   async deleteUser(userId: string): Promise<boolean> {
     const supabase = createClient();

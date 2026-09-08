@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { subscriptionService } from '@/lib/services/subscriptionService';
 import { adminService } from '@/lib/services/adminService';
 import { SubscriptionPlan } from '@/lib/types/database.types';
-import { Shield, Layers, Users, Music, Sparkles, ArrowRight, Plus, Edit3, Trash2, Power, Calendar, BarChart3, Globe, TrendingUp } from 'lucide-react';
+import { Shield, Layers, Users, Music, Sparkles, ArrowRight, Plus, Edit3, Trash2, Power, Calendar, BarChart3, Globe, TrendingUp, Mic } from 'lucide-react';
 
 import { platformSettingsService } from '@/lib/services/platformSettingsService';
 import { CreditCard, ToggleLeft, ToggleRight, Check } from 'lucide-react';
@@ -306,7 +306,19 @@ export default function SuperAdminPage() {
       </div>
 
       {/* Platform Statistics & Super Admin Global Controls Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Link
+          href="/admin/marketplace"
+          className="bg-gradient-to-br from-amber-950/70 via-slate-900 to-purple-950/70 p-6 rounded-3xl border border-amber-500/40 space-y-2 hover:border-amber-400 hover:scale-[1.01] transition-all group cursor-pointer block col-span-1 sm:col-span-2 lg:col-span-1 shadow-lg"
+        >
+          <div className="flex items-center justify-between text-amber-400">
+            <span className="text-xs font-extrabold uppercase tracking-wider">Music Marketplace &amp; Artists</span>
+            <Mic className="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform" />
+          </div>
+          <p className="text-3xl font-extrabold text-white group-hover:text-amber-300 transition-colors">Marketplace</p>
+          <p className="text-xs text-amber-300/80 font-medium">Payout Requests, Artist Approvals &amp; Commission % →</p>
+        </Link>
+
         <Link
           href="/admin/choirs"
           className="bg-slate-900/70 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-purple-500/50 hover:bg-slate-800/80 transition-all group cursor-pointer block"

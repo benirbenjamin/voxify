@@ -58,6 +58,16 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleUserTypeChange = async (targetUser: UserWithChoirs, newType: string) => {
+    const ok = await adminService.updateUserType(targetUser.id, newType);
+    if (ok) {
+      setUsers(prev => prev.map(u => u.id === targetUser.id ? { ...u, user_type: newType as any } : u));
+      setMessage({ type: 'success', text: `Updated ${targetUser.full_name}'s role to ${newType}.` });
+    } else {
+      setMessage({ type: 'error', text: 'Failed to update user role.' });
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-6 md:p-10 space-y-8 text-white">
       <Link href="/admin" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
@@ -95,7 +105,7 @@ export default function AdminUsersPage() {
                 <tr>
                   <th className="p-4 rounded-l-xl">User Name</th>
                   <th className="p-4">Email</th>
-                  <th className="p-4">Phone Number</th>
+                  <th className="p-4">Account Type / Role</th>
                   <th className="p-4">Owned Choir(s)</th>
                   <th className="p-4">Super Admin</th>
                   <th className="p-4 rounded-r-xl">Actions</th>
@@ -109,14 +119,22 @@ export default function AdminUsersPage() {
                       {u.id === user.id && <span className="ml-2 text-[10px] bg-purple-950 text-purple-300 border border-purple-800 px-2 py-0.5 rounded-md font-bold">You</span>}
                     </td>
                     <td className="p-4 text-xs font-mono text-slate-300">{u.email}</td>
-                    <td className="p-4 text-xs text-purple-300 font-mono">
-                      {u.phone ? (
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3.5 h-3.5 text-purple-400" /> {u.phone}
-                        </span>
-                      ) : (
-                        <span className="text-slate-600 font-sans italic">Not provided</span>
-                      )}
+                    <td className="p-4 text-xs">
+                      <select
+                        value={u.user_type || 'regular'}
+                        onChange={e => handleUserTypeChange(u, e.target.value)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-extrabold border bg-slate-950 focus:outline-none cursor-pointer ${
+                          u.user_type === 'artist'
+                            ? 'text-amber-300 border-amber-500/50 bg-amber-950/40'
+                            : u.user_type === 'choir_admin'
+                            ? 'text-purple-300 border-purple-500/50 bg-purple-950/40'
+                            : 'text-slate-300 border-slate-700'
+                        }`}
+                      >
+                        <option value="regular">Regular Listener / Member</option>
+                        <option value="artist">🎵 Music Artist / Creator</option>
+                        <option value="choir_admin">👑 Choir Master / Admin</option>
+                      </select>
                     </td>
                     <td className="p-4 text-xs">
                       {u.owned_choirs && u.owned_choirs.length > 0 ? (
