@@ -261,54 +261,54 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 font-sans">
       {/* Active Choir Welcome & Code Banner */}
-      <div className="bg-gradient-to-r from-purple-900/60 via-slate-900 to-indigo-900/60 border border-purple-500/30 p-6 md:p-8 rounded-3xl shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-[#F5FAFF] border border-[#E6F2FC] p-6 md:p-8 rounded-3xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="bg-purple-500/20 text-purple-300 text-xs px-3 py-1 rounded-full border border-purple-500/30 font-semibold uppercase tracking-wider">
+            <span className="bg-[#DFF1FF] text-[#475569] text-xs px-3 py-1 rounded-full border border-[#B9E2FF] font-semibold uppercase tracking-wider">
               {activeChoir.church_name || 'Active Choir'}
             </span>
-            <span className="bg-amber-500/20 text-amber-300 text-xs px-3 py-1 rounded-full border border-amber-500/30 font-bold uppercase tracking-wider flex items-center gap-1">
-              <Crown className="w-3.5 h-3.5 text-amber-400" />
+            <span className="bg-[#DFF1FF] text-[#475569] text-xs px-3 py-1 rounded-full border border-[#B9E2FF] font-bold uppercase tracking-wider flex items-center gap-1">
+              <Crown className="w-3.5 h-3.5 text-amber-500" />
               {currentPlan?.name || 'Community Free Plan'}
             </span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white">{activeChoir.name}</h1>
-          <p className="text-sm text-slate-300">
-            Welcome back, <strong className="text-purple-300">{user?.full_name}</strong>! Practice your voice parts for upcoming choir rehearsals and services.
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#475569]">{activeChoir.name}</h1>
+          <p className="text-sm sm:text-base text-[#475569]/90">
+            Welcome back, <strong className="text-purple-600 font-bold">{user?.full_name}</strong>! Practice your voice parts for upcoming choir rehearsals and services.
           </p>
         </div>
 
         {/* Choir Code, Copy Link & Native Share App Buttons */}
-        <div className="bg-slate-950/90 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-center gap-4 shrink-0">
+        <div className="bg-[#FFFFFF] p-4 rounded-2xl border border-[#E6F2FC] shadow-sm flex flex-col sm:flex-row items-center gap-4 shrink-0">
           <div className="text-center sm:text-left">
-            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block">Choir Code</span>
-            <span className="text-xl font-black font-mono tracking-widest text-purple-400">{activeChoir.choir_code}</span>
+            <span className="text-[10px] text-[#A8B5C2] font-bold uppercase tracking-wider block">Choir Code</span>
+            <span className="text-2xl font-black font-mono tracking-widest text-[#475569]">{activeChoir.choir_code}</span>
           </div>
 
-          <div className="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-slate-800 pt-3 sm:pt-0 sm:pl-4 flex-wrap justify-center">
+          <div className="flex items-center gap-2 border-t sm:border-t-0 sm:border-l border-[#E6F2FC] pt-3 sm:pt-0 sm:pl-4 flex-wrap justify-center">
             <button
               onClick={copyCode}
-              className="p-2.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold"
+              className="p-2.5 bg-[#F5FAFF] hover:bg-[#DFF1FF] border border-[#E6F2FC] text-[#475569] rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold"
               title="Copy Choir Code"
             >
-              {copiedCode ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              {copiedCode ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
               <span>{copiedCode ? 'Code Copied!' : 'Copy Code'}</span>
             </button>
 
             <button
               onClick={copyLink}
-              className="p-2.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold"
+              className="p-2.5 bg-[#F5FAFF] hover:bg-[#DFF1FF] border border-[#E6F2FC] text-[#475569] rounded-xl transition-all flex items-center gap-1.5 text-xs font-semibold"
               title="Copy Direct Join Link"
             >
-              {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
               <span>{copiedLink ? 'Link Copied!' : 'Copy Link'}</span>
             </button>
 
             <button
               onClick={handleShare}
-              className="p-2.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold shadow-md shadow-purple-600/30"
+              className="p-2.5 bg-[#B9E2FF] hover:bg-[#a5d8ff] text-[#475569] rounded-xl transition-all flex items-center gap-1.5 text-xs font-extrabold shadow-sm border border-[#E6F2FC]"
               title="Open Device Share Menu (WhatsApp, Email, etc.)"
             >
               <Share2 className="w-4 h-4" />
@@ -318,10 +318,10 @@ export default function DashboardPage() {
             {isAdmin && (
               <Link
                 href={`/choir/plan-select?choirId=${activeChoir.id}`}
-                className="p-2.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold"
+                className="p-2.5 bg-[#DFF1FF] hover:bg-[#B9E2FF] border border-[#B9E2FF] text-[#475569] rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold"
                 title="Upgrade Choir Subscription Plan"
               >
-                <Zap className="w-4 h-4 text-amber-400" />
+                <Zap className="w-4 h-4 text-amber-500" />
                 <span>Upgrade Plan</span>
               </Link>
             )}
@@ -331,23 +331,23 @@ export default function DashboardPage() {
 
       {/* Personal Singer Performance & Learning Analytics Section */}
       <div className="space-y-4">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-purple-400" /> Your Personal Singer Performance &amp; Song Analytics
+        <h2 className="text-xl font-extrabold text-[#475569] flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-purple-600" /> Your Personal Singer Performance &amp; Song Analytics
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Singer Attendance % Hero Card */}
           <Link
             href="/events"
-            className="bg-gradient-to-br from-emerald-950/40 to-slate-900 p-6 rounded-3xl border border-emerald-500/30 space-y-2 hover:border-emerald-400 transition-all cursor-pointer block group"
+            className="bg-[#FFFFFF] p-6 rounded-3xl border border-[#E6F2FC] space-y-3 hover:shadow-md transition-all cursor-pointer block group shadow-sm"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Your Attendance</span>
-              <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 group-hover:scale-105">
+              <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Your Attendance</span>
+              <div className="w-9 h-9 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-200 group-hover:scale-105">
                 <Percent className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-3xl font-extrabold text-white">
+            <div className="text-4xl font-extrabold text-[#475569]">
               {myAttendanceStats ? `${myAttendanceStats.attendancePercentage}%` : '100%'}
             </div>
             <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">

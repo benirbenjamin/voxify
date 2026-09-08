@@ -18,16 +18,16 @@ export function ThemeToggle({ showLabel = false, className = '' }: ThemeTogglePr
       onClick={toggleTheme}
       className={`relative inline-flex items-center gap-2 p-2 rounded-xl border transition-all cursor-pointer ${
         theme === 'light'
-          ? 'bg-slate-900 text-slate-100 border-slate-700 hover:bg-slate-800 shadow-sm'
-          : 'bg-slate-800/90 text-amber-300 border-slate-700 hover:bg-slate-700 shadow-sm'
+          ? 'bg-[#DFF1FF] text-[#475569] border-[#B9E2FF] hover:bg-[#B9E2FF] shadow-sm'
+          : 'bg-slate-800 text-amber-300 border-slate-700 hover:bg-slate-700 shadow-sm'
       } ${className}`}
       title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
       aria-label="Toggle Theme Mode"
     >
       {theme === 'light' ? (
         <>
-          <Moon className="w-4 h-4 text-purple-400 shrink-0" />
-          {showLabel && <span className="text-xs font-bold">Dark Mode</span>}
+          <Moon className="w-4 h-4 text-purple-600 shrink-0" />
+          {showLabel && <span className="text-xs font-bold text-[#475569]">Dark Mode</span>}
         </>
       ) : (
         <>
