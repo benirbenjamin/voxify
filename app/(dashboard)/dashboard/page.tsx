@@ -34,7 +34,7 @@ import {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, artistProfile } = useAuth();
   const { activeChoir, activeMember, isAdmin } = useChoir();
 
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
@@ -51,6 +51,11 @@ export default function DashboardPage() {
   const [joinCodeInput, setJoinCodeInput] = useState('');
 
   useEffect(() => {
+    if (user?.user_type === 'artist') {
+      router.push(artistProfile ? '/artist/dashboard' : '/onboarding/artist');
+      return;
+    }
+
     async function loadData() {
       if (!activeChoir) return;
       
@@ -77,7 +82,7 @@ export default function DashboardPage() {
       }
     }
     loadData();
-  }, [activeChoir, activeMember]);
+  }, [user, artistProfile, activeChoir, activeMember, router]);
 
   const copyCode = () => {
     if (!activeChoir) return;

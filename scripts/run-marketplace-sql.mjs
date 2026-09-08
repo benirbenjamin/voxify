@@ -3,19 +3,21 @@ import fs from 'fs';
 import path from 'path';
 
 async function main() {
-  console.log('🚀 Connecting to Supabase Database via Pooler with Tenant ID...');
+  console.log('🚀 Connecting to Supabase Database...');
 
   const connectionStrings = [
+    'postgresql://postgres:1202%21birthDATE@db.mdubljdeimlpntyzektn.supabase.co:5432/postgres',
+    'postgresql://postgres.mdubljdeimlpntyzektn:1202%21birthDATE@aws-0-eu-central-1.pooler.supabase.com:5432/postgres',
     'postgresql://postgres.mdubljdeimlpntyzektn:1202%21birthDATE@aws-0-eu-central-1.pooler.supabase.com:6543/postgres',
     'postgresql://postgres.mdubljdeimlpntyzektn:1202%21birthDATE@aws-0-us-east-1.pooler.supabase.com:6543/postgres',
-    'postgresql://postgres.mdubljdeimlpntyzektn:1202%21birthDATE@aws-0-eu-west-1.pooler.supabase.com:6543/postgres',
+    'postgresql://postgres.mdubljdeimlpntyzektn:1202%21birthDATE@aws-0-us-east-1.pooler.supabase.com:5432/postgres',
   ];
 
   let sql = null;
   for (const conn of connectionStrings) {
     try {
       console.log(`Testing ${conn.split('@')[1]}...`);
-      const client = postgres(conn, { ssl: 'require', connect_timeout: 6 });
+      const client = postgres(conn, { ssl: 'require', connect_timeout: 8 });
       await client`SELECT 1`;
       console.log(`✅ CONNECTED SUCCESSFULLY!`);
       sql = client;
@@ -26,7 +28,7 @@ async function main() {
   }
 
   if (!sql) {
-    console.error('Could not connect to database pooler directly. Will also attempt fallback.');
+    console.error('Could not connect to database pooler.');
     process.exit(1);
   }
 

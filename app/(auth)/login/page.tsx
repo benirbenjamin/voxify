@@ -12,7 +12,7 @@ import { Mail, Lock, ArrowRight, AlertCircle, CheckCircle2, RefreshCw } from 'lu
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, artistProfile } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,9 +23,13 @@ function LoginContent() {
 
   useEffect(() => {
     if (user) {
-      router.push('/dashboard');
+      if (user.user_type === 'artist') {
+        router.push(artistProfile ? '/artist/dashboard' : '/onboarding/artist');
+      } else {
+        router.push('/dashboard');
+      }
     }
-  }, [user, router]);
+  }, [user, artistProfile, router]);
 
   useEffect(() => {
     const errorType = searchParams.get('error');
@@ -46,7 +50,7 @@ function LoginContent() {
     setResendSuccess(false);
 
     const supabase = createClient();
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { data: authRes, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -57,8 +61,29 @@ function LoginContent() {
         setIsUnconfirmed(true);
       }
       setLoading(false);
-    } else {
-      router.push('/dashboard');
+    } else if (authRes.user) {
+      // Query profile user_type directly for fast immediate redirect
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('user_type')
+        .eq('id', authRes.user.id)
+        .maybeSingle();
+
+      if (prof?.user_type === 'artist') {
+        const { data: artProf } = await supabase
+          .from('artist_profiles')
+          .select('id')
+          .eq('user_id', authRes.user.id)
+          .maybeSingle();
+
+        if (!artProf) {
+          router.push('/onboarding/artist');
+        } else {
+          router.push('/artist/dashboard');
+        }
+      } else {
+        router.push('/dashboard');
+      }
     }
   };
 
