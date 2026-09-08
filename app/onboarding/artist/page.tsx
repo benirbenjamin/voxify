@@ -98,8 +98,8 @@ export default function ArtistOnboardingPage() {
           phone_number: momoNumber.trim(),
           account_name: momoName.trim(),
         },
-        avatar_url: avatarUrl.trim() || user.avatar_url || null,
-        banner_url: bannerUrl.trim() || null,
+        avatar_url: avatarUrl.trim() || user.avatar_url || undefined,
+        banner_url: bannerUrl.trim() || undefined,
       });
 
       await refreshProfile();

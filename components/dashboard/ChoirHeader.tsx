@@ -21,11 +21,12 @@ import {
   Calendar,
   Sparkles,
   Music,
-  User
+  User,
+  Mic
 } from 'lucide-react';
 
 export function ChoirHeader() {
-  const { user, signOut } = useAuth();
+  const { user, artistProfile, signOut } = useAuth();
   const { activeChoir, choirs, selectChoir, isAdmin } = useChoir();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);

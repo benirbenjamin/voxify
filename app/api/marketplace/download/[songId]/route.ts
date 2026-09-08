@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function GET(
   req: Request,
@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { songId } = await params;
-    const supabase = await createClient();
+    const supabase = await createServerSupabaseClient();
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session?.user) {

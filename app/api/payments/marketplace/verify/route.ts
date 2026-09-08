@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getAppUrl } from '@/lib/utils/appUrl';
 
 export async function GET(req: Request) {
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
       return NextResponse.redirect(`${getAppUrl()}/marketplace?error=Invalid+payment+params`);
     }
 
-    const supabase = await createClient();
+    const supabase = await createServerSupabaseClient();
 
     // Fetch song details & marketplace settings
     const [songRes, settingsRes] = await Promise.all([
@@ -50,7 +50,7 @@ export async function GET(req: Request) {
         .select('net_artist_amount')
         .eq('artist_id', song.artist_id);
 
-      const previousBalance = (ledgerEntries || []).reduce((acc, e) => acc + Number(e.net_artist_amount), 0);
+      const previousBalance = (ledgerEntries || []).reduce((acc: number, e: any) => acc + Number(e.net_artist_amount), 0);
       const newBalance = previousBalance + netArtistAmount;
 
       // Add to immutable financial ledger
