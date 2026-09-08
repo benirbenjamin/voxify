@@ -66,7 +66,7 @@ export const analyticsService = {
     const deviceCounts: Record<string, number> = { desktop: 0, mobile: 0, tablet: 0 };
     const dateTrendCounts: Record<string, { visitors: Set<string>; pageviews: number }> = {};
 
-    records.forEach((v) => {
+    records.forEach((v: any) => {
       sessionSet.add(v.session_id);
       totalDurationSeconds += v.session_duration_seconds || 0;
 

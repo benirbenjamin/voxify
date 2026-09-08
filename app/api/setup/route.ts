@@ -48,7 +48,7 @@ export async function POST() {
       try {
         sql = postgres(urlStr, { ssl: 'require', connect_timeout: 5 });
         for (const relPath of migrationFiles) {
-          const fullPath = path.join(process.cwd(), relPath);
+          const fullPath = path.join(/*turbopackIgnore: true*/ process.cwd(), relPath);
           if (fs.existsSync(fullPath)) {
             const sqlContent = fs.readFileSync(fullPath, 'utf8');
             await sql.unsafe(sqlContent);
