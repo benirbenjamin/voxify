@@ -88,12 +88,12 @@ html.light .border-purple-500\/40 {
   border-color: #E6F2FC !important;
 }
 
-html.light .text-white,
+/* Light mode text colors for card titles and subheadings */
+html.light h1:not(.bg-purple-600 *):not(.bg-indigo-600 *):not(.bg-blue-600 *),
+html.light h2:not(.bg-purple-600 *):not(.bg-indigo-600 *):not(.bg-blue-600 *),
+html.light h3:not(.bg-purple-600 *):not(.bg-indigo-600 *):not(.bg-blue-600 *),
 html.light .text-slate-100,
-html.light .text-slate-200 {
-  color: #475569 !important;
-}
-
+html.light .text-slate-200,
 html.light .text-slate-300,
 html.light .text-slate-400 {
   color: #475569 !important;
@@ -102,6 +102,29 @@ html.light .text-slate-400 {
 html.light .text-slate-500,
 html.light .text-slate-600 {
   color: #A8B5C2 !important;
+}
+
+/* SOLID BUTTON TEXT CONTRAST GUARANTEE: Solid color fills MUST maintain bright white text */
+.bg-purple-600,
+.bg-indigo-600,
+.bg-blue-600,
+.bg-emerald-600,
+.bg-rose-600,
+.bg-purple-700,
+.bg-indigo-700,
+.bg-blue-700 {
+  color: #ffffff !important;
+}
+
+.bg-purple-600 *,
+.bg-indigo-600 *,
+.bg-blue-600 *,
+.bg-emerald-600 *,
+.bg-rose-600 *,
+.bg-purple-700 *,
+.bg-indigo-700 *,
+.bg-blue-700 * {
+  color: #ffffff !important;
 }
 
 /* Smooth Entrance Keyframes */
