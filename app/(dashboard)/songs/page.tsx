@@ -125,15 +125,15 @@ export default function MusicLibraryPage() {
                   )}
                 </div>
 
-                <h3 className="text-xl font-extrabold text-white group-hover:text-purple-300 transition-colors line-clamp-1">
+                <h3 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 group-hover:text-purple-600 transition-colors line-clamp-1">
                   {s.title}
                 </h3>
-                {s.composer && <p className="text-xs text-slate-400 line-clamp-1">Composer: {s.composer}</p>}
+                {s.composer && <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-1">Composer: {s.composer}</p>}
               </div>
 
-              <div className="space-y-2 pt-2 border-t border-slate-800/60">
-                <div className="w-full bg-purple-600/20 group-hover:bg-purple-600 text-purple-300 group-hover:text-white py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 border border-purple-500/30 transition-all">
-                  <Volume2 className="w-4 h-4" /> Practice Voice Parts
+              <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <div className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all">
+                  <Volume2 className="w-4 h-4 text-white" /> Practice Voice Parts
                 </div>
 
                 {isAdmin && (

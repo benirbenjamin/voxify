@@ -499,14 +499,14 @@ export default function DashboardPage() {
                   <span className="text-[10px] uppercase font-bold text-purple-400 tracking-wider bg-purple-950/60 px-2.5 py-1 rounded-md border border-purple-800/40">
                     {song.category}
                   </span>
-                  <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition-colors line-clamp-1">
+                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 group-hover:text-purple-600 transition-colors line-clamp-1">
                     {song.title}
                   </h3>
-                  {song.composer && <p className="text-xs text-slate-400">Composer: {song.composer}</p>}
+                  {song.composer && <p className="text-xs text-slate-600 dark:text-slate-400">Composer: {song.composer}</p>}
                 </div>
 
-                <div className="w-full bg-purple-600/20 group-hover:bg-purple-600 text-purple-300 group-hover:text-white py-2.5 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 border border-purple-500/30 transition-all">
-                  <Volume2 className="w-4 h-4" /> Practice Voice Parts
+                <div className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-md transition-all">
+                  <Volume2 className="w-4 h-4 text-white" /> Practice Voice Parts
                 </div>
               </Link>
             ))}

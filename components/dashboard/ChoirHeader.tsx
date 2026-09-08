@@ -135,13 +135,13 @@ export function ChoirHeader() {
               Announcements
             </Link>
             {isAdmin && (
-              <Link href="/manage" className="px-3 py-1.5 text-purple-400 hover:text-purple-300 rounded-lg hover:bg-purple-950/40 font-semibold border border-purple-500/30">
+              <Link href="/manage" className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold text-xs shadow-sm transition-all">
                 Choir Admin
               </Link>
             )}
             {user?.is_super_admin && (
-              <Link href="/admin" className="px-3 py-1.5 text-amber-400 hover:text-amber-300 rounded-lg hover:bg-amber-950/40 font-semibold flex items-center gap-1 border border-amber-500/30">
-                <Shield className="w-3.5 h-3.5" /> Platform Admin
+              <Link href="/admin" className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-xs shadow-sm flex items-center gap-1 transition-all">
+                <Shield className="w-3.5 h-3.5 text-white" /> Platform Admin
               </Link>
             )}
           </nav>
