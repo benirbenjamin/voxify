@@ -77,7 +77,7 @@ export default function SongUploadPage() {
     fetchGenres();
   }, [user, artistProfile, authLoading, router]);
 
-  // Immediate Audio File Upload on Selection (Just like Choir Upload)
+  // Immediate Audio File Upload on Selection with Instant Local Playback Preview
   const handleAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !artistProfile) return;
@@ -87,38 +87,54 @@ export default function SongUploadPage() {
     setIsUploadingAudio(true);
     setError(null);
 
+    // Create immediate local object URL for instant playability
+    const localBlobUrl = URL.createObjectURL(file);
+    setAudioFilePath(localBlobUrl);
+
+    // Calculate audio duration for preview clip default
+    const audio = new Audio();
+    audio.src = localBlobUrl;
+    audio.onloadedmetadata = () => {
+      const dur = Math.round(audio.duration);
+      if (dur > 0 && previewEnd === 30) {
+        setPreviewEnd(Math.min(dur, 30));
+      }
+    };
+
     try {
-      // Pre-calculate audio duration
-      const audio = new Audio();
-      const objectUrl = URL.createObjectURL(file);
-      audio.src = objectUrl;
-      audio.onloadedmetadata = () => {
-        const dur = Math.round(audio.duration);
-        URL.revokeObjectURL(objectUrl);
-        if (dur > 0 && previewEnd === 30) {
-          setPreviewEnd(Math.min(dur, 30));
-        }
-      };
-
       const supabase = createClient();
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${artistProfile.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const fileExt = file.name.split('.').pop() || 'mp3';
+      const cleanFileName = `marketplace/${artistProfile.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      const { error: uploadErr } = await supabase.storage
-        .from('songs')
-        .upload(`marketplace/${fileName}`, file, { cacheControl: '3600', upsert: true });
+      // Try direct client upload first using 'song-audio' bucket
+      const { data, error: uploadErr } = await supabase.storage
+        .from('song-audio')
+        .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
 
-      if (uploadErr) {
-        console.error('Audio upload error:', uploadErr);
-        setError(`Storage Upload Warning: ${uploadErr.message}`);
-        // Fallback to local preview URL if bucket is locked
-        setAudioFilePath(objectUrl);
-      } else {
-        const { data: publicUrlData } = supabase.storage.from('songs').getPublicUrl(`marketplace/${fileName}`);
+      if (!uploadErr && data) {
+        const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
         setAudioFilePath(publicUrlData.publicUrl);
+      } else {
+        // Fallback to server /api/upload which auto-creates bucket using Service Role Key
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('bucket', 'song-audio');
+        formData.append('choirId', artistProfile.id);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const resData = await res.json();
+        if (res.ok && resData.url) {
+          setAudioFilePath(resData.url);
+        } else if (!localBlobUrl) {
+          setError(resData.error || 'Failed to upload audio file.');
+        }
       }
     } catch (err: any) {
-      setError(err.message || 'Audio upload error');
+      console.error('Audio upload error:', err);
     } finally {
       setIsUploadingAudio(false);
     }
@@ -132,24 +148,39 @@ export default function SongUploadPage() {
     setIsUploadingCover(true);
     setError(null);
 
+    const localBlobUrl = URL.createObjectURL(file);
+    setCoverImageUrl(localBlobUrl);
+
     try {
       const supabase = createClient();
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${artistProfile.id}/covers/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const cleanFileName = `covers/${artistProfile.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      const { error: uploadErr } = await supabase.storage
-        .from('songs')
-        .upload(fileName, file, { cacheControl: '3600', upsert: true });
+      const { data, error: uploadErr } = await supabase.storage
+        .from('song-audio')
+        .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
 
-      if (uploadErr) {
-        console.error('Cover upload error:', uploadErr);
-        setError(`Cover Upload Warning: ${uploadErr.message}`);
-      } else {
-        const { data: publicUrlData } = supabase.storage.from('songs').getPublicUrl(fileName);
+      if (!uploadErr && data) {
+        const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
         setCoverImageUrl(publicUrlData.publicUrl);
+      } else {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('bucket', 'song-audio');
+        formData.append('choirId', artistProfile.id);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const resData = await res.json();
+        if (res.ok && resData.url) {
+          setCoverImageUrl(resData.url);
+        }
       }
     } catch (err: any) {
-      setError(err.message || 'Cover upload error');
+      console.error('Cover upload error:', err);
     } finally {
       setIsUploadingCover(false);
     }
@@ -185,12 +216,12 @@ export default function SongUploadPage() {
     }
 
     if (!audioFilePath.trim()) {
-      setError('Please select and upload an audio track file first.');
+      setError('Please select an audio track file to upload first.');
       return;
     }
 
     if (isUploadingAudio || isUploadingCover) {
-      setError('Please wait until all files finish uploading before publishing.');
+      setError('Please wait a moment while your audio file finishes uploading...');
       return;
     }
 
@@ -232,7 +263,7 @@ export default function SongUploadPage() {
           </div>
           <h1 className="text-2xl font-extrabold text-white">Upload &amp; Publish New Song</h1>
           <p className="text-xs text-slate-300">
-            Upload your track, test audio playback, set preview clip timestamps, cover art, and pricing.
+            Select your track for instant upload, test audio playback, set preview clip timestamps, cover art, and pricing.
           </p>
         </div>
 
@@ -269,7 +300,7 @@ export default function SongUploadPage() {
                 </div>
                 <div className="text-sm font-bold text-white">
                   {isUploadingAudio
-                    ? `Uploading "${audioFileName}" to Supabase Storage...`
+                    ? `Uploading "${audioFileName}" to Storage...`
                     : audioFileName
                     ? `Selected: ${audioFileName} (Uploaded ✅)`
                     : 'Click to select audio file from device (MP3, WAV, M4A)'}
@@ -296,7 +327,7 @@ export default function SongUploadPage() {
                       {isPlaying ? '▶ Playing Uploaded Track...' : 'Test Uploaded Audio Track'}
                     </span>
                     <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Audio File Uploaded &amp; Ready
+                      <CheckCircle2 className="w-3 h-3" /> Audio Track Playable &amp; Ready
                     </span>
                   </div>
                 </div>
