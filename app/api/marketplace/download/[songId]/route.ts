@@ -40,25 +40,63 @@ export async function GET(
       return NextResponse.json({ error: 'You must purchase this song to access full download.' }, { status: 403 });
     }
 
-    // If audio_file_path is a full URL, redirect directly
-    if (song.audio_file_path.startsWith('http://') || song.audio_file_path.startsWith('https://')) {
-      return NextResponse.redirect(song.audio_file_path);
+    // Clean filename for direct download with Voxify prefix
+    const cleanTitle = (song.title || 'Track')
+      .replace(/[/\\?%*:|"<>]/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const cleanArtist = (song.artist?.stage_name || '')
+      .replace(/[/\\?%*:|"<>]/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const downloadFileName = `Voxify - ${cleanTitle}${cleanArtist ? ` - ${cleanArtist}` : ''}.mp3`;
+
+    // Determine raw file URL (either external URL or Supabase storage signed URL)
+    let fileUrl = song.audio_file_path;
+    if (!fileUrl.startsWith('http://') && !fileUrl.startsWith('https://')) {
+      const { data: signedUrlData, error: signedError } = await supabase.storage
+        .from('songs')
+        .createSignedUrl(song.audio_file_path, 3600, {
+          download: downloadFileName,
+        });
+
+      if (!signedError && signedUrlData?.signedUrl) {
+        fileUrl = signedUrlData.signedUrl;
+      } else {
+        const { data: publicUrl } = supabase.storage.from('songs').getPublicUrl(song.audio_file_path);
+        fileUrl = publicUrl.publicUrl;
+      }
     }
 
-    // Create a temporary signed URL from Supabase Storage
-    const { data: signedUrlData, error: signedError } = await supabase.storage
-      .from('songs')
-      .createSignedUrl(song.audio_file_path, 3600, {
-        download: `${song.title}.mp3`,
-      });
+    // Fetch and stream directly with attachment Content-Disposition header
+    // so the browser automatically downloads the file as "Voxify - [Title] - [Artist].mp3"
+    try {
+      const audioRes = await fetch(fileUrl, { redirect: 'follow' });
+      if (audioRes.ok && audioRes.body) {
+        const headers = new Headers();
+        const encodedFileName = encodeURIComponent(downloadFileName).replace(/['()]/g, escape).replace(/\*/g, '%2A');
+        headers.set(
+          'Content-Disposition',
+          `attachment; filename="${downloadFileName.replace(/"/g, '')}"; filename*=UTF-8''${encodedFileName}`
+        );
+        headers.set('Content-Type', audioRes.headers.get('content-type') || 'audio/mpeg');
+        const contentLength = audioRes.headers.get('content-length');
+        if (contentLength) {
+          headers.set('Content-Length', contentLength);
+        }
+        headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
 
-    if (signedError || !signedUrlData?.signedUrl) {
-      // Fallback to public storage URL
-      const { data: publicUrl } = supabase.storage.from('songs').getPublicUrl(song.audio_file_path);
-      return NextResponse.redirect(publicUrl.publicUrl);
+        return new Response(audioRes.body, {
+          status: 200,
+          headers,
+        });
+      }
+    } catch (fetchErr) {
+      console.error('Direct audio stream fetch error, falling back to redirect:', fetchErr);
     }
 
-    return NextResponse.redirect(signedUrlData.signedUrl);
+    return NextResponse.redirect(fileUrl);
   } catch (err: any) {
     console.error('Download route error:', err);
     return NextResponse.json({ error: 'Failed to generate download URL' }, { status: 500 });
