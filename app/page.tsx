@@ -417,6 +417,11 @@ export default function HomePage() {
                       <h3 className="text-base font-extrabold text-slate-950 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {song.title}
                       </h3>
+                      {song.description && (
+                        <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed pt-0.5">
+                          {song.description}
+                        </p>
+                      )}
                     </div>
 
                     <div className="pt-3 border-t border-slate-100 dark:border-blue-900/40 flex items-center justify-between gap-2">

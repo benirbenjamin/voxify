@@ -26,6 +26,7 @@ export default function ArtistDashboardPage() {
   const { user, artistProfile, loading: authLoading } = useAuth();
   const [summary, setSummary] = useState<ArtistFinancialSummary | null>(null);
   const [songs, setSongs] = useState<MarketplaceSong[]>([]);
+  const [minWithdrawal, setMinWithdrawal] = useState<number>(5000);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,12 +44,16 @@ export default function ArtistDashboardPage() {
       if (!artistProfile) return;
       setLoading(true);
       try {
-        const [sum, artistSongs] = await Promise.all([
+        const [sum, artistSongs, settings] = await Promise.all([
           financialService.getArtistFinancialSummary(artistProfile.id),
           marketplaceService.getMarketplaceSongs({ artistId: artistProfile.id }),
+          financialService.getMarketplaceSettings(),
         ]);
         setSummary(sum);
         setSongs(artistSongs);
+        if (settings?.min_withdrawal_amount) {
+          setMinWithdrawal(settings.min_withdrawal_amount);
+        }
       } catch (err) {
         console.error('Failed to load artist dashboard data:', err);
       } finally {
@@ -88,36 +93,33 @@ export default function ArtistDashboardPage() {
         </Link>
       </div>
 
-      {/* Top Professional Royal Banner */}
-      <div className="bg-gradient-to-r from-purple-900 via-indigo-950 to-slate-900 border border-purple-500/30 p-6 sm:p-8 rounded-3xl relative overflow-hidden shadow-xl text-white">
-        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-          <Mic className="w-64 h-64 text-purple-300" />
-        </div>
+      {/* Top Professional Royal Banner - Matching Admin Dashboard Card Theme */}
+      <div className="bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-900/50 p-6 sm:p-8 rounded-3xl relative overflow-hidden shadow-sm text-slate-900 dark:text-white">
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/30 text-purple-200 border border-purple-400/40 text-xs font-bold uppercase tracking-wider">
-              <Sparkles className="w-3.5 h-3.5 text-purple-300" /> Artist Control Center
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-bold uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-blue-500" /> Artist Control Center
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Welcome back, <span className="text-purple-300 font-black">{artistProfile.stage_name}</span>!
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              Welcome back, <span className="text-blue-600 dark:text-blue-400">{artistProfile.stage_name}</span>!
             </h1>
-            <p className="text-xs sm:text-sm text-slate-200 max-w-xl">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-xl leading-relaxed">
               Manage your published songs, track marketplace sales, and request Momo/Bank payout earnings.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 shrink-0">
             <Link
               href="/artist/songs/upload"
-              className="bg-purple-600 hover:bg-purple-500 text-white font-extrabold px-5 py-3 rounded-2xl shadow-lg shadow-purple-600/30 transition-all flex items-center gap-2 text-xs sm:text-sm active:scale-95"
+              className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold px-5 py-3 rounded-2xl shadow-md shadow-blue-600/30 transition-all flex items-center gap-2 text-xs sm:text-sm active:scale-95"
             >
               <Plus className="w-4 h-4" /> Upload New Song
             </Link>
             <Link
               href="/artist/financials"
-              className="bg-white/10 hover:bg-white/20 text-white font-bold px-4 py-3 rounded-2xl border border-white/20 backdrop-blur-sm transition-all flex items-center gap-2 text-xs sm:text-sm active:scale-95"
+              className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-2 text-xs sm:text-sm active:scale-95"
             >
-              <Wallet className="w-4 h-4 text-purple-300" /> Payout &amp; Ledger
+              <Wallet className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Payout &amp; Ledger
             </Link>
           </div>
         </div>
@@ -127,7 +129,7 @@ export default function ArtistDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Net Available Balance */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl space-y-2 shadow-xs">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-3xl space-y-2 shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Available Balance</span>
             <div className="p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
@@ -138,8 +140,8 @@ export default function ArtistDashboardPage() {
             {(summary?.availableBalance || 0).toLocaleString()} <span className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">RWF</span>
           </div>
           <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <span>Minimum: 50,000 RWF</span>
-            <Link href="/artist/financials" className="text-purple-600 dark:text-purple-400 hover:underline font-bold">
+            <span>Minimum: {minWithdrawal.toLocaleString()} RWF</span>
+            <Link href="/artist/financials" className="text-blue-600 dark:text-blue-400 hover:underline font-bold">
               Withdraw &rarr;
             </Link>
           </div>

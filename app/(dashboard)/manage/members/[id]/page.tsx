@@ -132,37 +132,37 @@ export default function SingerAnalyticsPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 text-white py-4">
+    <div className="max-w-5xl mx-auto space-y-8 text-slate-900 dark:text-white py-4">
       {/* Universal Back Button */}
-      <Link href="/manage" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
+      <Link href="/manage" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back to Choir Admin Roster
       </Link>
 
       {/* Header Profile Card */}
-      <div className="bg-slate-900/80 p-6 md:p-8 rounded-3xl border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           {member.profile?.avatar_url ? (
             <img
               src={member.profile.avatar_url}
               alt={member.profile.full_name}
-              className="w-16 h-16 rounded-2xl object-cover border-2 border-purple-500/40 shadow-xl shrink-0"
+              className="w-16 h-16 rounded-2xl object-cover border-2 border-blue-200 dark:border-blue-800 shadow-md shrink-0"
             />
           ) : (
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-white font-extrabold text-2xl shadow-xl shadow-purple-600/30 shrink-0">
+            <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white font-extrabold text-2xl shadow-md shrink-0">
               {member.profile?.full_name?.charAt(0) || 'S'}
             </div>
           )}
           <div>
             <div className="flex items-center gap-2 flex-wrap mb-1">
-              <span className="text-xs font-bold px-2.5 py-0.5 rounded-md uppercase bg-purple-950/60 text-purple-300 border border-purple-800/40">
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-md uppercase bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
                 {member.role}
               </span>
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md capitalize bg-emerald-950/60 text-emerald-300 border border-emerald-800/40">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-md capitalize bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
                 {member.status}
               </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-white">{member.profile?.full_name}</h1>
-            <p className="text-xs text-slate-400">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white">{member.profile?.full_name}</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               {member.profile?.email} {member.profile?.phone ? `• Phone: ${member.profile.phone}` : ''} • Joined {new Date(member.joined_at).toLocaleDateString()}
             </p>
           </div>
@@ -171,7 +171,7 @@ export default function SingerAnalyticsPage() {
         <div className="flex items-center gap-3 self-end md:self-center">
           <Link
             href="/manage/attendance"
-            className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all"
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow-md flex items-center gap-2 transition-all cursor-pointer"
           >
             <Calendar className="w-4 h-4" /> Record New Attendance
           </Link>
@@ -180,84 +180,84 @@ export default function SingerAnalyticsPage() {
 
       {/* Singer Attendance & Performance Hero Analytics */}
       <div className="space-y-4">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-emerald-400" /> Singer Attendance &amp; Song Readiness Analytics
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" /> Singer Attendance &amp; Song Readiness Analytics
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Personal Attendance Rate Card */}
-          <div className="bg-gradient-to-br from-emerald-950/40 to-slate-900 p-6 rounded-3xl border border-emerald-500/30 space-y-2">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Attendance Rate</span>
-              <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Attendance Rate</span>
+              <div className="w-9 h-9 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800">
                 <Percent className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-3xl font-extrabold text-white">
+            <div className="text-3xl font-extrabold text-slate-900 dark:text-white">
               {attendanceStats?.attendancePercentage || 100}%
             </div>
-            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+            <div className="w-full bg-slate-100 dark:bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-200 dark:border-slate-800">
               <div
                 className="bg-emerald-500 h-full rounded-full transition-all duration-500"
                 style={{ width: `${attendanceStats?.attendancePercentage || 100}%` }}
               />
             </div>
-            <p className="text-[11px] text-slate-400">Total sessions recorded: {attendanceStats?.totalRecords || 0}</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Total sessions recorded: {attendanceStats?.totalRecords || 0}</p>
           </div>
 
           {/* Sessions Attended Card */}
-          <div className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">Present / Attended</span>
-              <div className="w-9 h-9 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center border border-purple-500/30">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Present / Attended</span>
+              <div className="w-9 h-9 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-800">
                 <UserCheck className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-3xl font-extrabold text-white">{attendanceStats?.presentCount || 0}</div>
-            <p className="text-[11px] text-slate-400">{attendanceStats?.lateCount || 0} late, {attendanceStats?.excusedCount || 0} excused</p>
+            <div className="text-3xl font-extrabold text-slate-900 dark:text-white">{attendanceStats?.presentCount || 0}</div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">{attendanceStats?.lateCount || 0} late, {attendanceStats?.excusedCount || 0} excused</p>
           </div>
 
           {/* Sessions Missed / Absent Card */}
-          <div className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-rose-400 uppercase tracking-wider">Absent / Missed</span>
-              <div className="w-9 h-9 rounded-2xl bg-rose-600/20 text-rose-400 flex items-center justify-center border border-rose-500/30">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Absent / Missed</span>
+              <div className="w-9 h-9 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-200 dark:border-rose-800">
                 <XCircle className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-3xl font-extrabold text-white">{attendanceStats?.absentCount || 0}</div>
-            <p className="text-[11px] text-slate-400">Unexcused rehearsal absences</p>
+            <div className="text-3xl font-extrabold text-slate-900 dark:text-white">{attendanceStats?.absentCount || 0}</div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Unexcused rehearsal absences</p>
           </div>
 
           {/* Songs Prepared / Ready Card */}
-          <div className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Songs Learnt</span>
-              <div className="w-9 h-9 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Songs Learnt</span>
+              <div className="w-9 h-9 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-800">
                 <Music className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-3xl font-extrabold text-white">{learningSummary.readyCount}</div>
-            <p className="text-[11px] text-slate-400">{learningSummary.learningCount} currently in practice</p>
+            <div className="text-3xl font-extrabold text-slate-900 dark:text-white">{learningSummary.readyCount}</div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">{learningSummary.learningCount} currently in practice</p>
           </div>
         </div>
       </div>
 
       {/* Rehearsal Attendance Log Timeline */}
-      <div className="bg-slate-900/60 p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6">
-        <h2 className="text-xl font-bold text-white flex items-center gap-2">
-          <Clock className="w-5 h-5 text-purple-400" /> Attendance History Log ({attendanceHistory.length} Sessions)
+      <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+          <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" /> Attendance History Log ({attendanceHistory.length} Sessions)
         </h2>
 
         {attendanceHistory.length === 0 ? (
-          <div className="py-12 text-center text-slate-400 bg-slate-950/40 rounded-2xl border border-slate-800 space-y-2">
-            <Calendar className="w-8 h-8 text-slate-600 mx-auto" />
+          <div className="py-12 text-center text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+            <Calendar className="w-8 h-8 text-slate-400 mx-auto" />
             <p className="text-xs">No rehearsal attendance records found for this singer yet.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="text-xs uppercase bg-slate-950 text-slate-400 font-semibold">
+            <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300">
+              <thead className="text-xs uppercase bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="p-4 rounded-l-xl">Session Title</th>
                   <th className="p-4">Date &amp; Time Recorded</th>
@@ -266,22 +266,22 @@ export default function SingerAnalyticsPage() {
                   <th className="p-4 rounded-r-xl">Director Notes</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {attendanceHistory.map((rec: any) => (
-                  <tr key={rec.id} className="hover:bg-slate-800/40">
-                    <td className="p-4 font-bold text-white">
+                  <tr key={rec.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="p-4 font-bold text-slate-900 dark:text-white">
                       {rec.rehearsal?.title || rec.event?.title || 'Choir Session'}
                     </td>
-                    <td className="p-4 text-xs text-slate-400 font-mono">
+                    <td className="p-4 text-xs text-slate-500 dark:text-slate-400 font-mono">
                       {new Date(rec.recorded_at).toLocaleDateString()} {new Date(rec.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td className="p-4 text-xs text-slate-400">
+                    <td className="p-4 text-xs text-slate-500 dark:text-slate-400">
                       {rec.rehearsal?.location || rec.event?.location || 'Main Sanctuary'}
                     </td>
                     <td className="p-4">
                       {getStatusBadge(rec.status)}
                     </td>
-                    <td className="p-4 text-xs text-slate-400">
+                    <td className="p-4 text-xs text-slate-500 dark:text-slate-400">
                       {rec.notes || '—'}
                     </td>
                   </tr>
@@ -293,26 +293,26 @@ export default function SingerAnalyticsPage() {
       </div>
 
       {/* Choir Songs Practice Status */}
-      <div className="bg-slate-900/60 p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6">
-        <h2 className="text-xl font-bold text-white flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center justify-between">
           <span>Choir Music Library ({songs.length} Songs)</span>
-          <Link href="/songs" className="text-xs text-purple-400 hover:underline font-semibold">
+          <Link href="/songs" className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-semibold">
             View All Songs →
           </Link>
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {songs.map(s => (
-            <div key={s.id} className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-4">
+            <div key={s.id} className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
               <div>
-                <span className="text-[10px] text-purple-400 uppercase font-bold tracking-wider">{s.category}</span>
-                <h4 className="font-bold text-white">{s.title}</h4>
-                {s.composer && <p className="text-xs text-slate-400">{s.composer}</p>}
+                <span className="text-[10px] text-blue-600 dark:text-blue-400 uppercase font-bold tracking-wider">{s.category}</span>
+                <h4 className="font-bold text-slate-900 dark:text-white">{s.title}</h4>
+                {s.composer && <p className="text-xs text-slate-500 dark:text-slate-400">{s.composer}</p>}
               </div>
 
               <Link
                 href={`/songs/${s.id}`}
-                className="bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 text-xs font-semibold px-3 py-1.5 rounded-xl border border-purple-800/40 flex items-center gap-1 shrink-0"
+                className="bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/80 text-blue-700 dark:text-blue-300 text-xs font-semibold px-3 py-1.5 rounded-xl border border-blue-200 dark:border-blue-800/40 flex items-center gap-1 shrink-0"
               >
                 <Music className="w-3.5 h-3.5" /> Practice
               </Link>

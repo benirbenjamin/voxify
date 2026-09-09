@@ -98,16 +98,16 @@ export default function ChoirSettingsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <Link href="/manage" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
+    <div className="max-w-4xl mx-auto space-y-8 text-slate-900 dark:text-white">
+      <Link href="/manage" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back to Choir Admin
       </Link>
 
-      <div className="border-b border-slate-800 pb-4">
-        <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
-          <Settings className="w-8 h-8 text-amber-400" /> Choir Settings &amp; Rules
+      <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
+        <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
+          <Settings className="w-8 h-8 text-blue-600 dark:text-blue-400" /> Choir Settings &amp; Rules
         </h1>
-        <p className="text-sm text-slate-400">Configure member auto-approval, downloadable media permissions, and notifications</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Configure member auto-approval, downloadable media permissions, and notifications</p>
       </div>
 
       {message && (
@@ -120,19 +120,19 @@ export default function ChoirSettingsPage() {
       )}
 
       {/* Choir Join Code Card */}
-      <div className="bg-slate-900/60 p-6 md:p-8 rounded-3xl border border-slate-800 space-y-4">
-        <h3 className="text-lg font-bold text-white">Choir Invitation Code</h3>
-        <p className="text-xs text-slate-400">Share this code with singers to let them join {activeChoir?.name}</p>
+      <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Choir Invitation Code</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Share this code with singers to let them join {activeChoir?.name}</p>
 
         <div className="flex items-center gap-4 max-w-sm">
-          <div className="bg-slate-950 border border-purple-500/30 px-5 py-3 rounded-2xl font-mono text-xl font-bold tracking-widest text-purple-300 flex-1 text-center">
+          <div className="bg-slate-50 dark:bg-slate-950 border border-blue-200 dark:border-blue-800/40 px-5 py-3 rounded-2xl font-mono text-xl font-bold tracking-widest text-blue-700 dark:text-blue-300 flex-1 text-center shadow-inner">
             {activeChoir?.choir_code}
           </div>
           <button
             onClick={handleCopyCode}
-            className="bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white px-4 py-3.5 rounded-2xl border border-purple-500/30 font-semibold text-xs flex items-center gap-2 transition-all"
+            className="bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 px-4 py-3.5 rounded-2xl border border-blue-200 dark:border-blue-800/40 font-semibold text-xs flex items-center gap-2 transition-all cursor-pointer"
           >
-            {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+            {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Copied' : 'Copy'}
           </button>
         </div>
@@ -140,65 +140,65 @@ export default function ChoirSettingsPage() {
 
       {/* Settings Form */}
       <form onSubmit={handleSave} className="space-y-6">
-        <div className="bg-slate-900/60 p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3">
-            <UserCheck className="w-5 h-5 text-purple-400" /> Member Approval &amp; Access
+        <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <UserCheck className="w-5 h-5 text-blue-600 dark:text-blue-400" /> Member Approval &amp; Access
           </h3>
 
           <div className="space-y-4">
-            <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-950 border border-slate-800 cursor-pointer hover:border-slate-700 transition-colors">
+            <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 cursor-pointer hover:border-blue-400 dark:hover:border-slate-700 transition-colors">
               <div>
-                <span className="font-semibold text-sm text-white block">Auto-Approve New Members</span>
-                <span className="text-xs text-slate-400 block">Automatically admit new singers when they enter the choir code without manual review</span>
+                <span className="font-semibold text-sm text-slate-900 dark:text-white block">Auto-Approve New Members</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 block">Automatically admit new singers when they enter the choir code without manual review</span>
               </div>
               <input
                 type="checkbox"
                 checked={settings.auto_approve_members}
                 onChange={() => handleToggle('auto_approve_members')}
-                className="w-5 h-5 accent-purple-600 rounded cursor-pointer"
+                className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
               />
             </label>
 
-            <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-950 border border-slate-800 cursor-pointer hover:border-slate-700 transition-colors">
+            <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 cursor-pointer hover:border-blue-400 dark:hover:border-slate-700 transition-colors">
               <div>
-                <span className="font-semibold text-sm text-white block">Allow Code Join</span>
-                <span className="text-xs text-slate-400 block">Enable singers to find and request to join using the 6-character choir code</span>
+                <span className="font-semibold text-sm text-slate-900 dark:text-white block">Allow Code Join</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 block">Enable singers to find and request to join using the 6-character choir code</span>
               </div>
               <input
                 type="checkbox"
                 checked={settings.allow_code_join}
                 onChange={() => handleToggle('allow_code_join')}
-                className="w-5 h-5 accent-purple-600 rounded cursor-pointer"
+                className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
               />
             </label>
           </div>
 
-          <h3 className="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3 pt-4">
-            <Download className="w-5 h-5 text-indigo-400" /> Media &amp; Downloads
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3 pt-4">
+            <Download className="w-5 h-5 text-blue-600 dark:text-blue-400" /> Media &amp; Downloads
           </h3>
 
           <div className="space-y-4">
-            <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-950 border border-slate-800 cursor-pointer hover:border-slate-700 transition-colors">
+            <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 cursor-pointer hover:border-blue-400 dark:hover:border-slate-700 transition-colors">
               <div>
-                <span className="font-semibold text-sm text-white block flex items-center gap-2">
-                  <Download className="w-4 h-4 text-indigo-400" /> Allow Audio Track Downloads
+                <span className="font-semibold text-sm text-slate-900 dark:text-white block flex items-center gap-2">
+                  <Download className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Allow Audio Track Downloads
                 </span>
-                <span className="text-xs text-slate-400 block">Allow choir members to download MP3/WAV voice parts for offline practice</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 block">Allow choir members to download MP3/WAV voice parts for offline practice</span>
               </div>
               <input
                 type="checkbox"
                 checked={settings.allow_audio_downloads}
                 onChange={() => handleToggle('allow_audio_downloads')}
-                className="w-5 h-5 accent-indigo-600 rounded cursor-pointer"
+                className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
               />
             </label>
 
-            <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-950 border border-slate-800 cursor-pointer hover:border-slate-700 transition-colors">
+            <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 cursor-pointer hover:border-blue-400 dark:hover:border-slate-700 transition-colors">
               <div>
-                <span className="font-semibold text-sm text-white block flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-emerald-400" /> Allow Sheet Music PDF Downloads
+                <span className="font-semibold text-sm text-slate-900 dark:text-white block flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-emerald-500" /> Allow Sheet Music PDF Downloads
                 </span>
-                <span className="text-xs text-slate-400 block">Allow choir members to download original PDF sheet music files</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 block">Allow choir members to download original PDF sheet music files</span>
               </div>
               <input
                 type="checkbox"
@@ -209,21 +209,21 @@ export default function ChoirSettingsPage() {
             </label>
           </div>
 
-          <h3 className="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-3 pt-4">
-            <Bell className="w-5 h-5 text-amber-400" /> Notifications
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3 pt-4">
+            <Bell className="w-5 h-5 text-amber-500" /> Notifications
           </h3>
 
           <div className="space-y-4">
-            <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-950 border border-slate-800 cursor-pointer hover:border-slate-700 transition-colors">
+            <label className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 cursor-pointer hover:border-blue-400 dark:hover:border-slate-700 transition-colors">
               <div>
-                <span className="font-semibold text-sm text-white block">Email Notifications</span>
-                <span className="text-xs text-slate-400 block">Send automatic emails to singers when new events or announcements are scheduled</span>
+                <span className="font-semibold text-sm text-slate-900 dark:text-white block">Email Notifications</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 block">Send automatic emails to singers when new events or announcements are scheduled</span>
               </div>
               <input
                 type="checkbox"
                 checked={settings.enable_email_notifications}
                 onChange={() => handleToggle('enable_email_notifications')}
-                className="w-5 h-5 accent-amber-600 rounded cursor-pointer"
+                className="w-5 h-5 accent-blue-600 rounded cursor-pointer"
               />
             </label>
           </div>
@@ -232,7 +232,7 @@ export default function ChoirSettingsPage() {
         <button
           type="submit"
           disabled={saving}
-          className="w-full bg-gradient-to-r from-amber-600 to-purple-600 hover:from-amber-500 hover:to-purple-500 text-white font-bold py-4 rounded-2xl shadow-xl shadow-amber-600/20 transition-all flex items-center justify-center gap-2 text-sm"
+          className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-2xl shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 text-sm cursor-pointer"
         >
           <Save className="w-4 h-4" /> {saving ? 'Saving Settings...' : 'Save Choir Settings'}
         </button>

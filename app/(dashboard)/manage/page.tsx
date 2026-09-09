@@ -260,141 +260,141 @@ export default function ChoirAdminPage() {
 
       {/* Choir Performance Analytics Section */}
       <div className="space-y-4">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-emerald-400" /> Choir Attendance &amp; Performance Analytics
+        <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" /> Choir Attendance &amp; Performance Analytics
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Clickable Attendance % Metric Card */}
           <Link
             href="/manage/attendance"
-            className="bg-gradient-to-br from-emerald-950/40 to-slate-900 p-6 rounded-3xl border border-emerald-500/30 space-y-2 relative overflow-hidden hover:border-emerald-400 hover:scale-[1.01] transition-all cursor-pointer block group"
+            className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-2 relative overflow-hidden hover:border-blue-400 dark:hover:border-blue-500 shadow-sm transition-all cursor-pointer block group"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Attendance Rate</span>
-              <div className="w-9 h-9 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 group-hover:scale-105">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Attendance Rate</span>
+              <div className="w-9 h-9 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800 group-hover:scale-105 transition-transform">
                 <Percent className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-3xl font-extrabold text-white">
+            <div className="text-3xl font-black text-slate-900 dark:text-white">
               {loadingStats ? '...' : `${stats?.attendancePercentage || 100}%`}
             </div>
-            <div className="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700">
               <div
                 className="bg-emerald-500 h-full rounded-full transition-all duration-500"
                 style={{ width: `${stats?.attendancePercentage || 100}%` }}
               />
             </div>
-            <p className="text-[11px] text-slate-400">Based on {stats?.rehearsalsCount || 0} rehearsal sessions →</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Based on {stats?.rehearsalsCount || 0} rehearsal sessions &rarr;</p>
           </Link>
 
           {/* Clickable Active Members Metric Card */}
           <a
             href="#roster-section"
-            className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-purple-500/50 hover:scale-[1.01] transition-all cursor-pointer block group"
+            className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-2 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm transition-all cursor-pointer block group"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">Active Singers</span>
-              <div className="w-9 h-9 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center border border-purple-500/30 group-hover:scale-105">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Active Singers</span>
+              <div className="w-9 h-9 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-800 group-hover:scale-105 transition-transform">
                 <UserCheck className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-3xl font-extrabold text-white">{activeMembers.length}</div>
-            <p className="text-[11px] text-slate-400">{pendingMembers.length} pending join request(s) →</p>
+            <div className="text-3xl font-black text-slate-900 dark:text-white">{activeMembers.length}</div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">{pendingMembers.length} pending join request(s) &rarr;</p>
           </a>
 
           {/* Clickable Music Library Songs Metric Card */}
           <Link
             href="/songs"
-            className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-indigo-500/50 hover:scale-[1.01] transition-all cursor-pointer block group"
+            className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-2 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm transition-all cursor-pointer block group"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Songs in Library</span>
-              <div className="w-9 h-9 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30 group-hover:scale-105">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Songs in Library</span>
+              <div className="w-9 h-9 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800 group-hover:scale-105 transition-transform">
                 <Music className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-3xl font-extrabold text-white">{songs.length}</div>
-            <p className="text-[11px] text-slate-400">Multi-track voice parts uploaded →</p>
+            <div className="text-3xl font-black text-slate-900 dark:text-white">{songs.length}</div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Multi-track voice parts uploaded &rarr;</p>
           </Link>
 
           {/* Clickable Attendance Breakdown Card */}
           <Link
             href="/manage/attendance"
-            className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 space-y-2 hover:border-amber-500/50 hover:scale-[1.01] transition-all cursor-pointer block group"
+            className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 space-y-2 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm transition-all cursor-pointer block group"
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Present vs Absent</span>
-              <div className="w-9 h-9 rounded-2xl bg-amber-600/20 text-amber-400 flex items-center justify-center border border-amber-500/30 group-hover:scale-105">
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Present vs Absent</span>
+              <div className="w-9 h-9 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-800 group-hover:scale-105 transition-transform">
                 <Clock3 className="w-4 h-4" />
               </div>
             </div>
-            <div className="flex items-center gap-3 text-sm font-bold text-white pt-1">
-              <span className="text-emerald-400 flex items-center gap-1">
+            <div className="flex items-center gap-3 text-sm font-bold text-slate-900 dark:text-white pt-1">
+              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                 <UserCheck className="w-4 h-4" /> {stats?.presentCount || 0} Present
               </span>
-              <span className="text-rose-400 flex items-center gap-1">
+              <span className="text-rose-600 dark:text-rose-400 flex items-center gap-1">
                 <UserX className="w-4 h-4" /> {stats?.absentCount || 0} Absent
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">{stats?.lateCount || 0} late, {stats?.excusedCount || 0} excused →</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">{stats?.lateCount || 0} late, {stats?.excusedCount || 0} excused &rarr;</p>
           </Link>
         </div>
       </div>
 
       {/* Admin Action Quick Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Link href="/manage/songs/new" className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 hover:border-purple-500/40 hover:scale-[1.01] transition-all space-y-3 group block cursor-pointer">
-          <div className="w-10 h-10 rounded-2xl bg-purple-600/20 text-purple-400 flex items-center justify-center border border-purple-500/30 group-hover:scale-105">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <Link href="/manage/songs/new" className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm transition-all space-y-3 group block cursor-pointer">
+          <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-800 group-hover:scale-105 transition-transform">
             <Plus className="w-5 h-5" />
           </div>
-          <h3 className="font-bold text-white">Upload New Song</h3>
-          <p className="text-xs text-slate-400">Add voice part audio tracks, lyrics &amp; sheet music PDFs</p>
+          <h3 className="font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Upload New Song</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Add voice part audio tracks, lyrics &amp; sheet music PDFs</p>
         </Link>
 
-        <Link href="/manage/events/new" className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 hover:border-purple-500/40 hover:scale-[1.01] transition-all space-y-3 group block cursor-pointer">
-          <div className="w-10 h-10 rounded-2xl bg-indigo-600/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30 group-hover:scale-105">
+        <Link href="/manage/events/new" className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm transition-all space-y-3 group block cursor-pointer">
+          <div className="w-10 h-10 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800 group-hover:scale-105 transition-transform">
             <Calendar className="w-5 h-5" />
           </div>
-          <h3 className="font-bold text-white">Schedule Event</h3>
-          <p className="text-xs text-slate-400">Assign Sunday songs to choir &amp; notify singers</p>
+          <h3 className="font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Schedule Event</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Assign Sunday songs to choir &amp; notify singers</p>
         </Link>
 
-        <Link href="/manage/attendance" className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 hover:border-purple-500/40 hover:scale-[1.01] transition-all space-y-3 group block cursor-pointer">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-600/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30 group-hover:scale-105">
+        <Link href="/manage/attendance" className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm transition-all space-y-3 group block cursor-pointer">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800 group-hover:scale-105 transition-transform">
             <Users className="w-5 h-5" />
           </div>
-          <h3 className="font-bold text-white">Record Attendance</h3>
-          <p className="text-xs text-slate-400">Mark rehearsal &amp; service present/absent statuses</p>
+          <h3 className="font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Record Attendance</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Mark rehearsal &amp; service present/absent statuses</p>
         </Link>
 
-        <Link href="/manage/settings" className="bg-slate-900/80 p-6 rounded-3xl border border-slate-800 hover:border-purple-500/40 hover:scale-[1.01] transition-all space-y-3 group block cursor-pointer">
-          <div className="w-10 h-10 rounded-2xl bg-amber-600/20 text-amber-400 flex items-center justify-center border border-amber-500/30 group-hover:scale-105">
+        <Link href="/manage/settings" className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm transition-all space-y-3 group block cursor-pointer">
+          <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-200 dark:border-amber-800 group-hover:scale-105 transition-transform">
             <Settings className="w-5 h-5" />
           </div>
-          <h3 className="font-bold text-white">Choir Settings</h3>
-          <p className="text-xs text-slate-400">Configure auto-approve, downloads &amp; notifications</p>
+          <h3 className="font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Choir Settings</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Configure auto-approve, downloads &amp; notifications</p>
         </Link>
       </div>
 
       {/* Clickable Events Management Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-indigo-400" /> Manage Choir Events &amp; Services ({events.length})
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" /> Manage Choir Events &amp; Services ({events.length})
           </h2>
           <Link
             href="/events"
-            className="text-xs font-semibold text-indigo-400 hover:underline flex items-center gap-1"
+            className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
           >
             View Full Calendar →
           </Link>
         </div>
 
         {events.length === 0 ? (
-          <div className="bg-slate-900/40 p-8 rounded-3xl border border-slate-800 text-center space-y-2">
-            <p className="text-xs text-slate-400">No events scheduled yet for this choir.</p>
-            <Link href="/manage/events/new" className="inline-block text-xs text-indigo-400 font-bold hover:underline">
+          <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 text-center space-y-2 shadow-sm">
+            <p className="text-xs text-slate-500 dark:text-slate-400">No events scheduled yet for this choir.</p>
+            <Link href="/manage/events/new" className="inline-block text-xs text-blue-600 dark:text-blue-400 font-bold hover:underline">
               + Schedule First Event
             </Link>
           </div>
@@ -403,32 +403,32 @@ export default function ChoirAdminPage() {
             {events.map(ev => (
               <div
                 key={ev.id}
-                className="bg-slate-900/90 p-5 rounded-3xl border border-slate-800 hover:border-indigo-500/40 transition-all space-y-4 group relative"
+                className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 shadow-sm transition-all space-y-4 group relative"
               >
                 <div className="flex items-start justify-between gap-3">
                   <Link href="/events" className="space-y-1 block flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-[9px] font-extrabold uppercase px-2 py-0.5 rounded-md ${
                         ev.status === 'published'
-                          ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/40'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40'
                           : ev.status === 'ended'
-                          ? 'bg-slate-800 text-slate-400'
-                          : 'bg-amber-950 text-amber-300 border border-amber-800/40'
+                          ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                          : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40'
                       }`}>
                         {ev.status === 'ended' ? '🔚 Ended' : ev.status}
                       </span>
-                      <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-indigo-400" /> {ev.event_date} ({ev.start_time})
+                      <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-blue-600 dark:text-blue-400" /> {ev.event_date} ({ev.start_time})
                       </span>
                     </div>
 
-                    <h4 className="text-base font-bold text-white group-hover:text-indigo-300 transition-colors">
+                    <h4 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {ev.title}
                     </h4>
 
                     {ev.location && (
-                      <p className="text-[11px] text-slate-400 flex items-center gap-1">
-                        <MapPin className="w-3 h-3 text-rose-400" /> {ev.location}
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-rose-500" /> {ev.location}
                       </p>
                     )}
                   </Link>
@@ -459,7 +459,7 @@ export default function ChoirAdminPage() {
 
                     <Link
                       href="/events"
-                      className="bg-slate-800 hover:bg-slate-700 text-indigo-300 font-semibold text-[11px] px-2.5 py-1.5 rounded-xl border border-slate-700 transition-all flex items-center gap-1"
+                      className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-[11px] px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1"
                       title="Edit Event"
                     >
                       <Edit3 className="w-3 h-3" /> Edit
@@ -467,7 +467,7 @@ export default function ChoirAdminPage() {
 
                     <button
                       onClick={(e) => handleDeleteEvent(ev.id, ev.title, e)}
-                      className="p-1.5 text-slate-400 hover:text-rose-400 transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors"
                       title="Delete Event"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -482,28 +482,28 @@ export default function ChoirAdminPage() {
 
       {/* Pending Approval Requests Section */}
       {pendingMembers.length > 0 && (
-        <div className="bg-amber-950/20 border border-amber-500/30 p-6 rounded-3xl space-y-4">
-          <h2 className="text-lg font-bold text-amber-300 flex items-center gap-2">
-            <Users className="w-5 h-5" /> Pending Membership Requests ({pendingMembers.length})
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-500/30 p-6 rounded-3xl space-y-4 shadow-sm">
+          <h2 className="text-lg font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
+            <Users className="w-5 h-5 text-amber-600 dark:text-amber-400" /> Pending Membership Requests ({pendingMembers.length})
           </h2>
           <div className="space-y-3">
             {pendingMembers.map(m => (
-              <div key={m.id} className="bg-slate-900 p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-4">
+              <div key={m.id} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-amber-200 dark:border-slate-800 flex items-center justify-between gap-4 shadow-sm">
                 <Link href={`/manage/members/${m.id}`} className="hover:underline flex items-center gap-3">
                   {m.profile?.avatar_url ? (
-                    <img src={m.profile.avatar_url} alt={m.profile.full_name} className="w-10 h-10 rounded-xl object-cover border border-purple-500/40 shrink-0" />
+                    <img src={m.profile.avatar_url} alt={m.profile.full_name} className="w-10 h-10 rounded-xl object-cover border border-blue-200 dark:border-blue-800 shrink-0" />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-purple-600/20 text-purple-300 font-bold text-sm flex items-center justify-center border border-purple-500/30 shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 font-bold text-sm flex items-center justify-center border border-blue-200 dark:border-blue-800 shrink-0">
                       {m.profile?.full_name?.charAt(0).toUpperCase() || 'S'}
                     </div>
                   )}
                   <div>
-                    <h4 className="font-bold text-white">{m.profile?.full_name || 'New Member'}</h4>
-                    <p className="text-xs text-slate-400 flex items-center gap-2">
+                    <h4 className="font-bold text-slate-900 dark:text-white">{m.profile?.full_name || 'New Member'}</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2">
                       <span>{m.profile?.email}</span>
                       {m.profile?.phone && (
-                        <span className="flex items-center gap-1 text-purple-300">
-                          <Phone className="w-3 h-3 text-purple-400" /> {m.profile.phone}
+                        <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+                          <Phone className="w-3 h-3" /> {m.profile.phone}
                         </span>
                       )}
                     </p>
@@ -531,15 +531,15 @@ export default function ChoirAdminPage() {
       )}
 
       {/* Clickable Active Choir Roster with Phone Numbers */}
-      <div id="roster-section" className="bg-slate-900/60 p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6">
+      <div id="roster-section" className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold text-white">Active Choir Roster ({activeMembers.length} Singers)</h2>
-          <span className="text-xs text-purple-400 font-semibold">Click any singer to view individual attendance &amp; song analytics →</span>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Active Choir Roster ({activeMembers.length} Singers)</h2>
+          <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold">Click any singer to view individual attendance &amp; song analytics →</span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="text-xs uppercase bg-slate-950 text-slate-400 font-semibold">
+          <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300">
+            <thead className="text-xs uppercase bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="p-4 rounded-l-xl">Singer Name</th>
                 <th className="p-4">Email</th>
@@ -549,33 +549,33 @@ export default function ChoirAdminPage() {
                 <th className="p-4 rounded-r-xl">Analytics &amp; Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {activeMembers.map(m => (
-                <tr key={m.id} className="hover:bg-slate-800/60 transition-colors group">
-                  <td className="p-4 font-semibold text-white">
-                    <Link href={`/manage/members/${m.id}`} className="group-hover:text-purple-300 font-bold hover:underline flex items-center gap-3">
+                <tr key={m.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group">
+                  <td className="p-4 font-semibold text-slate-900 dark:text-white">
+                    <Link href={`/manage/members/${m.id}`} className="group-hover:text-blue-600 dark:group-hover:text-blue-400 font-bold hover:underline flex items-center gap-3">
                       {m.profile?.avatar_url ? (
-                        <img src={m.profile.avatar_url} alt={m.profile.full_name} className="w-8 h-8 rounded-xl object-cover border border-purple-500/40 shrink-0" />
+                        <img src={m.profile.avatar_url} alt={m.profile.full_name} className="w-8 h-8 rounded-xl object-cover border border-blue-200 dark:border-blue-800 shrink-0" />
                       ) : (
-                        <div className="w-8 h-8 rounded-xl bg-purple-600/20 text-purple-300 font-bold text-xs flex items-center justify-center border border-purple-500/30 shrink-0">
+                        <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 font-bold text-xs flex items-center justify-center border border-blue-200 dark:border-blue-800 shrink-0">
                           {m.profile?.full_name?.charAt(0).toUpperCase() || 'S'}
                         </div>
                       )}
                       <span>{m.profile?.full_name}</span>
                     </Link>
                   </td>
-                  <td className="p-4 text-xs text-slate-400">{m.profile?.email}</td>
-                  <td className="p-4 text-xs text-purple-300 font-mono">
+                  <td className="p-4 text-xs text-slate-500 dark:text-slate-400">{m.profile?.email}</td>
+                  <td className="p-4 text-xs text-blue-600 dark:text-blue-400 font-mono">
                     {m.profile?.phone ? (
                       <span className="flex items-center gap-1.5">
-                        <Phone className="w-3.5 h-3.5 text-purple-400 shrink-0" /> {m.profile.phone}
+                        <Phone className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" /> {m.profile.phone}
                       </span>
                     ) : (
-                      <span className="text-slate-600 font-sans italic">Not provided</span>
+                      <span className="text-slate-400 font-sans italic">Not provided</span>
                     )}
                   </td>
                   <td className="p-4">
-                    <span className="text-xs px-2.5 py-1 rounded-md font-semibold uppercase bg-purple-950/60 text-purple-300 border border-purple-800/40">
+                    <span className="text-xs px-2.5 py-1 rounded-md font-semibold uppercase bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
                       {m.role}
                     </span>
                   </td>
@@ -584,7 +584,7 @@ export default function ChoirAdminPage() {
                     <div className="flex items-center gap-3">
                       <Link
                         href={`/manage/members/${m.id}`}
-                        className="text-xs font-semibold text-purple-400 hover:text-purple-300 bg-purple-950/40 hover:bg-purple-900/60 border border-purple-800/40 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shrink-0"
+                        className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800/40 px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 shrink-0"
                       >
                         <BarChart3 className="w-3.5 h-3.5" /> View Analytics
                       </Link>

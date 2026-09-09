@@ -139,23 +139,23 @@ export default function EventsPage() {
   return (
     <div className="space-y-8 max-w-5xl mx-auto py-4">
       {/* Universal Back Button */}
-      <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
+      <Link href="/dashboard" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back to Dashboard
       </Link>
 
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
         <div>
-          <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
-            <Calendar className="w-8 h-8 text-indigo-400" /> Worship Services &amp; Rehearsals
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
+            <Calendar className="w-8 h-8 text-blue-600 dark:text-blue-400" /> Worship Services &amp; Rehearsals
           </h1>
-          <p className="text-sm text-slate-400">Click any event card to edit details, unpublish, publish or manage worship song assignments</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Click any event card to edit details, unpublish, publish or manage worship song assignments</p>
         </div>
 
         {(isAdmin || user?.is_super_admin) && (
           <Link
             href="/manage/events/new"
-            className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all self-start sm:self-auto"
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs px-5 py-3 rounded-2xl shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all self-start sm:self-auto"
           >
             <Plus className="w-4 h-4" /> Schedule New Event
           </Link>
@@ -174,14 +174,14 @@ export default function EventsPage() {
       {/* Edit Event Modal */}
       {editingEvent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Edit3 className="w-5 h-5 text-indigo-400" /> Edit Event
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 md:p-8 rounded-3xl space-y-6 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-blue-600 dark:text-blue-400" /> Edit Event
               </h3>
               <button
                 onClick={() => setEditingEvent(null)}
-                className="text-slate-400 hover:text-white text-xs font-bold p-1"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-white text-xs font-bold p-1"
               >
                 ✕
               </button>
@@ -189,34 +189,34 @@ export default function EventsPage() {
 
             <form onSubmit={handleSaveEditEvent} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Event Title *</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Event Title *</label>
                 <input
                   type="text"
                   required
                   value={editTitle}
                   onChange={e => setEditTitle(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Event Date *</label>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Event Date *</label>
                   <input
                     type="date"
                     required
                     value={editDate}
                     onChange={e => setEditDate(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Status</label>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Status</label>
                   <select
                     value={editStatus}
                     onChange={e => setEditStatus(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 font-semibold"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 font-semibold"
                   >
                     <option value="draft">Draft</option>
                     <option value="published">Published</option>
@@ -228,45 +228,45 @@ export default function EventsPage() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">Start Time *</label>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Start Time *</label>
                   <input
                     type="time"
                     required
                     value={editStartTime}
                     onChange={e => setEditStartTime(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-semibold text-slate-300 block mb-1">End Time</label>
+                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">End Time</label>
                   <input
                     type="time"
                     value={editEndTime}
                     onChange={e => setEditEndTime(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Location / Venue</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Location / Venue</label>
                 <input
                   type="text"
                   value={editLocation}
                   onChange={e => setEditLocation(e.target.value)}
                   placeholder="Main Sanctuary / Choir Room"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Description / Notes</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Description / Notes</label>
                 <textarea
                   rows={3}
                   value={editDescription}
                   onChange={e => setEditDescription(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-3 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -274,14 +274,14 @@ export default function EventsPage() {
                 <button
                   type="button"
                   onClick={() => setEditingEvent(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300"
+                  className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={updating}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-xs font-bold text-white shadow-md flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-md flex items-center gap-1.5"
                 >
                   {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
                   {updating ? 'Saving...' : 'Save Changes'}
@@ -294,12 +294,12 @@ export default function EventsPage() {
 
       {/* Events List */}
       {loading ? (
-        <p className="text-center text-xs text-slate-400 py-16">Loading choir events...</p>
+        <p className="text-center text-xs text-slate-500 dark:text-slate-400 py-16">Loading choir events...</p>
       ) : events.length === 0 ? (
-        <div className="bg-slate-900/40 p-12 rounded-3xl border border-slate-800 text-center space-y-3">
-          <Calendar className="w-12 h-12 text-slate-600 mx-auto" />
-          <h3 className="text-base font-bold text-white">No Events Scheduled</h3>
-          <p className="text-xs text-slate-400">Check back soon for new Sunday worship services or rehearsals.</p>
+        <div className="bg-white dark:bg-slate-900 p-12 rounded-3xl border border-slate-200 dark:border-slate-800 text-center space-y-3 shadow-sm">
+          <Calendar className="w-12 h-12 text-slate-400 mx-auto" />
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">No Events Scheduled</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Check back soon for new Sunday worship services or rehearsals.</p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -310,49 +310,49 @@ export default function EventsPage() {
               <div
                 key={ev.id}
                 onClick={() => (isAdmin || user?.is_super_admin) && openEditModal(ev)}
-                className={`bg-slate-900/80 p-6 md:p-8 rounded-3xl border transition-all space-y-6 group cursor-pointer ${
-                  isPast ? 'border-slate-800/60 opacity-85 hover:border-slate-700' : 'border-slate-800 hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5'
+                className={`bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border transition-all space-y-6 group cursor-pointer shadow-sm ${
+                  isPast ? 'border-slate-200 dark:border-slate-800/60 opacity-85 hover:border-slate-300 dark:hover:border-slate-700' : 'border-slate-200 dark:border-slate-800 hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md'
                 }`}
               >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/60 pb-4">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800/60 pb-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-md ${
                         ev.status === 'published'
-                          ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-800/40'
+                          ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40'
                           : ev.status === 'ended'
-                          ? 'bg-slate-800 text-slate-400 border border-slate-700'
+                          ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
                           : ev.status === 'cancelled'
-                          ? 'bg-rose-950 text-rose-300 border border-rose-800'
-                          : 'bg-amber-950/80 text-amber-300 border border-amber-800/40'
+                          ? 'bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
+                          : 'bg-amber-50 dark:bg-amber-950/80 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800/40'
                       }`}>
                         {ev.status === 'ended' ? '🔚 Event Ended' : ev.status}
                       </span>
-                      <span className="text-xs text-slate-400 font-mono flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-indigo-400" /> {ev.start_time} {ev.end_time ? `- ${ev.end_time}` : ''}
+                      <span className="text-xs text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> {ev.start_time} {ev.end_time ? `- ${ev.end_time}` : ''}
                       </span>
                     </div>
 
-                    <h3 className="text-2xl font-extrabold text-white group-hover:text-indigo-300 transition-colors flex items-center gap-2">
+                    <h3 className="text-2xl font-extrabold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex items-center gap-2">
                       {ev.title}
                       {(isAdmin || user?.is_super_admin) && (
-                        <span className="text-[10px] font-semibold text-slate-500 group-hover:text-indigo-400 transition-colors">
+                        <span className="text-[10px] font-semibold text-slate-400 group-hover:text-blue-500 transition-colors">
                           (Click card to Edit)
                         </span>
                       )}
                     </h3>
 
                     {ev.location && (
-                      <p className="text-xs text-slate-400 flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-rose-400" /> {ev.location}
+                      <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-rose-500" /> {ev.location}
                       </p>
                     )}
                   </div>
 
                   <div className="flex items-center gap-3 shrink-0 flex-wrap">
-                    <div className="bg-slate-950 px-4 py-2 rounded-2xl border border-slate-800 text-center">
-                      <span className="text-[10px] text-slate-400 uppercase block font-semibold">Date</span>
-                      <span className="text-sm font-bold text-indigo-300 font-mono">{ev.event_date}</span>
+                    <div className="bg-slate-50 dark:bg-slate-950 px-4 py-2 rounded-2xl border border-slate-200 dark:border-slate-800 text-center">
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 uppercase block font-semibold">Date</span>
+                      <span className="text-sm font-bold text-blue-600 dark:text-blue-300 font-mono">{ev.event_date}</span>
                     </div>
 
                     {/* Choir Master & Super Admin Control Buttons */}
@@ -382,7 +382,7 @@ export default function EventsPage() {
 
                         <button
                           onClick={(e) => { e.stopPropagation(); openEditModal(ev); }}
-                          className="bg-slate-800 hover:bg-slate-700 text-indigo-300 font-semibold text-xs px-3 py-2 rounded-xl border border-slate-700 transition-all flex items-center gap-1"
+                          className="bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1"
                           title="Edit Event Details"
                         >
                           <Edit3 className="w-3.5 h-3.5" /> Edit
@@ -390,7 +390,7 @@ export default function EventsPage() {
 
                         <button
                           onClick={(e) => handleDeleteEvent(ev.id, ev.title, e)}
-                          className="p-2 text-slate-400 hover:text-rose-400 transition-colors"
+                          className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
                           title="Delete Event"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -401,35 +401,35 @@ export default function EventsPage() {
                 </div>
 
                 {ev.description && (
-                  <p className="text-xs text-slate-300 leading-relaxed">{ev.description}</p>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">{ev.description}</p>
                 )}
 
                 {/* Assigned Songs for this Event */}
                 <div className="space-y-3" onClick={(e) => e.stopPropagation()}>
-                  <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-                    <Music className="w-4 h-4 text-purple-400" /> Assigned Songs for Worship
+                  <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                    <Music className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Assigned Songs for Worship
                   </h4>
 
                   {!ev.assigned_songs || ev.assigned_songs.length === 0 ? (
-                    <p className="text-xs text-slate-500 italic">No songs assigned to this event yet.</p>
+                    <p className="text-xs text-slate-400 italic">No songs assigned to this event yet.</p>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {ev.assigned_songs.map((asg: any) => (
                         <Link
                           key={asg.id}
                           href={asg.song ? `/songs/${asg.song.id}` : '#'}
-                          className="bg-slate-950 p-4 rounded-2xl border border-slate-800 flex items-center justify-between gap-4 hover:border-purple-500/40 transition-all group/song"
+                          className="bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 hover:border-blue-400 dark:hover:border-blue-500 transition-all group/song"
                         >
                           <div className="space-y-0.5">
-                            <span className="text-[10px] text-purple-400 font-bold uppercase tracking-wider">
+                            <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider">
                               Track #{asg.order_index} • {asg.song?.category || 'Worship'}
                             </span>
-                            <h5 className="font-bold text-white group-hover/song:text-purple-300 transition-colors">
+                            <h5 className="font-bold text-slate-900 dark:text-white group-hover/song:text-blue-600 dark:group-hover/song:text-blue-400 transition-colors">
                               {asg.song?.title || 'Assigned Song'}
                             </h5>
                           </div>
 
-                          <div className="bg-purple-950/60 text-purple-300 p-2 rounded-xl border border-purple-800/40 shrink-0">
+                          <div className="bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-300 p-2 rounded-xl border border-blue-200 dark:border-blue-800/40 shrink-0">
                             <Volume2 className="w-4 h-4" />
                           </div>
                         </Link>

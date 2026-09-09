@@ -153,21 +153,21 @@ export default function RecordAttendancePage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      <Link href="/manage" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors">
+    <div className="max-w-5xl mx-auto space-y-8 text-slate-900 dark:text-white">
+      <Link href="/manage" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back to Choir Admin
       </Link>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
-            <Users className="w-8 h-8 text-emerald-400" /> Rehearsal Attendance
+          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
+            <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" /> Rehearsal Attendance
           </h1>
-          <p className="text-sm text-slate-400">Mark member presence, tardiness, or excused absences for rehearsal sessions</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Mark member presence, tardiness, or excused absences for rehearsal sessions</p>
         </div>
         <button
           onClick={() => setShowNewRehearsalForm(prev => !prev)}
-          className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-2"
+          className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md flex items-center gap-2 cursor-pointer transition-all"
         >
           <Plus className="w-4 h-4" /> Create Rehearsal Session
         </button>
@@ -184,37 +184,37 @@ export default function RecordAttendancePage() {
 
       {/* New Rehearsal Form Modal/Box */}
       {showNewRehearsalForm && (
-        <form onSubmit={handleCreateRehearsal} className="bg-slate-900 p-6 rounded-3xl border border-slate-800 space-y-4">
-          <h3 className="text-sm font-bold text-white">Create New Rehearsal Session</h3>
+        <form onSubmit={handleCreateRehearsal} className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white">Create New Rehearsal Session</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="text-[10px] text-slate-400 uppercase font-semibold block mb-1">Session Title</label>
+              <label className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block mb-1">Session Title</label>
               <input
                 type="text"
                 required
                 value={newTitle}
                 onChange={e => setNewTitle(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
               />
             </div>
             <div>
-              <label className="text-[10px] text-slate-400 uppercase font-semibold block mb-1">Date</label>
+              <label className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block mb-1">Date</label>
               <input
                 type="date"
                 required
                 value={newDate}
                 onChange={e => setNewDate(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
               />
             </div>
             <div>
-              <label className="text-[10px] text-slate-400 uppercase font-semibold block mb-1">Start Time</label>
+              <label className="text-[10px] text-slate-500 dark:text-slate-400 uppercase font-semibold block mb-1">Start Time</label>
               <input
                 type="time"
                 required
                 value={newStartTime}
                 onChange={e => setNewStartTime(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white"
+                className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
               />
             </div>
           </div>
@@ -222,14 +222,14 @@ export default function RecordAttendancePage() {
             <button
               type="button"
               onClick={() => setShowNewRehearsalForm(false)}
-              className="text-xs text-slate-400 hover:text-white px-3 py-2"
+              className="text-xs text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-white px-3 py-2"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={creatingRehearsal}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-xl"
+              className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer"
             >
               {creatingRehearsal ? 'Creating...' : 'Save Rehearsal'}
             </button>
@@ -238,14 +238,14 @@ export default function RecordAttendancePage() {
       )}
 
       {/* Select Active Rehearsal */}
-      <div className="bg-slate-900/60 p-6 rounded-3xl border border-slate-800 space-y-4">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">Select Rehearsal Session</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-1">Select Rehearsal Session</label>
             <select
               value={selectedRehearsalId}
               onChange={e => setSelectedRehearsalId(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 font-semibold"
+              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-blue-500 font-semibold"
             >
               {rehearsals.length === 0 ? (
                 <option value="">No Rehearsal Sessions Found</option>
@@ -262,7 +262,7 @@ export default function RecordAttendancePage() {
           <button
             onClick={handleSaveAttendance}
             disabled={saving || !selectedRehearsalId}
-            className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all self-end sm:self-center"
+            className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs px-6 py-3 rounded-xl shadow-md flex items-center gap-2 transition-all self-end sm:self-center cursor-pointer"
           >
             <Save className="w-4 h-4" /> {saving ? 'Saving Records...' : 'Save Attendance'}
           </button>
@@ -270,19 +270,19 @@ export default function RecordAttendancePage() {
       </div>
 
       {/* Member Roster Table */}
-      <div className="bg-slate-900/60 p-6 md:p-8 rounded-3xl border border-slate-800 space-y-6">
-        <h2 className="text-xl font-bold text-white flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center justify-between">
           <span>Choir Roster ({members.length} Active Members)</span>
         </h2>
 
         {loading ? (
-          <p className="text-xs text-slate-400 text-center py-10">Loading choir members...</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-10">Loading choir members...</p>
         ) : members.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-10">No active members in roster.</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 text-center py-10">No active members in roster.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="text-xs uppercase bg-slate-950 text-slate-400 font-semibold">
+            <table className="w-full text-left text-sm text-slate-700 dark:text-slate-300">
+              <thead className="text-xs uppercase bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="p-4 rounded-l-xl">Singer Name</th>
                   <th className="p-4">Role</th>
@@ -290,14 +290,14 @@ export default function RecordAttendancePage() {
                   <th className="p-4 rounded-r-xl">Notes</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {members.map(m => {
                   const currentStatus = attendanceMap[m.id] || 'present';
                   return (
-                    <tr key={m.id} className="hover:bg-slate-800/40">
-                      <td className="p-4 font-semibold text-white">
+                    <tr key={m.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="p-4 font-semibold text-slate-900 dark:text-white">
                         {m.profile?.full_name || 'Choir Member'}
-                        <span className="block text-[10px] font-normal text-slate-400">{m.profile?.email}</span>
+                        <span className="block text-[10px] font-normal text-slate-500 dark:text-slate-400">{m.profile?.email}</span>
                       </td>
                       <td className="p-4">
                         <span className="text-[10px] px-2 py-0.5 rounded font-semibold uppercase bg-slate-800 text-purple-300 border border-slate-700">
