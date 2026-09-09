@@ -61,6 +61,8 @@ export default function SongUploadPage() {
   // Live Audio Player Preview State
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [storageProvider, setStorageProvider] = useState<'google_drive' | 'supabase' | null>(null);
+  const [storageNote, setStorageNote] = useState<string | null>(null);
 
   // Clean up audio playback & object URLs on unmount
   useEffect(() => {
@@ -102,34 +104,47 @@ export default function SongUploadPage() {
     const file = e.target.files?.[0];
     if (!file || !artistProfile) return;
 
+    if (audioElement) {
+      audioElement.pause();
+      setIsPlaying(false);
+    }
+
     setAudioFile(file);
     setAudioFileName(file.name);
     setIsUploadingAudio(true);
     setError(null);
+    setStorageNote(null);
     setAudioFilePath(''); // Clear previous permanent path while uploading
 
     // Create immediate local object URL for instant preview testing
     const localBlobUrl = URL.createObjectURL(file);
     setLocalAudioPreviewUrl(localBlobUrl);
 
-    // Calculate audio duration for preview clip default
-    const audio = new Audio();
-    audio.src = localBlobUrl;
-    audio.onloadedmetadata = () => {
-      const dur = Math.round(audio.duration);
-      if (dur > 0 && previewEnd === 30) {
-        setPreviewEnd(Math.min(dur, 30));
-      }
-    };
-    audio.onerror = () => {
-      console.warn('Could not read audio metadata from local preview');
-    };
+    // Calculate audio duration safely for preview clip default
+    try {
+      const audio = new Audio();
+      audio.src = localBlobUrl;
+      audio.onloadedmetadata = () => {
+        if (audio && typeof audio.duration === 'number' && !isNaN(audio.duration) && isFinite(audio.duration)) {
+          const dur = Math.round(audio.duration);
+          if (dur > 0 && previewEnd === 30) {
+            setPreviewEnd(Math.min(dur, 30));
+          }
+        }
+      };
+      audio.onerror = () => {
+        console.warn('Could not read audio metadata from local preview');
+      };
+    } catch (e) {
+      console.warn('Audio metadata load notice:', e);
+    }
 
     try {
       const fileExt = file.name.split('.').pop() || 'mp3';
       const cleanFileName = `marketplace/${artistProfile.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
       let uploadedUrl: string | null = null;
+      let usedProvider: 'google_drive' | 'supabase' = 'supabase';
 
       // Tier 1: Try Resumable Google Drive Upload (Bypasses Vercel 4.5MB limit, files go straight to Google Drive)
       try {
@@ -174,11 +189,13 @@ export default function SongUploadPage() {
                   const finData = await finRes.json().catch(() => ({}));
                   if (finData?.url) {
                     uploadedUrl = finData.url;
+                    usedProvider = 'google_drive';
                   }
                 }
               }
             } else {
-              console.warn('Google Drive direct PUT rejected, falling back to Supabase permanent storage...');
+              console.warn('Google Drive direct PUT rejected (e.g. Service Account personal drive quota). Routing to Voxify Cloud Storage...');
+              setStorageNote('Google Drive Service Account limitation detected. Saving securely to Voxify Cloud Storage.');
             }
           }
         }
@@ -186,29 +203,42 @@ export default function SongUploadPage() {
         console.warn('Google Drive upload attempt note:', driveErr);
       }
 
-      // Tier 2: Direct Client Supabase Upload (Handles files up to 50MB directly from browser, zero Vercel limits)
+      // Tier 2: Signed Supabase Upload URL (Uploads files up to 50MB directly from browser, bypasses Vercel limits & RLS)
       if (!uploadedUrl) {
         try {
-          const supabase = createClient();
-          const { data: uploadData, error: uploadErr } = await supabase.storage
-            .from('song-audio')
-            .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
+          const signRes = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'init_signed_upload',
+              fileName: cleanFileName,
+              bucket: 'song-audio',
+            }),
+          });
 
-          if (!uploadErr && uploadData) {
-            const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
-            if (publicUrlData?.publicUrl) {
-              uploadedUrl = publicUrlData.publicUrl;
+          if (signRes.ok) {
+            const signData = await signRes.json();
+            if (signData.success && signData.token) {
+              const supabase = createClient();
+              const { data: uploadData, error: uploadErr } = await supabase.storage
+                .from('song-audio')
+                .uploadToSignedUrl(cleanFileName, signData.token, file);
+
+              if (!uploadErr && uploadData) {
+                uploadedUrl = signData.publicUrl || supabase.storage.from('song-audio').getPublicUrl(cleanFileName).data.publicUrl;
+                usedProvider = 'supabase';
+              } else {
+                console.warn('Signed Supabase upload error:', uploadErr?.message);
+              }
             }
-          } else {
-            console.warn('Direct Supabase client upload note:', uploadErr?.message);
           }
-        } catch (supaClientErr) {
-          console.warn('Direct Supabase upload error:', supaClientErr);
+        } catch (signUploadErr) {
+          console.warn('Signed Supabase upload attempt note:', signUploadErr);
         }
       }
 
       // Tier 3: Server /api/upload fallback for small files
-      if (!uploadedUrl && file.size < 4 * 1024 * 1024) {
+      if (!uploadedUrl && file.size < 4.5 * 1024 * 1024) {
         try {
           const formData = new FormData();
           formData.append('file', file);
@@ -224,6 +254,7 @@ export default function SongUploadPage() {
             const resData = await res.json().catch(() => ({}));
             if (resData?.url && !resData.url.startsWith('blob:')) {
               uploadedUrl = resData.url;
+              usedProvider = resData.provider === 'google_drive' ? 'google_drive' : 'supabase';
             }
           }
         } catch (serverUploadErr) {
@@ -233,6 +264,7 @@ export default function SongUploadPage() {
 
       if (uploadedUrl) {
         setAudioFilePath(uploadedUrl);
+        setStorageProvider(usedProvider);
         setError(null);
       } else {
         setError('Failed to upload audio file to permanent storage. Please try again.');
@@ -258,35 +290,55 @@ export default function SongUploadPage() {
     setLocalCoverPreviewUrl(localBlobUrl);
 
     try {
-      const supabase = createClient();
       const fileExt = file.name.split('.').pop() || 'jpg';
       const cleanFileName = `covers/${artistProfile.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      const { data, error: uploadErr } = await supabase.storage
-        .from('song-audio')
-        .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
-
-      if (!uploadErr && data) {
-        const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
-        if (publicUrlData?.publicUrl) {
-          setCoverImageUrl(publicUrlData.publicUrl);
-        }
-      } else {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('bucket', 'song-audio');
-        formData.append('choirId', artistProfile.id);
-
-        const res = await fetch('/api/upload', {
+      // 1. Try Signed Supabase Upload URL (bypasses RLS)
+      try {
+        const signRes = await fetch('/api/upload', {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'init_signed_upload',
+            fileName: cleanFileName,
+            bucket: 'song-audio',
+          }),
         });
 
-        if (res.ok) {
-          const resData = await res.json().catch(() => ({}));
-          if (resData?.url && !resData.url.startsWith('blob:')) {
-            setCoverImageUrl(resData.url);
+        if (signRes.ok) {
+          const signData = await signRes.json();
+          if (signData.success && signData.token) {
+            const supabase = createClient();
+            const { data, error: uploadErr } = await supabase.storage
+              .from('song-audio')
+              .uploadToSignedUrl(cleanFileName, signData.token, file);
+
+            if (!uploadErr && data) {
+              const finalCover = signData.publicUrl || supabase.storage.from('song-audio').getPublicUrl(cleanFileName).data.publicUrl;
+              setCoverImageUrl(finalCover);
+              return;
+            }
           }
+        }
+      } catch (signErr) {
+        console.warn('Signed cover upload note:', signErr);
+      }
+
+      // 2. Fallback to Server /api/upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'song-audio');
+      formData.append('choirId', artistProfile.id);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (res.ok) {
+        const resData = await res.json().catch(() => ({}));
+        if (resData?.url && !resData.url.startsWith('blob:')) {
+          setCoverImageUrl(resData.url);
         }
       }
     } catch (err: any) {
@@ -310,18 +362,24 @@ export default function SongUploadPage() {
       audioElement.pause();
     }
 
-    const audio = new Audio(playbackUrl);
-    audio.onerror = () => {
-      console.warn('Audio playback error on test player');
+    try {
+      const audio = new Audio(playbackUrl);
+      audio.onerror = () => {
+        console.warn('Audio playback error on test player');
+        setIsPlaying(false);
+      };
+      audio.onended = () => setIsPlaying(false);
+      audio.play().then(() => {
+        setIsPlaying(true);
+      }).catch(e => {
+        console.warn('Could not start playback:', e);
+        setIsPlaying(false);
+      });
+      setAudioElement(audio);
+    } catch (e) {
+      console.warn('Audio player initialization error:', e);
       setIsPlaying(false);
-    };
-    audio.onended = () => setIsPlaying(false);
-    audio.play().catch(e => {
-      console.warn('Could not start playback:', e);
-      setIsPlaying(false);
-    });
-    setAudioElement(audio);
-    setIsPlaying(true);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -455,17 +513,27 @@ export default function SongUploadPage() {
                     <span className="text-xs font-bold text-white block">
                       {isPlaying ? '▶ Playing Track Preview...' : 'Test Audio Track Playback'}
                     </span>
-                    <span className={`text-[10px] font-semibold flex items-center gap-1 ${audioFilePath ? 'text-emerald-400' : 'text-amber-400'}`}>
-                      {audioFilePath ? (
-                        <>
-                          <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Cloud Storage Ready for Publishing
-                        </>
-                      ) : (
-                        <>
-                          <Loader2 className="w-3 h-3 animate-spin text-amber-400" /> Uploading to Cloud Storage in background...
-                        </>
+                    <div className="flex flex-col gap-0.5">
+                      <span className={`text-[10px] font-semibold flex items-center gap-1 ${audioFilePath ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        {audioFilePath ? (
+                          <>
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            {storageProvider === 'google_drive'
+                              ? 'Google Drive Storage Pool Ready ✅'
+                              : 'Voxify Cloud Storage Ready ✅'}
+                          </>
+                        ) : (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin text-amber-400" /> Uploading to Storage in background...
+                          </>
+                        )}
+                      </span>
+                      {storageNote && (
+                        <span className="text-[10px] text-amber-300/90 font-medium">
+                          ℹ️ {storageNote}
+                        </span>
                       )}
-                    </span>
+                    </div>
                   </div>
                 </div>
 

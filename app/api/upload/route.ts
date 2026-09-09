@@ -35,6 +35,46 @@ export async function POST(request: Request) {
         const result = await finalizeDriveUpload(fileId, accountEmail, Number(fileSizeMb) || 0);
         return NextResponse.json({ success: !result.error, url: result.streamUrl, error: result.error, provider: 'google_drive' });
       }
+
+      if (action === 'init_signed_upload') {
+        const { fileName, bucket = 'song-audio' } = body;
+        if (!fileName) {
+          return NextResponse.json({ error: 'fileName is required' }, { status: 400 });
+        }
+
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mdubljdeimlpntyzektn.supabase.co';
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+        const adminSupabase = createClient(supabaseUrl, serviceKey, {
+          auth: { autoRefreshToken: false, persistSession: false },
+        });
+
+        // Ensure bucket exists
+        const { data: bucketData } = await adminSupabase.storage.getBucket(bucket);
+        if (!bucketData) {
+          await adminSupabase.storage.createBucket(bucket, {
+            public: true,
+            fileSizeLimit: 52428800, // 50MB
+          }).catch(() => {});
+        }
+
+        const { data, error } = await adminSupabase.storage
+          .from(bucket)
+          .createSignedUploadUrl(fileName);
+
+        if (error) {
+          return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+
+        const { data: publicUrlData } = adminSupabase.storage.from(bucket).getPublicUrl(fileName);
+
+        return NextResponse.json({
+          success: true,
+          signedUrl: data.signedUrl,
+          path: data.path,
+          token: data.token,
+          publicUrl: publicUrlData.publicUrl,
+        });
+      }
     }
 
     const formData = await request.formData();

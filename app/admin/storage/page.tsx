@@ -657,8 +657,17 @@ export default function AdminStoragePage() {
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-xs font-mono focus:outline-none focus:border-purple-500"
                   />
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Paste the JSON key downloaded from Google Cloud Console (IAM &amp; Admin Service Accounts) or access token.
+                    Paste the JSON key downloaded from Google Cloud Console (IAM &amp; Admin Service Accounts) or OAuth JSON credentials.
                   </p>
+                  <div className="mt-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300 space-y-1">
+                    <p className="font-bold">⚠️ Google Drive Quota Notice:</p>
+                    <p className="text-slate-300">
+                      Google Cloud Service Accounts have <strong>0 MB free quota</strong> on standard personal (<code className="text-amber-300">@gmail.com</code>) drives. To store uploads in Google Drive using a Service Account, the target folder must be inside a <strong>Google Workspace Shared Drive (Team Drive)</strong> with your service account added as a member.
+                    </p>
+                    <p className="text-slate-400">
+                      If using personal Gmail without a Shared Drive, Voxify will automatically route artist uploads to high-speed Voxify Cloud Storage (Supabase) to guarantee 100% upload success.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">

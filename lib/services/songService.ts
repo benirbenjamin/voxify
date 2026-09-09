@@ -257,10 +257,36 @@ export const songService = {
       }
     }
 
-    // Tier 3: Direct Supabase client upload (Handles large files up to 50MB from browser with zero Vercel limits)
+    // Tier 3: Signed Supabase Upload URL (Handles large files up to 50MB from browser with zero Vercel limits & bypasses RLS)
     try {
-      const supabase = createClient();
       const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const signRes = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'init_signed_upload',
+          fileName: cleanFileName,
+          bucket: 'song-audio',
+        }),
+      });
+
+      if (signRes.ok) {
+        const signData = await signRes.json();
+        if (signData.success && signData.token) {
+          const supabase = createClient();
+          const { data, error } = await supabase.storage
+            .from('song-audio')
+            .uploadToSignedUrl(cleanFileName, signData.token, file);
+
+          if (!error && data) {
+            const publicUrl = signData.publicUrl || supabase.storage.from('song-audio').getPublicUrl(cleanFileName).data.publicUrl;
+            return { url: publicUrl, error: null };
+          }
+        }
+      }
+
+      // Fallback: direct Supabase client upload
+      const supabase = createClient();
       const { data, error } = await supabase.storage
         .from('song-audio')
         .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
@@ -298,10 +324,36 @@ export const songService = {
       }
     }
 
-    // Direct Supabase client upload for PDFs of any size
+    // Signed Supabase client upload for PDFs of any size (bypasses RLS)
     try {
-      const supabase = createClient();
       const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const signRes = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'init_signed_upload',
+          fileName: cleanFileName,
+          bucket: 'song-documents',
+        }),
+      });
+
+      if (signRes.ok) {
+        const signData = await signRes.json();
+        if (signData.success && signData.token) {
+          const supabase = createClient();
+          const { data, error } = await supabase.storage
+            .from('song-documents')
+            .uploadToSignedUrl(cleanFileName, signData.token, file);
+
+          if (!error && data) {
+            const publicUrl = signData.publicUrl || supabase.storage.from('song-documents').getPublicUrl(cleanFileName).data.publicUrl;
+            return { url: publicUrl, error: null };
+          }
+        }
+      }
+
+      // Fallback direct upload
+      const supabase = createClient();
       const { data, error } = await supabase.storage
         .from('song-documents')
         .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
