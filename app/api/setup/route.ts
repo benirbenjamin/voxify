@@ -35,11 +35,31 @@ export async function POST() {
 
     // List of candidate URLs to attempt
     const candidateUrls = [dbUrl];
-    if (dbUrl.includes('db.mdubljdeimlpntyzektn.supabase.co')) {
-      const pass = dbUrl.split(':')[2]?.split('@')[0] || '1202%21birthDATE';
+    const pass = dbUrl.split(':')[2]?.split('@')[0] || '1202%21birthDATE';
+    const ref = 'mdubljdeimlpntyzektn';
+
+    const poolerRegions = [
+      'aws-0-eu-central-1',
+      'aws-0-eu-west-1',
+      'aws-0-eu-west-2',
+      'aws-0-eu-west-3',
+      'aws-0-us-east-1',
+      'aws-0-us-east-2',
+      'aws-0-us-west-1',
+      'aws-0-us-west-2',
+      'aws-0-ap-southeast-1',
+      'aws-0-ap-southeast-2',
+      'aws-0-ap-south-1',
+      'aws-0-sa-east-1',
+      'aws-0-ca-central-1',
+      'aws-0-me-central-1',
+      'aws-0-af-south-1',
+    ];
+
+    for (const r of poolerRegions) {
       candidateUrls.push(
-        `postgresql://postgres.mdubljdeimlpntyzektn:${pass}@aws-0-eu-central-1.pooler.supabase.com:6543/postgres`,
-        `postgresql://postgres.mdubljdeimlpntyzektn:${pass}@aws-0-us-east-1.pooler.supabase.com:6543/postgres`
+        `postgresql://postgres.${ref}:${pass}@${r}.pooler.supabase.com:6543/postgres`,
+        `postgresql://postgres.${ref}:${pass}@${r}.pooler.supabase.com:5432/postgres`
       );
     }
 
