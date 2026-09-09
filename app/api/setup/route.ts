@@ -289,7 +289,7 @@ CREATE POLICY "Settings admin write" ON marketplace_settings FOR ALL USING (
 
     for (const urlStr of candidateUrls) {
       try {
-        sql = postgres(urlStr, { ssl: 'require', connect_timeout: 5 });
+        sql = postgres(urlStr, { ssl: { rejectUnauthorized: false }, connect_timeout: 10 });
         for (const relPath of migrationFiles) {
           const fullPath = path.join(/*turbopackIgnore: true*/ process.cwd(), relPath);
           if (fs.existsSync(fullPath)) {
@@ -313,10 +313,10 @@ CREATE POLICY "Settings admin write" ON marketplace_settings FOR ALL USING (
 
     if (!connected) {
       return NextResponse.json({
-        success: true,
-        message: 'Database schema and announcement comments/reactions fallback initialized seamlessly via REST API.',
-        details: [lastErr?.message || 'Handled pooler connection'],
-      });
+        success: false,
+        error: lastErr?.message || 'Failed to connect to database pooler.',
+        details: [lastErr?.stack || 'Handled pooler connection error'],
+      }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -326,9 +326,9 @@ CREATE POLICY "Settings admin write" ON marketplace_settings FOR ALL USING (
     });
   } catch (error: any) {
     return NextResponse.json({
-      success: true,
-      message: 'Database schema and announcement comments/reactions fallback initialized seamlessly via REST API.',
-      details: [error.message || 'Handled setup'],
-    });
+      success: false,
+      error: error.message || 'Handled setup error',
+      details: [error.stack || 'Handled setup error'],
+    }, { status: 500 });
   }
 }
