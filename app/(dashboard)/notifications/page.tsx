@@ -16,7 +16,13 @@ import {
   ExternalLink,
   MessageSquare,
   Loader2,
-  BellOff
+  BellOff,
+  ShoppingBag,
+  Wallet,
+  AlertTriangle,
+  DollarSign,
+  UserPlus,
+  Mic,
 } from 'lucide-react';
 
 export default function NotificationsPage() {
@@ -63,13 +69,49 @@ export default function NotificationsPage() {
   const getIconForType = (type: string) => {
     switch (type) {
       case 'song':
+      case 'song_published':
         return <Volume2 className="w-4 h-4 text-purple-400" />;
       case 'event':
         return <Calendar className="w-4 h-4 text-indigo-400" />;
       case 'announcement':
         return <MessageSquare className="w-4 h-4 text-amber-400" />;
+      case 'song_purchased':
+      case 'purchase_success':
+        return <ShoppingBag className="w-4 h-4 text-amber-400" />;
+      case 'payout_approved':
+        return <Wallet className="w-4 h-4 text-emerald-400" />;
+      case 'payout_rejected':
+        return <AlertTriangle className="w-4 h-4 text-rose-400" />;
+      case 'payout_request':
+        return <DollarSign className="w-4 h-4 text-indigo-400" />;
+      case 'user_registered':
+        return <UserPlus className="w-4 h-4 text-blue-400" />;
+      case 'artist_registered':
+        return <Mic className="w-4 h-4 text-purple-400" />;
       default:
         return <Sparkles className="w-4 h-4 text-emerald-400" />;
+    }
+  };
+
+  const getIconBgForType = (type: string) => {
+    switch (type) {
+      case 'song_purchased':
+      case 'purchase_success':
+        return 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/60';
+      case 'payout_approved':
+        return 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60';
+      case 'payout_rejected':
+        return 'bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800/60';
+      case 'payout_request':
+        return 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-800/60';
+      case 'artist_registered':
+      case 'song':
+      case 'song_published':
+        return 'bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800/60';
+      case 'user_registered':
+        return 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800/60';
+      default:
+        return 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700';
     }
   };
 
@@ -82,9 +124,9 @@ export default function NotificationsPage() {
             <Bell className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white">Choir Notifications</h1>
+            <h1 className="text-2xl font-black text-slate-900 dark:text-white">Live Notifications</h1>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Live updates, practice notices, and worship service announcements {activeChoir ? `for ${activeChoir.name}` : ''}
+              Live updates, marketplace sales, payouts, and choir worship notices {activeChoir ? `for ${activeChoir.name}` : ''}
             </p>
           </div>
         </div>
@@ -153,7 +195,7 @@ export default function NotificationsPage() {
                     : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700'
                 }`}
               >
-                <div className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 shrink-0 border border-blue-200 dark:border-blue-800/60 mt-0.5 shadow-xs">
+                <div className={`p-3 rounded-2xl shrink-0 border mt-0.5 shadow-xs ${getIconBgForType(n.type)}`}>
                   {getIconForType(n.type)}
                 </div>
 

@@ -1,9 +1,21 @@
 import { createClient } from '../supabase/client';
+import { createAdminClient } from '../supabase/admin';
 import { NotificationItem, NotificationPriority } from '../types/database.types';
+
+function getDbClient() {
+  if (typeof window === 'undefined') {
+    try {
+      return createAdminClient();
+    } catch {
+      return createClient();
+    }
+  }
+  return createClient();
+}
 
 export const notificationService = {
   async getUserNotifications(userId: string): Promise<NotificationItem[]> {
-    const supabase = createClient();
+    const supabase = getDbClient();
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
@@ -15,7 +27,7 @@ export const notificationService = {
   },
 
   async getUnreadCount(userId: string): Promise<number> {
-    const supabase = createClient();
+    const supabase = getDbClient();
     const { count, error } = await supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
@@ -27,7 +39,7 @@ export const notificationService = {
   },
 
   async markAsRead(notificationId: string): Promise<boolean> {
-    const supabase = createClient();
+    const supabase = getDbClient();
     const { error } = await supabase
       .from('notifications')
       .update({ is_read: true })
@@ -37,7 +49,7 @@ export const notificationService = {
   },
 
   async markAllAsRead(userId: string): Promise<boolean> {
-    const supabase = createClient();
+    const supabase = getDbClient();
     const { error } = await supabase
       .from('notifications')
       .update({ is_read: true })
@@ -56,7 +68,7 @@ export const notificationService = {
     priority?: NotificationPriority;
     link?: string;
   }): Promise<NotificationItem | null> {
-    const supabase = createClient();
+    const supabase = getDbClient();
     const { data, error } = await supabase
       .from('notifications')
       .insert({
@@ -72,8 +84,109 @@ export const notificationService = {
       .select()
       .single();
 
-    if (error || !data) return null;
+    if (error || !data) {
+      console.error('Error creating notification:', error);
+      return null;
+    }
     return data as NotificationItem;
+  },
+
+  async notifyUser(
+    userId: string,
+    payload: {
+      title: string;
+      message: string;
+      type?: string;
+      link?: string;
+      priority?: NotificationPriority;
+    }
+  ): Promise<boolean> {
+    const res = await this.createNotification({
+      user_id: userId,
+      ...payload,
+    });
+    return !!res;
+  },
+
+  async sendNotificationToSuperAdmins(payload: {
+    title: string;
+    message: string;
+    type?: string;
+    link?: string;
+    priority?: NotificationPriority;
+  }): Promise<boolean> {
+    try {
+      const supabase = getDbClient();
+      const { data: admins, error: adminErr } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('is_super_admin', true);
+
+      if (adminErr) {
+        console.error('Error fetching super admins:', adminErr);
+        return false;
+      }
+
+      if (!admins || admins.length === 0) return true;
+
+      const notifications = admins.map(a => ({
+        user_id: a.id,
+        title: payload.title,
+        message: payload.message,
+        type: payload.type || 'admin_alert',
+        priority: payload.priority || 'high',
+        link: payload.link || '/admin',
+        is_read: false,
+      }));
+
+      const { error } = await supabase.from('notifications').insert(notifications);
+      if (error) console.error('Error sending notification to super admins:', error);
+      return !error;
+    } catch (err) {
+      console.error('Exception in sendNotificationToSuperAdmins:', err);
+      return false;
+    }
+  },
+
+  async sendNotificationToArtist(
+    artistId: string,
+    payload: {
+      title: string;
+      message: string;
+      type?: string;
+      link?: string;
+      priority?: NotificationPriority;
+    }
+  ): Promise<boolean> {
+    try {
+      const supabase = getDbClient();
+      const { data: artist, error: artistErr } = await supabase
+        .from('artist_profiles')
+        .select('user_id')
+        .eq('id', artistId)
+        .maybeSingle();
+
+      if (artistErr || !artist?.user_id) {
+        console.warn(`[Notification] Artist ${artistId} user_id lookup note:`, artistErr?.message);
+        return false;
+      }
+
+      const { error } = await supabase.from('notifications').insert({
+        user_id: artist.user_id,
+        title: payload.title,
+        message: payload.message,
+        type: payload.type || 'artist_alert',
+        priority: payload.priority || 'high',
+        link: payload.link || '/artist/dashboard',
+        is_read: false,
+      });
+
+      if (error) console.error('Error sending notification to artist:', error);
+      return !error;
+    } catch (err) {
+      console.error('Exception in sendNotificationToArtist:', err);
+      return false;
+    }
   },
 
   async sendNotificationToChoir(

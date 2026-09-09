@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getAppUrl } from '@/lib/utils/appUrl';
+import { notificationService } from '@/lib/services/notificationService';
 
 export async function GET(req: Request) {
   try {
@@ -145,6 +146,33 @@ export async function GET(req: Request) {
       .from('marketplace_songs')
       .update({ purchases_count: (song.purchases_count || 0) + 1 })
       .eq('id', songId);
+
+    // In-App Notifications
+    try {
+      // 1. Notify the artist
+      if (song.artist?.user_id) {
+        await notificationService.notifyUser(song.artist.user_id, {
+          title: 'Song Purchased! 🎉',
+          message: `Great news! Your track "${song.title}" was just purchased. You earned ${netArtistAmount.toLocaleString()} RWF.`,
+          type: 'song_purchased',
+          link: '/artist/financials',
+          priority: 'high',
+        });
+      }
+
+      // 2. Notify the buyer
+      if (buyerId) {
+        await notificationService.notifyUser(buyerId, {
+          title: 'Song Purchase Confirmed! 🎵',
+          message: `You now own "${song.title}". Enjoy unlimited streaming and high-fidelity MP3 downloads.`,
+          type: 'purchase_success',
+          link: '/purchases',
+          priority: 'normal',
+        });
+      }
+    } catch (notifErr) {
+      console.warn('[Marketplace Verify] Notification dispatch note:', notifErr);
+    }
 
     return NextResponse.redirect(`${getAppUrl()}/purchases?success=true&song_id=${songId}`);
   } catch (err: any) {

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { marketplaceService } from '@/lib/services/marketplaceService';
+import { notificationService } from '@/lib/services/notificationService';
 import { Genre, MusicTypeCategory } from '@/lib/types/database.types';
 import { createClient } from '@/lib/supabase/client';
 import { BackButton } from '@/components/ui/BackButton';
@@ -428,6 +429,21 @@ export default function SongUploadPage() {
         currency: 'RWF',
         status: 'published',
       });
+
+      // Send In-App Notification to artist
+      try {
+        if (user?.id) {
+          await notificationService.notifyUser(user.id, {
+            title: 'Song Published Live! 🎶',
+            message: `"${title.trim()}" has been published to the Voxify Marketplace for ${Number(price || 1000).toLocaleString()} RWF.`,
+            type: 'song_published',
+            link: '/artist/dashboard',
+            priority: 'normal',
+          });
+        }
+      } catch (notifErr) {
+        console.warn('Song published notification note:', notifErr);
+      }
 
       router.push('/artist/dashboard');
     } catch (err: any) {

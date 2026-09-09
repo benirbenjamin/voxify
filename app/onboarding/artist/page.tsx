@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/context/AuthContext';
 import { artistService } from '@/lib/services/artistService';
 import { marketplaceService } from '@/lib/services/marketplaceService';
+import { notificationService } from '@/lib/services/notificationService';
 import { Genre, MusicTypeCategory } from '@/lib/types/database.types';
 import { Mic, Globe, CheckCircle2, AlertCircle, ArrowRight, Music, Smartphone, Sparkles, MapPin } from 'lucide-react';
 
@@ -106,6 +107,27 @@ export default function ArtistOnboardingPage() {
         avatar_url: avatarUrl.trim() || user?.avatar_url || undefined,
         banner_url: bannerUrl.trim() || undefined,
       });
+
+      // Send In-App Notifications
+      try {
+        await notificationService.sendNotificationToSuperAdmins({
+          title: 'New Artist Registered 🎤',
+          message: `"${stageName.trim()}" created an artist profile (${musicType === 'gospel' ? 'Gospel' : 'Secular'} music).`,
+          type: 'artist_registered',
+          link: '/admin/marketplace',
+          priority: 'normal',
+        });
+
+        await notificationService.notifyUser(currentUserId, {
+          title: 'Welcome to Voxify Artists! 🌟',
+          message: `Your artist profile "${stageName.trim()}" is ready. You can now upload songs to the marketplace and earn from purchases.`,
+          type: 'artist_registered',
+          link: '/artist/dashboard',
+          priority: 'normal',
+        });
+      } catch (notifErr) {
+        console.warn('Artist onboarding notification note:', notifErr);
+      }
 
       await refreshProfile();
       router.push('/artist/dashboard');

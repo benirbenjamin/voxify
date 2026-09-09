@@ -1,5 +1,6 @@
 import { createClient } from '../supabase/client';
 import { FinancialLedgerEntry, MarketplaceSettings, WithdrawalRequest, WithdrawalStatus } from '../types/database.types';
+import { notificationService } from './notificationService';
 
 export interface ArtistFinancialSummary {
   totalSalesCount: number;
@@ -194,6 +195,27 @@ export const financialService = {
       throw new Error(error.message || 'Failed to submit withdrawal request');
     }
 
+    // Trigger Admin In-App Notification for new payout request
+    try {
+      const { data: artistProfile } = await supabase
+        .from('artist_profiles')
+        .select('stage_name')
+        .eq('id', artistId)
+        .maybeSingle();
+
+      const artistName = artistProfile?.stage_name || 'An artist';
+
+      await notificationService.sendNotificationToSuperAdmins({
+        title: 'New Payout Request Submitted',
+        message: `Artist "${artistName}" requested a payout of ${amount.toLocaleString()} RWF via ${payoutMethod.toUpperCase()}.`,
+        type: 'payout_request',
+        link: '/admin/marketplace',
+        priority: 'high',
+      });
+    } catch (notifErr) {
+      console.warn('Payout request notification note:', notifErr);
+    }
+
     return data as WithdrawalRequest;
   },
 
@@ -273,7 +295,7 @@ export const financialService = {
       return false;
     }
 
-    // If paid, insert withdrawal entry into financial ledger
+    // If paid, insert withdrawal entry into financial ledger and notify artist
     if (status === 'paid') {
       const summary = await this.getArtistFinancialSummary(req.artist_id);
       await supabase.from('financial_ledger').insert({
@@ -286,6 +308,32 @@ export const financialService = {
         balance_after: summary.availableBalance,
         description: `Payout processed via ${req.payout_method.toUpperCase()}`,
       });
+
+      // Notify artist of approved payout
+      try {
+        await notificationService.sendNotificationToArtist(req.artist_id, {
+          title: 'Payout Approved & Sent! 💰',
+          message: `Your withdrawal of ${Number(req.net_payout_amount || req.amount).toLocaleString()} RWF via ${req.payout_method.toUpperCase()} has been approved and paid out.`,
+          type: 'payout_approved',
+          link: '/artist/financials',
+          priority: 'high',
+        });
+      } catch (notifErr) {
+        console.warn('Payout approval notification note:', notifErr);
+      }
+    } else if (status === 'rejected') {
+      // Notify artist of rejected payout
+      try {
+        await notificationService.sendNotificationToArtist(req.artist_id, {
+          title: 'Payout Request Declined',
+          message: `Your withdrawal request of ${Number(req.amount).toLocaleString()} RWF was declined${adminNote ? `: "${adminNote}"` : '.'}`,
+          type: 'payout_rejected',
+          link: '/artist/financials',
+          priority: 'normal',
+        });
+      } catch (notifErr) {
+        console.warn('Payout rejection notification note:', notifErr);
+      }
     }
 
     return true;
@@ -491,6 +539,33 @@ export const financialService = {
       .from('marketplace_songs')
       .update({ purchases_count: Math.max(1, (song.purchases_count || 0) + 1) })
       .eq('id', song.id);
+
+    // 6. Send In-App Notifications
+    try {
+      // Notify the artist
+      if (song.artist_id) {
+        await notificationService.sendNotificationToArtist(song.artist_id, {
+          title: 'Song Purchased! 🎉',
+          message: `Your track "${song.title}" was purchased for ${finalAmount.toLocaleString()} RWF. You earned ${netArtist.toLocaleString()} RWF.`,
+          type: 'song_purchased',
+          link: '/artist/financials',
+          priority: 'high',
+        });
+      }
+
+      // Notify the buyer
+      if (targetBuyerId) {
+        await notificationService.notifyUser(targetBuyerId, {
+          title: 'Song Purchase Confirmed! 🎵',
+          message: `Your purchase of "${song.title}" has been confirmed. You now have unlimited streaming and MP3 downloads.`,
+          type: 'purchase_success',
+          link: '/purchases',
+          priority: 'normal',
+        });
+      }
+    } catch (notifErr) {
+      console.warn('Manual purchase notification note:', notifErr);
+    }
 
     return { success: true, message: `Song "${song.title}" successfully marked as purchased!`, purchase };
   },

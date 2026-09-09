@@ -74,7 +74,7 @@ export function ChoirHeader() {
   }, [user]);
 
   return (
-    <header className="sticky top-0 z-40 w-full max-w-full overflow-hidden border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xs transition-colors duration-200">
+    <header className="sticky top-0 z-40 w-full max-w-full overflow-visible border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xs transition-colors duration-200">
       <div className="mx-auto flex h-16 max-w-7xl w-full items-center justify-between px-2 sm:px-6 lg:px-8">
         
         {/* Left Section: Brand Logo & Choir Switcher */}

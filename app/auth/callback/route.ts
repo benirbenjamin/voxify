@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { getAppUrl } from '@/lib/utils/appUrl';
+import { notificationService } from '@/lib/services/notificationService';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -28,6 +29,15 @@ export async function GET(request: Request) {
       const rolePref = userMeta.role_preference || 'singer';
       const userType = userMeta.user_type || (rolePref === 'artist' ? 'artist' : rolePref === 'director' ? 'choir_admin' : 'regular');
 
+      // Check if this is a newly registered profile
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      const isNewUser = !existingProfile;
+
       // Ensure profile row exists in database with user_type, full_name, email & phone number
       await supabase.from('profiles').upsert({
         id: data.user.id,
@@ -39,6 +49,20 @@ export async function GET(request: Request) {
         is_super_admin: false,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'id' });
+
+      if (isNewUser) {
+        try {
+          await notificationService.sendNotificationToSuperAdmins({
+            title: 'New User Registered 👤',
+            message: `${userMeta.full_name || data.user.email?.split('@')[0]} (${data.user.email}) confirmed their account as ${userType.replace('_', ' ')}.`,
+            type: 'user_registered',
+            link: '/admin/users',
+            priority: 'normal',
+          });
+        } catch (notifErr) {
+          console.warn('Registration callback notification note:', notifErr);
+        }
+      }
 
       // If next param was specified (e.g., /reset-password)
       if (next) {

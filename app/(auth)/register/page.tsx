@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getAppUrl } from '@/lib/utils/appUrl';
 import { useAuth } from '@/lib/context/AuthContext';
+import { notificationService } from '@/lib/services/notificationService';
 import { User, Mail, Lock, Phone, ArrowRight, AlertCircle, Crown, Mic, MailCheck, CheckCircle2 } from 'lucide-react';
 
 function RegisterContent() {
@@ -67,6 +68,19 @@ function RegisterContent() {
       setError(authError.message);
       setLoading(false);
       return;
+    }
+
+    // Trigger Super Admin Notification for new user registration
+    try {
+      await notificationService.sendNotificationToSuperAdmins({
+        title: 'New User Registered 👤',
+        message: `${fullName} (${email}) signed up on Voxify as ${rolePreference === 'artist' ? 'Artist' : rolePreference === 'director' ? 'Choir Director' : 'Choir Singer'}.`,
+        type: 'user_registered',
+        link: '/admin/users',
+        priority: 'normal',
+      });
+    } catch (notifErr) {
+      console.warn('Registration admin notification note:', notifErr);
     }
 
     // If session is active (auto-confirmed)
