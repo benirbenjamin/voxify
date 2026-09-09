@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { financialService, ArtistFinancialSummary } from '@/lib/services/financialService';
 import { FinancialLedgerEntry, WithdrawalRequest } from '@/lib/types/database.types';
+import { BackButton } from '@/components/ui/BackButton';
 import {
   Wallet,
   DollarSign,
@@ -123,15 +124,16 @@ export default function ArtistFinancialsPage() {
   if (!artistProfile) return null;
 
   return (
-    <div className="space-y-8 my-4">
+    <div className="space-y-6 my-4">
+      <BackButton href="/artist/dashboard" label="Back to Artist Dashboard" />
       
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-3xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-3xl shadow-sm">
         <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white flex items-center gap-2">
-            <Wallet className="w-7 h-7 text-amber-400" /> Financial Ledger &amp; Earnings
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+            <Wallet className="w-7 h-7 text-purple-600 dark:text-purple-400" /> Financial Ledger &amp; Earnings
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
             Immutable transaction records, platform commission splits, and Mobile Money payout requests.
           </p>
         </div>
@@ -141,8 +143,8 @@ export default function ArtistFinancialsPage() {
           disabled={(summary?.availableBalance || 0) < 50000}
           className={`px-5 py-3 rounded-2xl font-extrabold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 ${
             (summary?.availableBalance || 0) >= 50000
-              ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/20'
-              : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+              ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30 active:scale-95'
+              : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-300 dark:border-slate-700 cursor-not-allowed'
           }`}
         >
           <ArrowUpRight className="w-4 h-4" /> Request Payout (Min 50,000 RWF)

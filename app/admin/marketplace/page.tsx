@@ -7,6 +7,7 @@ import { artistService } from '@/lib/services/artistService';
 import { financialService } from '@/lib/services/financialService';
 import { marketplaceService } from '@/lib/services/marketplaceService';
 import { ArtistProfile, Genre, MarketplaceSettings, WithdrawalRequest } from '@/lib/types/database.types';
+import { BackButton } from '@/components/ui/BackButton';
 import {
   Shield,
   Sliders,
@@ -122,10 +123,11 @@ export default function AdminMarketplacePage() {
   }
 
   return (
-    <div className="space-y-8 my-4">
+    <div className="space-y-6 my-4">
+      <BackButton href="/admin" label="Back to Super Admin Dashboard" />
       
       {/* Header */}
-      <div className="bg-gradient-to-r from-amber-950 via-slate-900 to-purple-950 p-6 sm:p-8 rounded-3xl text-white shadow-2xl space-y-2">
+      <div className="bg-gradient-to-r from-purple-950 via-slate-900 to-indigo-950 border border-purple-500/30 p-6 sm:p-8 rounded-3xl text-white shadow-xl space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold uppercase">
           <Shield className="w-3.5 h-3.5" /> Super Admin Control Center
         </div>

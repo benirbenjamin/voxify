@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { BackButton } from '@/components/ui/BackButton';
 import {
   HardDrive,
   Cloud,
@@ -213,12 +214,7 @@ export default function AdminStoragePage() {
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
           <div>
-            <Link
-              href="/admin"
-              className="inline-flex items-center text-sm text-purple-400 hover:text-purple-300 font-medium mb-3 transition"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1" /> Back to Super Admin Dashboard
-            </Link>
+            <BackButton href="/admin" label="Back to Super Admin Dashboard" className="mb-3" />
             <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-3 text-white">
               <HardDrive className="w-8 h-8 text-purple-500" />
               Storage Management & Multi-Drive Pool

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/context/AuthContext';
 import { marketplaceService } from '@/lib/services/marketplaceService';
 import { Genre, MarketplaceSong } from '@/lib/types/database.types';
+import { BackButton } from '@/components/ui/BackButton';
 import {
   Sparkles,
   Search,
@@ -115,18 +116,21 @@ export default function MarketplacePage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FCFEFF] text-[#475569] pb-24">
+    <div className="space-y-6 pb-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+        <BackButton href="/dashboard" label="Back to Dashboard" />
+      </div>
       
       {/* Hero Banner Header */}
-      <div className="bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-blue-500/10 border-b border-[#E6F2FC] py-12 px-4 sm:px-8">
+      <div className="bg-gradient-to-r from-purple-900/40 via-indigo-950/40 to-slate-900/40 dark:from-purple-950/60 dark:via-slate-900 dark:to-indigo-950/60 border border-slate-200 dark:border-slate-800 rounded-3xl py-8 sm:py-12 px-6 sm:px-10 shadow-sm">
         <div className="max-w-7xl mx-auto space-y-4 text-center sm:text-left">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#DFF1FF] text-purple-700 font-extrabold text-xs uppercase tracking-wider border border-[#B9E2FF]">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-extrabold text-xs uppercase tracking-wider border border-purple-200 dark:border-purple-700/50">
             <Sparkles className="w-3.5 h-3.5" /> Music Marketplace &amp; Creator Platform
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-[#000000]">
+          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-slate-900 dark:text-white">
             Discover, Preview &amp; Own Original Songs
           </h1>
-          <p className="text-sm sm:text-base text-[#475569] max-w-2xl font-medium">
+          <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 max-w-2xl font-medium">
             Explore authentic Rwandan local genres (Sebene, Igisirimba, Zoulu, Reggae) and international Gospel &amp; Secular tracks from independent artists.
           </p>
 

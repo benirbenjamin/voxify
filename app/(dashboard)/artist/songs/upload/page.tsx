@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { marketplaceService } from '@/lib/services/marketplaceService';
 import { Genre, MusicTypeCategory } from '@/lib/types/database.types';
 import { createClient } from '@/lib/supabase/client';
+import { BackButton } from '@/components/ui/BackButton';
 import {
   UploadCloud,
   Music,
@@ -253,8 +254,9 @@ export default function SongUploadPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 my-6">
-      <div className="bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl">
+    <div className="max-w-3xl mx-auto space-y-6 my-6">
+      <BackButton href="/artist/dashboard" label="Back to Artist Dashboard" />
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 sm:p-8 rounded-3xl space-y-6 shadow-sm">
         
         {/* Header */}
         <div className="space-y-2 border-b border-slate-800 pb-6">

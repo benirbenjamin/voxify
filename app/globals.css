@@ -1,15 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 :root {
-  --background: #FCFEFF;
-  --section-bg: #F5FAFF;
-  --card-bg: #FFFFFF;
-  --highlight-bg: #DFF1FF;
-  --accent-primary: #B9E2FF;
-  --foreground: #475569;
-  --secondary: #A8B5C2;
-  --border: #E6F2FC;
+  --background: #f8fafc;
+  --section-bg: #ffffff;
+  --card-bg: #ffffff;
+  --highlight-bg: #f1f5f9;
+  --accent-primary: #9333ea;
+  --foreground: #0f172a;
+  --secondary: #475569;
+  --border: #e2e8f0;
 }
 
 html.dark {
@@ -17,7 +17,7 @@ html.dark {
   --section-bg: #0f172a;
   --card-bg: #1e293b;
   --highlight-bg: #1e1b4b;
-  --accent-primary: #9333ea;
+  --accent-primary: #a855f7;
   --foreground: #f8fafc;
   --secondary: #94a3b8;
   --border: #1e293b;
@@ -42,13 +42,13 @@ body {
 }
 
 /* ----------------------------------------------------
-   LIGHT MODE OVERRIDES (html.light) - Google App Style
-   Full contrast black text (#000000), pure white cards (#ffffff)
+   LIGHT MODE RULES (html.light) - Clean Google/Stripe Style
+   Pure crisp white cards, deep slate-900 black text, no washed-out opacity
    ---------------------------------------------------- */
 html.light,
 html.light body {
   background-color: #f8fafc !important;
-  color: #000000 !important;
+  color: #0f172a !important;
 }
 
 html.light .bg-\[\#FCFEFF\],
@@ -62,13 +62,7 @@ html.light .bg-slate-900\/70,
 html.light .bg-purple-950,
 html.light .bg-indigo-950 {
   background-color: #ffffff !important;
-  color: #000000 !important;
-}
-
-html.light .bg-\[\#FCFEFF\]\/80,
-html.light .bg-\[\#FCFEFF\]\/90 {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  color: #000000 !important;
+  color: #0f172a !important;
 }
 
 html.light .bg-\[\#DFF1FF\],
@@ -76,7 +70,7 @@ html.light .bg-purple-950\/60,
 html.light .bg-purple-900\/40,
 html.light .bg-slate-800 {
   background-color: #f1f5f9 !important;
-  color: #000000 !important;
+  color: #0f172a !important;
 }
 
 html.light .border-\[\#E6F2FC\],
@@ -86,25 +80,33 @@ html.light .border-slate-600 {
   border-color: #e2e8f0 !important;
 }
 
-html.light .text-\[\#475569\],
-html.light .text-\[\#A8B5C2\],
+/* Prevent text-white from becoming invisible inside cards in light mode */
+html.light .bg-white .text-white,
+html.light .bg-slate-50 .text-white,
+html.light .bg-slate-900 .text-white,
+html.light .bg-slate-950 .text-white {
+  color: #0f172a !important;
+}
+
 html.light .text-slate-100,
 html.light .text-slate-200,
-html.light .text-slate-300,
+html.light .text-slate-300 {
+  color: #1e293b !important;
+}
+
 html.light .text-slate-400,
-html.light .text-slate-500,
-html.light .text-slate-600 {
-  color: #000000 !important;
+html.light .text-slate-500 {
+  color: #475569 !important;
 }
 
 /* ----------------------------------------------------
-   DARK MODE OVERRIDES (html.dark)
-   Full dark navy/black background (#030712), bright white text (#ffffff)
+   DARK MODE RULES (html.dark)
+   Rich dark navy/black background, bright crisp white text
    ---------------------------------------------------- */
 html.dark,
 html.dark body {
   background-color: #030712 !important;
-  color: #ffffff !important;
+  color: #f8fafc !important;
 }
 
 html.dark .bg-\[\#FCFEFF\],
@@ -114,26 +116,9 @@ html.dark .bg-\[\#FFFFFF\] {
   color: #ffffff !important;
 }
 
-html.dark .bg-\[\#FCFEFF\]\/80,
-html.dark .bg-\[\#FCFEFF\]\/90 {
-  background-color: rgba(15, 23, 42, 0.92) !important;
-  color: #ffffff !important;
-}
-
-html.dark .bg-\[\#DFF1FF\],
-html.dark .bg-\[\#B9E2FF\] {
-  background-color: #1e1b4b !important;
-  color: #ffffff !important;
-}
-
 html.dark .border-\[\#E6F2FC\],
 html.dark .border-\[\#B9E2FC\] {
   border-color: #334155 !important;
-}
-
-html.dark .text-\[\#475569\],
-html.dark .text-\[\#A8B5C2\] {
-  color: #ffffff !important;
 }
 
 /* ----------------------------------------------------
@@ -141,34 +126,41 @@ html.dark .text-\[\#A8B5C2\] {
    All action buttons MUST have bold bright white text (#ffffff)
    ---------------------------------------------------- */
 .bg-purple-600,
+.bg-purple-500,
+.bg-purple-700,
 .bg-indigo-600,
+.bg-indigo-700,
 .bg-blue-600,
 .bg-emerald-600,
+.bg-emerald-500,
 .bg-rose-600,
+.bg-rose-500,
 .bg-amber-600,
-.bg-purple-700,
-.bg-indigo-700,
-.bg-blue-700 {
+.bg-amber-500,
+.bg-slate-900 {
   color: #ffffff !important;
 }
 
 .bg-purple-600 *,
+.bg-purple-500 *,
+.bg-purple-700 *,
 .bg-indigo-600 *,
+.bg-indigo-700 *,
 .bg-blue-600 *,
 .bg-emerald-600 *,
+.bg-emerald-500 *,
 .bg-rose-600 *,
+.bg-rose-500 *,
 .bg-amber-600 *,
-.bg-purple-700 *,
-.bg-indigo-700 *,
-.bg-blue-700 * {
+.bg-amber-500 * {
   color: #ffffff !important;
 }
 
-/* Smooth Entrance Keyframes */
+/* Animation Utilities */
 @keyframes fadeInUp {
   0% {
     opacity: 0;
-    transform: translateY(32px);
+    transform: translateY(24px);
   }
   100% {
     opacity: 1;
@@ -176,72 +168,6 @@ html.dark .text-\[\#A8B5C2\] {
   }
 }
 
-@keyframes fadeInScale {
-  0% {
-    opacity: 0;
-    transform: scale(0.94);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes floatGentle {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-@keyframes pulseGlow {
-  0%, 100% {
-    opacity: 0.35;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.65;
-    transform: scale(1.04);
-  }
-}
-
-/* Performance-Optimized Animation Classes */
 .animate-fade-in-up {
-  animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-fade-in-scale {
-  animation: fadeInScale 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-float-gentle {
-  animation: floatGentle 5s ease-in-out infinite;
-}
-
-.animate-pulse-glow {
-  animation: pulseGlow 6s ease-in-out infinite;
-}
-
-/* Stagger Delays */
-.delay-100 { animation-delay: 100ms; }
-.delay-200 { animation-delay: 200ms; }
-.delay-300 { animation-delay: 300ms; }
-.delay-400 { animation-delay: 400ms; }
-.delay-500 { animation-delay: 500ms; }
-
-/* CSS Scroll-Driven Reveal (Modern Browser Support) */
-@supports (animation-timeline: view()) {
-  .reveal-on-scroll {
-    animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
-    animation-timeline: view();
-    animation-range: entry 10% cover 35%;
-  }
-
-  .reveal-scale-on-scroll {
-    animation: fadeInScale 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
-    animation-timeline: view();
-    animation-range: entry 10% cover 30%;
-  }
+  animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
