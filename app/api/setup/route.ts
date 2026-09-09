@@ -202,14 +202,14 @@ CREATE TABLE IF NOT EXISTS withdrawal_requests (
 CREATE TABLE IF NOT EXISTS marketplace_settings (
   id TEXT PRIMARY KEY DEFAULT 'global',
   platform_commission_percent NUMERIC NOT NULL DEFAULT 15.0,
-  min_withdrawal_amount NUMERIC NOT NULL DEFAULT 50000.0,
+  min_withdrawal_amount NUMERIC NOT NULL DEFAULT 5000.0,
   withdrawal_fee_percent NUMERIC NOT NULL DEFAULT 0.0,
   allow_auto_artist_approval BOOLEAN NOT NULL DEFAULT true,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 INSERT INTO marketplace_settings (id, platform_commission_percent, min_withdrawal_amount)
-VALUES ('global', 15.0, 50000.0)
+VALUES ('global', 15.0, 5000.0)
 ON CONFLICT (id) DO NOTHING;
 
 ALTER TABLE genres ENABLE ROW LEVEL SECURITY;

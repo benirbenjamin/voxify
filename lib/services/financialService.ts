@@ -209,7 +209,7 @@ export const financialService = {
       return {
         id: 'global',
         platform_commission_percent: 15.0,
-        min_withdrawal_amount: 50000.0,
+        min_withdrawal_amount: 5000.0,
         withdrawal_fee_percent: 0.0,
         allow_auto_artist_approval: true,
         updated_at: new Date().toISOString(),
