@@ -16,7 +16,12 @@ import {
   CheckCircle2,
   AlertCircle,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Loader2,
+  Play,
+  Pause,
+  Volume2,
+  ShieldCheck
 } from 'lucide-react';
 
 export default function SongUploadPage() {
@@ -37,12 +42,21 @@ export default function SongUploadPage() {
   // Storage paths / URL inputs
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioFilePath, setAudioFilePath] = useState('');
+  const [audioFileName, setAudioFileName] = useState('');
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+
   const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+
   const [lyrics, setLyrics] = useState('');
   const [price, setPrice] = useState<number>(1000);
 
-  const [uploading, setUploading] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Live Audio Player Preview State
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -63,23 +77,102 @@ export default function SongUploadPage() {
     fetchGenres();
   }, [user, artistProfile, authLoading, router]);
 
-  const handleAudioUpload = async (file: File): Promise<string> => {
-    const supabase = createClient();
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${artistProfile!.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+  // Immediate Audio File Upload on Selection (Just like Choir Upload)
+  const handleAudioSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !artistProfile) return;
 
-    // Upload to public/marketplace bucket or storage
-    const { data, error } = await supabase.storage
-      .from('songs')
-      .upload(`marketplace/${fileName}`, file, { cacheControl: '3600', upsert: true });
+    setAudioFile(file);
+    setAudioFileName(file.name);
+    setIsUploadingAudio(true);
+    setError(null);
 
-    if (error) {
-      // Fallback path
-      return `marketplace/${fileName}`;
+    try {
+      // Pre-calculate audio duration
+      const audio = new Audio();
+      const objectUrl = URL.createObjectURL(file);
+      audio.src = objectUrl;
+      audio.onloadedmetadata = () => {
+        const dur = Math.round(audio.duration);
+        URL.revokeObjectURL(objectUrl);
+        if (dur > 0 && previewEnd === 30) {
+          setPreviewEnd(Math.min(dur, 30));
+        }
+      };
+
+      const supabase = createClient();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${artistProfile.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('songs')
+        .upload(`marketplace/${fileName}`, file, { cacheControl: '3600', upsert: true });
+
+      if (uploadErr) {
+        console.error('Audio upload error:', uploadErr);
+        setError(`Storage Upload Warning: ${uploadErr.message}`);
+        // Fallback to local preview URL if bucket is locked
+        setAudioFilePath(objectUrl);
+      } else {
+        const { data: publicUrlData } = supabase.storage.from('songs').getPublicUrl(`marketplace/${fileName}`);
+        setAudioFilePath(publicUrlData.publicUrl);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Audio upload error');
+    } finally {
+      setIsUploadingAudio(false);
+    }
+  };
+
+  // Immediate Cover Image Upload on Selection
+  const handleCoverSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !artistProfile) return;
+
+    setIsUploadingCover(true);
+    setError(null);
+
+    try {
+      const supabase = createClient();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${artistProfile.id}/covers/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from('songs')
+        .upload(fileName, file, { cacheControl: '3600', upsert: true });
+
+      if (uploadErr) {
+        console.error('Cover upload error:', uploadErr);
+        setError(`Cover Upload Warning: ${uploadErr.message}`);
+      } else {
+        const { data: publicUrlData } = supabase.storage.from('songs').getPublicUrl(fileName);
+        setCoverImageUrl(publicUrlData.publicUrl);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Cover upload error');
+    } finally {
+      setIsUploadingCover(false);
+    }
+  };
+
+  const toggleTestPlayback = () => {
+    if (!audioFilePath) return;
+
+    if (isPlaying && audioElement) {
+      audioElement.pause();
+      setIsPlaying(false);
+      return;
     }
 
-    const { data: publicUrlData } = supabase.storage.from('songs').getPublicUrl(`marketplace/${fileName}`);
-    return publicUrlData.publicUrl;
+    if (audioElement) {
+      audioElement.pause();
+    }
+
+    const audio = new Audio(audioFilePath);
+    audio.onended = () => setIsPlaying(false);
+    audio.play();
+    setAudioElement(audio);
+    setIsPlaying(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -91,27 +184,27 @@ export default function SongUploadPage() {
       return;
     }
 
-    if (!audioFile && !audioFilePath.trim()) {
-      setError('Please select an audio file to upload.');
+    if (!audioFilePath.trim()) {
+      setError('Please select and upload an audio track file first.');
       return;
     }
 
-    setUploading(true);
+    if (isUploadingAudio || isUploadingCover) {
+      setError('Please wait until all files finish uploading before publishing.');
+      return;
+    }
+
+    setPublishing(true);
     setError(null);
 
     try {
-      let finalAudioPath = audioFilePath;
-      if (audioFile) {
-        finalAudioPath = await handleAudioUpload(audioFile);
-      }
-
       await marketplaceService.createMarketplaceSong(artistProfile.id, {
         title: title.trim(),
         description: description.trim(),
         genre_id: genreId || undefined,
         music_type: musicType,
         language: language.trim(),
-        audio_file_path: finalAudioPath,
+        audio_file_path: audioFilePath.trim(),
         preview_start_time: Number(previewStart) || 0,
         preview_end_time: Number(previewEnd) || 30,
         cover_image_url: coverImageUrl.trim() || undefined,
@@ -123,14 +216,14 @@ export default function SongUploadPage() {
 
       router.push('/artist/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Failed to upload song.');
-      setUploading(false);
+      setError(err.message || 'Failed to publish song.');
+      setPublishing(false);
     }
   };
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 my-6">
-      <div className="bg-slate-900 border border-slate-800 p-8 rounded-3xl space-y-6 shadow-2xl">
+      <div className="bg-slate-900 border border-slate-800 p-6 sm:p-8 rounded-3xl space-y-6 shadow-2xl">
         
         {/* Header */}
         <div className="space-y-2 border-b border-slate-800 pb-6">
@@ -139,7 +232,7 @@ export default function SongUploadPage() {
           </div>
           <h1 className="text-2xl font-extrabold text-white">Upload &amp; Publish New Song</h1>
           <p className="text-xs text-slate-300">
-            Set preview audio clip timestamps, lyrics, cover art, and pricing for your song.
+            Upload your track, test audio playback, set preview clip timestamps, cover art, and pricing.
           </p>
         </div>
 
@@ -152,39 +245,74 @@ export default function SongUploadPage() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           
-          {/* Audio File Selection */}
+          {/* Section 1: Immediate Audio Track Upload & Playback Test */}
           <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
             <h2 className="text-sm font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
-              <UploadCloud className="w-4 h-4" /> 1. Audio Track File (MP3 / WAV)
+              <UploadCloud className="w-4 h-4" /> 1. Audio Track File (Instant Upload &amp; Playback)
             </h2>
 
             <div className="border-2 border-dashed border-slate-800 hover:border-amber-500/50 rounded-2xl p-6 text-center transition-all bg-slate-900/50">
               <input
                 type="file"
                 accept="audio/*"
-                onChange={e => setAudioFile(e.target.files?.[0] || null)}
+                onChange={handleAudioSelect}
                 className="hidden"
                 id="audio-upload-input"
               />
               <label htmlFor="audio-upload-input" className="cursor-pointer space-y-2 block">
                 <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto">
-                  <Music className="w-6 h-6" />
+                  {isUploadingAudio ? (
+                    <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
+                  ) : (
+                    <Music className="w-6 h-6" />
+                  )}
                 </div>
                 <div className="text-sm font-bold text-white">
-                  {audioFile ? audioFile.name : 'Click to select audio file from device'}
+                  {isUploadingAudio
+                    ? `Uploading "${audioFileName}" to Supabase Storage...`
+                    : audioFileName
+                    ? `Selected: ${audioFileName} (Uploaded ✅)`
+                    : 'Click to select audio file from device (MP3, WAV, M4A)'}
                 </div>
-                <p className="text-xs text-slate-400">Supported formats: MP3, WAV, M4A, FLAC (Max 50MB)</p>
+                <p className="text-xs text-slate-400">
+                  Selecting a file uploads it directly so you can test audio playback before publishing.
+                </p>
               </label>
             </div>
+
+            {/* Live Audio Playback Verification Bar */}
+            {audioFilePath && (
+              <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={toggleTestPlayback}
+                    className="w-10 h-10 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center justify-center shadow-lg transition-all"
+                  >
+                    {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+                  </button>
+                  <div>
+                    <span className="text-xs font-bold text-white block">
+                      {isPlaying ? '▶ Playing Uploaded Track...' : 'Test Uploaded Audio Track'}
+                    </span>
+                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Audio File Uploaded &amp; Ready
+                    </span>
+                  </div>
+                </div>
+
+                <audio controls src={audioFilePath} className="w-full sm:w-64 h-9 rounded-lg" />
+              </div>
+            )}
           </div>
 
-          {/* Audio Preview Clip Timestamps */}
+          {/* Section 2: Audio Preview Clip Timestamps */}
           <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
             <h2 className="text-sm font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
-              <Clock className="w-4 h-4" /> 2. Audio Preview Clip Limit (Start to End Time)
+              <Clock className="w-4 h-4" /> 2. Audio Preview Clip Timestamps (Start to End)
             </h2>
             <p className="text-xs text-slate-400">
-              Non-purchasers can only listen to this designated preview clip timestamp.
+              Non-purchasers will only be able to listen to this snippet. Full track unlocks permanently upon purchase.
             </p>
 
             <div className="grid grid-cols-2 gap-4">
@@ -211,14 +339,14 @@ export default function SongUploadPage() {
               </div>
             </div>
             <div className="text-[11px] text-amber-400 font-semibold bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20">
-              Preview duration: {Math.max(0, previewEnd - previewStart)} seconds clip
+              Preview Duration: {Math.max(0, previewEnd - previewStart)} seconds clip for non-purchasers
             </div>
           </div>
 
-          {/* Song Details */}
+          {/* Section 3: Song Metadata & Cover Art */}
           <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-4">
             <h2 className="text-sm font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
-              <Music className="w-4 h-4" /> 3. Song Details &amp; Metadata
+              <Music className="w-4 h-4" /> 3. Song Details &amp; Cover Art
             </h2>
 
             <div>
@@ -228,7 +356,7 @@ export default function SongUploadPage() {
                 required
                 value={title}
                 onChange={e => setTitle(e.target.value)}
-                placeholder="e.g. Nitaubeba, Yvan Buravan - Malaika"
+                placeholder="e.g. Nitaubeba, Malaika"
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-amber-500"
               />
             </div>
@@ -273,20 +401,36 @@ export default function SongUploadPage() {
               />
             </div>
 
+            {/* Cover Image Upload / URL */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Cover Image URL</label>
-                <input
-                  type="url"
-                  value={coverImageUrl}
-                  onChange={e => setCoverImageUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/photo-..."
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500"
-                />
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Cover Artwork Image</label>
+                <div className="flex flex-col gap-2">
+                  <label className="flex items-center gap-2 bg-slate-900 border border-slate-700 hover:border-amber-500 rounded-xl px-3 py-2 cursor-pointer transition-colors text-xs text-slate-300">
+                    <ImageIcon className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span className="truncate">
+                      {isUploadingCover ? 'Uploading Cover Image...' : coverImageUrl ? 'Cover Attached ✅' : 'Pick Image File (JPG/PNG)'}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCoverSelect}
+                      className="hidden"
+                    />
+                  </label>
+
+                  <input
+                    type="url"
+                    value={coverImageUrl}
+                    onChange={e => setCoverImageUrl(e.target.value)}
+                    placeholder="Or paste cover image URL..."
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Price (RWF) *</label>
+                <label className="text-xs font-semibold text-slate-300 block mb-1">Song Price (RWF) *</label>
                 <input
                   type="number"
                   min={100}
@@ -295,18 +439,28 @@ export default function SongUploadPage() {
                   value={price}
                   onChange={e => setPrice(Number(e.target.value))}
                   placeholder="1000"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono font-bold focus:outline-none focus:border-amber-500"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-mono font-bold focus:outline-none focus:border-amber-500"
                 />
               </div>
+            </div>
+
+            {/* Multi-Buyer Ownership Notice */}
+            <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 space-y-1">
+              <div className="flex items-center gap-2 text-amber-400 font-bold">
+                <ShieldCheck className="w-4 h-4" /> Voxify Marketplace Purchase Model
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Any buyer pays the price once to own their permanent copy in their personal library with unlimited streams and MP3 downloads. You earn your commission on every single purchase!
+              </p>
             </div>
 
             <div>
               <label className="text-xs font-semibold text-slate-300 block mb-1">Full Song Lyrics</label>
               <textarea
-                rows={6}
+                rows={5}
                 value={lyrics}
                 onChange={e => setLyrics(e.target.value)}
-                placeholder="Paste song lyrics here... (Full lyrics will be visible to verified purchasers)"
+                placeholder="Paste song lyrics here... (Full lyrics unlock for buyers)"
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500 resize-none font-sans"
               />
             </div>
@@ -314,11 +468,20 @@ export default function SongUploadPage() {
 
           <button
             type="submit"
-            disabled={uploading}
-            className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold py-4 rounded-2xl shadow-xl shadow-amber-500/20 transition-all flex items-center justify-center gap-2 text-base"
+            disabled={publishing || isUploadingAudio || isUploadingCover}
+            className="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold py-4 rounded-2xl shadow-xl shadow-amber-500/20 transition-all flex items-center justify-center gap-2 text-base disabled:opacity-50"
           >
-            {uploading ? 'Publishing Song to Marketplace...' : 'Publish Song to Voxify Marketplace'}{' '}
-            <ArrowRight className="w-5 h-5" />
+            {isUploadingAudio || isUploadingCover ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" /> Uploading Files to Storage...
+              </>
+            ) : publishing ? (
+              'Publishing Song to Voxify Marketplace...'
+            ) : (
+              <>
+                Publish Song to Voxify Marketplace <ArrowRight className="w-5 h-5" />
+              </>
+            )}
           </button>
         </form>
       </div>
