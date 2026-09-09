@@ -16,8 +16,17 @@ async function main() {
     'aws-0-us-west-1.pooler.supabase.com',
     'aws-0-us-west-2.pooler.supabase.com',
     'aws-0-ap-southeast-1.pooler.supabase.com',
-    'aws-0-ca-central-1.pooler.supabase.com',
+    'aws-0-ap-southeast-2.pooler.supabase.com',
+    'aws-0-ap-south-1.pooler.supabase.com',
     'aws-0-sa-east-1.pooler.supabase.com',
+    'aws-0-ca-central-1.pooler.supabase.com',
+  ];
+
+  const candidateUsers = [
+    `postgres.${ref}`,
+    `postgres`,
+    `service_role.${ref}`,
+    `service_role`,
   ];
 
   const sqlFilePath = path.join(process.cwd(), 'supabase/migrations/00007_artist_marketplace_schema.sql');
@@ -26,30 +35,34 @@ async function main() {
   let activeClient = null;
 
   for (const host of poolerHosts) {
-    for (const port of [6543, 5432]) {
-      const connStr = `postgresql://postgres.${ref}:${pass}@${host}:${port}/postgres`;
-      try {
-        console.log(`Connecting to ${host}:${port} ...`);
-        const client = postgres(connStr, { ssl: 'require', connect_timeout: 12, prepare: false });
-        await client`SELECT 1`;
-        console.log(`🎉 CONNECTED SUCCESSFULLY to ${host}:${port}!`);
-        activeClient = client;
-        break;
-      } catch (err) {
-        console.log(`  ❌ Failed: ${err.message}`);
+    for (const user of candidateUsers) {
+      for (const port of [5432, 6543]) {
+        const connStr = `postgresql://${user}:${pass}@${host}:${port}/postgres`;
+        try {
+          const client = postgres(connStr, { ssl: 'require', connect_timeout: 4 });
+          await client`SELECT 1`;
+          console.log(`\n🎉 CONNECTED SUCCESSFULLY to ${host}:${port} as ${user}!`);
+          activeClient = client;
+          break;
+        } catch (err) {
+          if (!err.message.includes('ENOTFOUND') && !err.message.includes('tenant/user')) {
+            console.log(`Attempt ${host}:${port} user=${user} -> ${err.message}`);
+          }
+        }
       }
+      if (activeClient) break;
     }
     if (activeClient) break;
   }
 
   if (!activeClient) {
-    console.error('All pooler hosts failed.');
+    console.error('\n❌ Could not find an active pooler route.');
     process.exit(1);
   }
 
   console.log('📦 Executing Migration 00007 (Artist & Marketplace Schema)...');
   await activeClient.unsafe(sqlContent);
-  console.log('🎉 ALL MARKETPLACE TABLES AND RLS POLICIES APPLIED SUCCESSFULLY!');
+  console.log('✅ MIGRATION 00007 EXECUTED SUCCESSFULLY ON SUPABASE DB!');
   await activeClient.end();
 }
 

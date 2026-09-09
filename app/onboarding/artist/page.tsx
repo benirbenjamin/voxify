@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/context/AuthContext';
 import { artistService } from '@/lib/services/artistService';
 import { marketplaceService } from '@/lib/services/marketplaceService';
@@ -67,7 +68,11 @@ export default function ArtistOnboardingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) {
+    const supabase = createClient();
+    const { data: { user: authUser } } = await supabase.auth.getUser();
+    const currentUserId = user?.id || authUser?.id;
+
+    if (!currentUserId) {
       setError('You must be signed in to set up an artist profile.');
       return;
     }
@@ -81,7 +86,7 @@ export default function ArtistOnboardingPage() {
     setError(null);
 
     try {
-      await artistService.createArtistProfile(user.id, {
+      await artistService.createArtistProfile(currentUserId, {
         stage_name: stageName.trim(),
         bio: bio.trim(),
         genres: selectedGenres,
@@ -98,7 +103,7 @@ export default function ArtistOnboardingPage() {
           phone_number: momoNumber.trim(),
           account_name: momoName.trim(),
         },
-        avatar_url: avatarUrl.trim() || user.avatar_url || undefined,
+        avatar_url: avatarUrl.trim() || user?.avatar_url || undefined,
         banner_url: bannerUrl.trim() || undefined,
       });
 

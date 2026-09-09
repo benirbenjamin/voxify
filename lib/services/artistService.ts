@@ -47,12 +47,32 @@ export const artistService = {
   async createArtistProfile(userId: string, payload: CreateArtistPayload): Promise<ArtistProfile> {
     const supabase = createClient();
 
+    // Ensure parent profile row exists in profiles table to satisfy foreign key constraint
+    const { data: { session } } = await supabase.auth.getSession();
+    const currentUser = session?.user;
+
+    const { data: existingProf } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (!existingProf) {
+      await supabase.from('profiles').upsert({
+        id: userId,
+        full_name: currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || payload.stage_name,
+        email: currentUser?.email || '',
+        user_type: 'artist',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'id' });
+    }
+
     // Check if auto approval is enabled in marketplace settings
     const { data: settings } = await supabase
       .from('marketplace_settings')
       .select('allow_auto_artist_approval')
       .eq('id', 'global')
-      .single();
+      .maybeSingle();
 
     const initialStatus: ArtistStatus = settings?.allow_auto_artist_approval ? 'approved' : 'pending';
 
