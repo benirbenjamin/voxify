@@ -14,13 +14,15 @@ async function verifySuperAdmin() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return false;
 
+  if (user.user_metadata?.is_super_admin === true) return true;
+
   const { data: profile } = await supabase
-    .from('users')
-    .select('role')
+    .from('profiles')
+    .select('is_super_admin')
     .eq('id', user.id)
     .maybeSingle();
 
-  return profile?.role === 'super_admin';
+  return profile?.is_super_admin === true;
 }
 
 export async function GET(request: Request) {

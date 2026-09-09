@@ -82,6 +82,7 @@ export async function updateStorageSettings(settings: Partial<PlatformStorageSet
     } else {
       const { error } = await supabase.from('platform_settings').insert([
         {
+          id: 'global',
           storage_mode: settings.storage_mode || 'supabase_primary',
           storage_fallback_enabled: settings.storage_fallback_enabled ?? true,
         },
