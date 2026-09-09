@@ -303,6 +303,67 @@ CREATE POLICY "Settings admin write" ON marketplace_settings FOR ALL USING (
         await sql.unsafe(embedded00007Sql);
         results.push('Executed: embedded_00007_artist_marketplace');
 
+        // Execute embedded migration 00008 for storage provider schema
+        const embedded00008Sql = `
+ALTER TABLE public.platform_settings
+ADD COLUMN IF NOT EXISTS storage_mode TEXT NOT NULL DEFAULT 'supabase_primary',
+ADD COLUMN IF NOT EXISTS storage_fallback_enabled BOOLEAN NOT NULL DEFAULT true;
+
+CREATE TABLE IF NOT EXISTS public.google_drive_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_email TEXT NOT NULL UNIQUE,
+  folder_id TEXT NOT NULL DEFAULT '',
+  credentials_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+  status TEXT NOT NULL DEFAULT 'active',
+  max_storage_mb NUMERIC NOT NULL DEFAULT 15000,
+  used_storage_mb NUMERIC NOT NULL DEFAULT 0,
+  file_count INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_google_drive_accounts_status ON public.google_drive_accounts(status, created_at);
+
+CREATE OR REPLACE FUNCTION update_google_drive_accounts_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_google_drive_accounts_updated_at ON public.google_drive_accounts;
+CREATE TRIGGER trg_google_drive_accounts_updated_at
+  BEFORE UPDATE ON public.google_drive_accounts
+  FOR EACH ROW
+  EXECUTE FUNCTION update_google_drive_accounts_updated_at();
+
+ALTER TABLE public.google_drive_accounts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Super admins can manage google_drive_accounts" ON public.google_drive_accounts;
+CREATE POLICY "Super admins can manage google_drive_accounts"
+  ON public.google_drive_accounts
+  FOR ALL
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE public.profiles.id = auth.uid()
+      AND public.profiles.is_super_admin = true
+    )
+  );
+
+DROP POLICY IF EXISTS "Service role full access to google_drive_accounts" ON public.google_drive_accounts;
+CREATE POLICY "Service role full access to google_drive_accounts"
+  ON public.google_drive_accounts
+  FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+`;
+        await sql.unsafe(embedded00008Sql);
+        results.push('Executed: embedded_00008_storage_provider_schema');
+
         await sql.end();
         connected = true;
         break;

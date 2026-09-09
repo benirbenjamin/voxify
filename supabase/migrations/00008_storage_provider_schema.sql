@@ -48,9 +48,9 @@ CREATE POLICY "Super admins can manage google_drive_accounts"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM public.users
-      WHERE public.users.id = auth.uid()
-      AND public.users.role = 'super_admin'
+      SELECT 1 FROM public.profiles
+      WHERE public.profiles.id = auth.uid()
+      AND public.profiles.is_super_admin = true
     )
   );
 

@@ -12,23 +12,27 @@ import {
   AlertTriangle,
   RefreshCw,
   ArrowLeft,
-  Key,
   Database,
   Mail,
   Folder,
   Sliders,
-  ShieldCheck,
 } from 'lucide-react';
-import {
-  getStorageSettings,
-  updateStorageSettings,
-  getDriveAccounts,
-  addDriveAccount,
-  updateDriveAccount,
-  deleteDriveAccount,
-  GoogleDriveAccount,
-  PlatformStorageSettings,
-} from '@/lib/services/googleDriveService';
+
+interface GoogleDriveAccount {
+  id: string;
+  account_email: string;
+  folder_id: string;
+  status: 'active' | 'full' | 'disabled';
+  max_storage_mb: number;
+  used_storage_mb: number;
+  file_count: number;
+  created_at?: string;
+}
+
+interface PlatformStorageSettings {
+  storage_mode: 'supabase_primary' | 'google_drive_primary' | 'supabase_only';
+  storage_fallback_enabled: boolean;
+}
 
 export default function AdminStoragePage() {
   const [settings, setSettings] = useState<PlatformStorageSettings>({
@@ -37,7 +41,6 @@ export default function AdminStoragePage() {
   });
   const [accounts, setAccounts] = useState<GoogleDriveAccount[]>([]);
   const [loading, setLoading] = useState(true);
-  const [savingSettings, setSavingSettings] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Modal / Form state for adding new Google Drive account
@@ -55,9 +58,14 @@ export default function AdminStoragePage() {
   async function loadData() {
     setLoading(true);
     try {
-      const [sData, aData] = await Promise.all([getStorageSettings(), getDriveAccounts()]);
-      setSettings(sData);
-      setAccounts(aData);
+      const res = await fetch('/api/admin/storage');
+      const data = await res.json();
+      if (res.ok) {
+        if (data.settings) setSettings(data.settings);
+        if (data.accounts) setAccounts(data.accounts);
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to load storage configuration' });
+      }
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to load storage configuration' });
     } finally {
@@ -65,23 +73,30 @@ export default function AdminStoragePage() {
     }
   }
 
-  async function handleSaveSettings(mode?: 'supabase_primary' | 'google_drive_primary' | 'supabase_only', fallback?: boolean) {
-    setSavingSettings(true);
+  async function handleSaveSettings(mode?: 'supabase_primary' | 'google_drive_primary' | 'supabase_only') {
     setMessage(null);
 
     const newSettings = {
       storage_mode: mode !== undefined ? mode : settings.storage_mode,
-      storage_fallback_enabled: fallback !== undefined ? fallback : settings.storage_fallback_enabled,
+      storage_fallback_enabled: settings.storage_fallback_enabled,
     };
 
-    const res = await updateStorageSettings(newSettings);
-    setSavingSettings(false);
+    try {
+      const res = await fetch('/api/admin/storage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_settings', ...newSettings }),
+      });
+      const data = await res.json();
 
-    if (res.success) {
-      setSettings(newSettings);
-      setMessage({ type: 'success', text: 'Storage settings saved successfully!' });
-    } else {
-      setMessage({ type: 'error', text: res.error || 'Failed to save storage settings' });
+      if (res.ok && data.success) {
+        setSettings(newSettings);
+        setMessage({ type: 'success', text: 'Storage settings saved successfully!' });
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to save storage settings' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to save settings' });
     }
   }
 
@@ -103,29 +118,35 @@ export default function AdminStoragePage() {
       let parsedJson: any;
       try {
         parsedJson = JSON.parse(newCredsJson);
-      } catch (e) {
-        // If simple API key / access token string
+      } catch {
         parsedJson = { access_token: newCredsJson.trim() };
       }
 
       const maxMb = (parseFloat(newMaxGb) || 15) * 1024;
-      const res = await addDriveAccount({
-        account_email: newEmail.trim(),
-        folder_id: newFolderId.trim(),
-        credentials_json: parsedJson,
-        max_storage_mb: maxMb,
-      });
 
-      if (res.data) {
-        setAccounts((prev) => [...prev, res.data!]);
+      const res = await fetch('/api/admin/storage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_account',
+          account_email: newEmail.trim(),
+          folder_id: newFolderId.trim(),
+          credentials_json: parsedJson,
+          max_storage_mb: maxMb,
+        }),
+      });
+      const result = await res.json();
+
+      if (result.data) {
+        setAccounts((prev) => [...prev, result.data]);
         setShowAddModal(false);
         setNewEmail('');
         setNewFolderId('');
         setNewMaxGb('15');
         setNewCredsJson('');
-        setMessage({ type: 'success', text: `Google Drive account '${res.data.account_email}' added to rotation pool!` });
+        setMessage({ type: 'success', text: `Google Drive account '${result.data.account_email}' added to rotation pool!` });
       } else {
-        setMessage({ type: 'error', text: res.error || 'Failed to add Google Drive account' });
+        setMessage({ type: 'error', text: result.error || 'Failed to add Google Drive account' });
       }
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Error processing credentials JSON' });
@@ -135,27 +156,48 @@ export default function AdminStoragePage() {
   }
 
   async function handleToggleStatus(account: GoogleDriveAccount) {
-    const nextStatus = account.status === 'active' ? 'disabled' : account.status === 'disabled' ? 'active' : 'active';
-    const res = await updateDriveAccount(account.id, { status: nextStatus });
-    if (res.success) {
-      setAccounts((prev) =>
-        prev.map((a) => (a.id === account.id ? { ...a, status: nextStatus } : a))
-      );
-      setMessage({ type: 'success', text: `Account '${account.account_email}' status updated to ${nextStatus}` });
-    } else {
-      setMessage({ type: 'error', text: res.error || 'Failed to update account status' });
+    const nextStatus = account.status === 'active' ? 'disabled' : 'active';
+
+    try {
+      const res = await fetch('/api/admin/storage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update_account', id: account.id, updates: { status: nextStatus } }),
+      });
+      const result = await res.json();
+
+      if (res.ok && result.success) {
+        setAccounts((prev) =>
+          prev.map((a) => (a.id === account.id ? { ...a, status: nextStatus } : a))
+        );
+        setMessage({ type: 'success', text: `Account '${account.account_email}' status updated to ${nextStatus}` });
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Failed to update account status' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to update account' });
     }
   }
 
   async function handleDeleteAccount(id: string, email: string) {
     if (!confirm(`Are you sure you want to remove '${email}' from the Google Drive pool?`)) return;
 
-    const res = await deleteDriveAccount(id);
-    if (res.success) {
-      setAccounts((prev) => prev.filter((a) => a.id !== id));
-      setMessage({ type: 'success', text: `Removed '${email}' from pool.` });
-    } else {
-      setMessage({ type: 'error', text: res.error || 'Failed to delete account' });
+    try {
+      const res = await fetch('/api/admin/storage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_account', id }),
+      });
+      const result = await res.json();
+
+      if (res.ok && result.success) {
+        setAccounts((prev) => prev.filter((a) => a.id !== id));
+        setMessage({ type: 'success', text: `Removed '${email}' from pool.` });
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Failed to delete account' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to delete account' });
     }
   }
 
