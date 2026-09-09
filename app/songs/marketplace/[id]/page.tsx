@@ -150,6 +150,11 @@ export default function SongDetailsPage() {
       return;
     }
 
+    if ((song?.purchases_count || 0) > 0 && !song?.is_purchased) {
+      setPurchaseError('This exclusive song has already been purchased by another buyer.');
+      return;
+    }
+
     // Stop preview before checkout redirect
     if (audioElement) {
       audioElement.pause();
@@ -305,12 +310,16 @@ export default function SongDetailsPage() {
             {song.is_purchased ? (
               <a
                 href={`/api/marketplace/download/${song.id}`}
-                target="_blank"
-                rel="noreferrer"
+                download
                 className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-6 py-3.5 rounded-2xl shadow-lg transition-all flex items-center gap-2 text-sm"
               >
                 <Download className="w-5 h-5" /> Download Full Audio Track
               </a>
+            ) : (song.purchases_count || 0) > 0 ? (
+              <div className="bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 font-extrabold px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm">
+                <CheckCircle2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                <span>Exclusive Track — Sold &amp; Owned by Buyer</span>
+              </div>
             ) : (
               <button
                 onClick={handleBuy}

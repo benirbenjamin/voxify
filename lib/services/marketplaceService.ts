@@ -10,6 +10,7 @@ export interface FilterSongsOptions {
   sortBy?: 'popular' | 'latest' | 'price_asc' | 'price_desc';
   limit?: number;
   offset?: number;
+  hidePurchased?: boolean;
 }
 
 export interface CreateSongPayload {
@@ -97,6 +98,17 @@ export const marketplaceService = {
     // Filter local genres client side if requested
     if (options.isLocalOnly) {
       result = result.filter(song => song.genre?.is_local === true);
+    }
+
+    // Hide purchased songs if requested (e.g. for homepage / available catalog)
+    if (options.hidePurchased && result.length > 0) {
+      const songIds = result.map(s => s.id);
+      const { data: purchaseRows } = await supabase
+        .from('user_purchases')
+        .select('song_id')
+        .in('song_id', songIds);
+      const purchasedSet = new Set((purchaseRows || []).map(p => p.song_id));
+      result = result.filter(song => (song.purchases_count === 0 || !song.purchases_count) && !purchasedSet.has(song.id));
     }
 
     // Check user purchase state & liked state if logged in
@@ -302,5 +314,77 @@ export const marketplaceService = {
       throw new Error('Failed to post comment');
     }
     return data as SongComment;
+  },
+
+  async listAllSongsForAdmin(): Promise<any[]> {
+    const supabase = createClient();
+    const [songsRes, purchasesRes] = await Promise.all([
+      supabase
+        .from('marketplace_songs')
+        .select('*, artist:artist_profiles(*, profile:profiles(*)), genre:genres(*)')
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('user_purchases')
+        .select('*, buyer:profiles(*)')
+        .order('purchased_at', { ascending: false }),
+    ]);
+
+    if (songsRes.error) {
+      console.error('Error listing songs for admin:', songsRes.error);
+      return [];
+    }
+
+    const songs = songsRes.data || [];
+    const purchases = purchasesRes.data || [];
+
+    const purchaseMap = new Map<string, any>();
+    purchases.forEach(p => {
+      // If multiple purchases (or single purchase), map by song_id
+      if (!purchaseMap.has(p.song_id)) {
+        purchaseMap.set(p.song_id, p);
+      }
+    });
+
+    return songs.map(song => {
+      const purchase = purchaseMap.get(song.id) || null;
+      return {
+        ...song,
+        is_purchased: !!purchase || (song.purchases_count || 0) > 0,
+        purchase,
+      };
+    });
+  },
+
+  async updateSongStatusForAdmin(songId: string, status: 'published' | 'draft' | 'archived'): Promise<boolean> {
+    const supabase = createClient();
+    const updateData: any = {
+      status,
+      ...(status === 'published' ? { published_at: new Date().toISOString() } : {}),
+    };
+
+    const { error } = await supabase
+      .from('marketplace_songs')
+      .update(updateData)
+      .eq('id', songId);
+
+    if (error) {
+      console.error('Error updating song status:', error);
+      return false;
+    }
+    return true;
+  },
+
+  async deleteSongForAdmin(songId: string): Promise<boolean> {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('marketplace_songs')
+      .delete()
+      .eq('id', songId);
+
+    if (error) {
+      console.error('Error deleting song:', error);
+      return false;
+    }
+    return true;
   },
 };

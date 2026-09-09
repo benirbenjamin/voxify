@@ -10,39 +10,93 @@ export interface ArtistFinancialSummary {
   pendingWithdrawalAmount: number;
 }
 
+export interface MarketplacePlatformAnalytics {
+  totalGrossSales: number;
+  platformCommissionRevenue: number;
+  artistsNetRevenue: number;
+  totalPaidOut: number;
+  totalPendingPayouts: number;
+  totalSongsCount: number;
+  totalSoldSongsCount: number;
+  purchases: Array<{
+    id: string;
+    order_ref: string;
+    amount_paid: number;
+    currency: string;
+    purchased_at: string;
+    song?: any;
+    buyer?: any;
+    platformFee: number;
+    netArtist: number;
+  }>;
+  artistStats: Array<{
+    artistId: string;
+    stageName: string;
+    realName: string;
+    email: string;
+    phone: string;
+    avatarUrl?: string | null;
+    status: string;
+    payoutDetails: any;
+    songsCount: number;
+    songsSoldCount: number;
+    grossSales: number;
+    netEarnings: number;
+    paidOut: number;
+    pendingPayouts: number;
+    availableBalance: number;
+  }>;
+}
+
 export const financialService = {
   async getArtistFinancialSummary(artistId: string): Promise<ArtistFinancialSummary> {
     const supabase = createClient();
 
-    // Fetch all ledger entries
-    const { data: ledger } = await supabase
-      .from('financial_ledger')
-      .select('*')
-      .eq('artist_id', artistId)
-      .order('created_at', { ascending: false });
+    // Fetch all ledger entries, artist songs, purchases, and withdrawals in parallel
+    const [ledgerRes, songsRes, withdrawalsRes, settings] = await Promise.all([
+      supabase.from('financial_ledger').select('*').eq('artist_id', artistId).order('created_at', { ascending: false }),
+      supabase.from('marketplace_songs').select('id, price').eq('artist_id', artistId),
+      supabase.from('withdrawal_requests').select('*').eq('artist_id', artistId),
+      this.getMarketplaceSettings(),
+    ]);
 
-    // Fetch withdrawal requests
-    const { data: withdrawals } = await supabase
-      .from('withdrawal_requests')
-      .select('*')
-      .eq('artist_id', artistId);
+    const entries = (ledgerRes.data || []) as FinancialLedgerEntry[];
+    const withdrawalReqs = (withdrawalsRes.data || []) as WithdrawalRequest[];
+    const artistSongs = songsRes.data || [];
+    const songIds = artistSongs.map(s => s.id);
 
-    const entries = (ledger || []) as FinancialLedgerEntry[];
-    const withdrawalReqs = (withdrawals || []) as WithdrawalRequest[];
+    // Cross-check direct user_purchases to ensure no sale is missed
+    let directPurchasesCount = 0;
+    let directGrossRevenue = 0;
+    if (songIds.length > 0) {
+      const { data: pRows } = await supabase.from('user_purchases').select('*').in('song_id', songIds);
+      if (pRows) {
+        directPurchasesCount = pRows.length;
+        directGrossRevenue = pRows.reduce((acc, p) => acc + Number(p.amount_paid || 0), 0);
+      }
+    }
 
-    let totalSalesCount = 0;
-    let totalRevenue = 0;
-    let platformFeesPaid = 0;
-    let totalEarnings = 0;
+    let ledgerSalesCount = 0;
+    let ledgerRevenue = 0;
+    let ledgerFeesPaid = 0;
+    let ledgerEarnings = 0;
 
     entries.forEach(e => {
       if (e.type === 'sale') {
-        totalSalesCount += 1;
-        totalRevenue += Number(e.amount);
-        platformFeesPaid += Number(e.platform_fee_amount);
-        totalEarnings += Number(e.net_artist_amount);
+        ledgerSalesCount += 1;
+        ledgerRevenue += Number(e.amount);
+        ledgerFeesPaid += Number(e.platform_fee_amount);
+        ledgerEarnings += Number(e.net_artist_amount);
       }
     });
+
+    const platformRate = (settings.platform_commission_percent || 15.0) / 100;
+
+    // Use max of ledger vs direct purchases to protect artist from missing records
+    const totalSalesCount = Math.max(ledgerSalesCount, directPurchasesCount);
+    const totalRevenue = Math.max(ledgerRevenue, directGrossRevenue);
+    const platformFeesPaid = Math.max(ledgerFeesPaid, totalRevenue * platformRate);
+    const totalEarnings = Math.max(ledgerEarnings, totalRevenue - platformFeesPaid);
 
     let paidWithdrawals = 0;
     let pendingWithdrawals = 0;
@@ -235,5 +289,209 @@ export const financialService = {
     }
 
     return true;
+  },
+
+  async getMarketplacePlatformAnalytics(): Promise<MarketplacePlatformAnalytics> {
+    const supabase = createClient();
+
+    const [purchasesRes, songsRes, artistsRes, withdrawalsRes, settings] = await Promise.all([
+      supabase.from('user_purchases').select('*, buyer:profiles(*), song:marketplace_songs(*, artist:artist_profiles(*, profile:profiles(*)))').order('purchased_at', { ascending: false }),
+      supabase.from('marketplace_songs').select('id, artist_id, purchases_count, price'),
+      supabase.from('artist_profiles').select('*, profile:profiles(*)'),
+      supabase.from('withdrawal_requests').select('*'),
+      this.getMarketplaceSettings(),
+    ]);
+
+    const purchases = purchasesRes.data || [];
+    const songs = songsRes.data || [];
+    const artists = artistsRes.data || [];
+    const withdrawals = withdrawalsRes.data || [];
+
+    const platformRate = (settings.platform_commission_percent || 15.0) / 100;
+
+    let totalGrossSales = 0;
+    let platformCommissionRevenue = 0;
+    let artistsNetRevenue = 0;
+
+    const mappedPurchases = purchases.map((p: any) => {
+      const gross = Number(p.amount_paid || 0);
+      const fee = (gross * platformRate);
+      const net = gross - fee;
+      totalGrossSales += gross;
+      platformCommissionRevenue += fee;
+      artistsNetRevenue += net;
+
+      return {
+        id: p.id,
+        order_ref: p.order_ref,
+        amount_paid: gross,
+        currency: p.currency || 'RWF',
+        purchased_at: p.purchased_at,
+        song: p.song,
+        buyer: p.buyer,
+        platformFee: fee,
+        netArtist: net,
+      };
+    });
+
+    let totalPaidOut = 0;
+    let totalPendingPayouts = 0;
+
+    withdrawals.forEach((w: any) => {
+      if (w.status === 'paid') totalPaidOut += Number(w.amount || 0);
+      if (w.status === 'pending' || w.status === 'processing') totalPendingPayouts += Number(w.amount || 0);
+    });
+
+    // Map artist stats
+    const artistStats = artists.map((art: any) => {
+      const artSongs = songs.filter((s: any) => s.artist_id === art.id);
+      const artSongIds = new Set(artSongs.map((s: any) => s.id));
+      const artPurchases = purchases.filter((p: any) => artSongIds.has(p.song_id));
+
+      const grossSales = artPurchases.reduce((acc: number, p: any) => acc + Number(p.amount_paid || 0), 0);
+      const netEarnings = grossSales * (1 - platformRate);
+
+      const artWithdrawals = withdrawals.filter((w: any) => w.artist_id === art.id);
+      const paidOut = artWithdrawals.filter((w: any) => w.status === 'paid').reduce((acc: number, w: any) => acc + Number(w.amount || 0), 0);
+      const pendingPayouts = artWithdrawals.filter((w: any) => w.status === 'pending' || w.status === 'processing').reduce((acc: number, w: any) => acc + Number(w.amount || 0), 0);
+      const availableBalance = Math.max(0, netEarnings - paidOut - pendingPayouts);
+
+      return {
+        artistId: art.id,
+        stageName: art.stage_name,
+        realName: art.profile?.full_name || 'N/A',
+        email: art.profile?.email || 'N/A',
+        phone: art.profile?.phone || art.payout_details?.phone_number || 'N/A',
+        avatarUrl: art.avatar_url || art.profile?.avatar_url,
+        status: art.status,
+        payoutDetails: art.payout_details || {},
+        songsCount: artSongs.length,
+        songsSoldCount: artPurchases.length,
+        grossSales,
+        netEarnings,
+        paidOut,
+        pendingPayouts,
+        availableBalance,
+      };
+    });
+
+    return {
+      totalGrossSales,
+      platformCommissionRevenue,
+      artistsNetRevenue,
+      totalPaidOut,
+      totalPendingPayouts,
+      totalSongsCount: songs.length,
+      totalSoldSongsCount: purchases.length,
+      purchases: mappedPurchases,
+      artistStats,
+    };
+  },
+
+  async markSongPurchasedManually(payload: {
+    songId: string;
+    buyerEmail: string;
+    buyerName?: string;
+    buyerPhone?: string;
+    amountPaid?: number;
+    orderRef?: string;
+    adminNote?: string;
+  }): Promise<{ success: boolean; message: string; purchase?: any }> {
+    const supabase = createClient();
+
+    // 1. Fetch song
+    const { data: song, error: songErr } = await supabase
+      .from('marketplace_songs')
+      .select('*, artist:artist_profiles(*)')
+      .eq('id', payload.songId)
+      .single();
+
+    if (songErr || !song) {
+      return { success: false, message: 'Selected song was not found.' };
+    }
+
+    // 2. Resolve or create buyer in profiles
+    const cleanEmail = (payload.buyerEmail || '').trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      return { success: false, message: 'A valid buyer email address is required.' };
+    }
+
+    let targetBuyerId: string | null = null;
+    const { data: existingProf } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', cleanEmail)
+      .maybeSingle();
+
+    if (existingProf) {
+      targetBuyerId = existingProf.id;
+    } else {
+      const generatedId = crypto.randomUUID();
+      const { data: newProf, error: profErr } = await supabase
+        .from('profiles')
+        .insert({
+          id: generatedId,
+          email: cleanEmail,
+          full_name: payload.buyerName?.trim() || cleanEmail.split('@')[0],
+          phone: payload.buyerPhone?.trim() || null,
+          user_type: 'regular',
+        })
+        .select('id')
+        .single();
+
+      if (profErr || !newProf) {
+        return { success: false, message: 'Could not link buyer profile: ' + (profErr?.message || 'Database error') };
+      }
+      targetBuyerId = newProf.id;
+    }
+
+    const finalAmount = payload.amountPaid !== undefined && payload.amountPaid !== null
+      ? Number(payload.amountPaid)
+      : Number(song.price) || 0;
+
+    const orderRef = payload.orderRef?.trim() || `MANUAL-${Date.now()}`;
+    const settings = await this.getMarketplaceSettings();
+    const platformRate = (settings.platform_commission_percent || 15.0) / 100;
+    const platformFee = finalAmount * platformRate;
+    const netArtist = finalAmount - platformFee;
+
+    // 3. Insert purchase record
+    const { data: purchase, error: pErr } = await supabase
+      .from('user_purchases')
+      .insert({
+        buyer_id: targetBuyerId,
+        song_id: song.id,
+        order_ref: orderRef,
+        amount_paid: finalAmount,
+        currency: song.currency || 'RWF',
+      })
+      .select('*, buyer:profiles(*), song:marketplace_songs(*)')
+      .single();
+
+    if (pErr) {
+      return { success: false, message: 'Failed to record purchase: ' + pErr.message };
+    }
+
+    // 4. Record to financial_ledger for artist
+    if (song.artist_id) {
+      await supabase.from('financial_ledger').insert({
+        artist_id: song.artist_id,
+        order_id: orderRef,
+        type: 'sale',
+        amount: finalAmount,
+        platform_fee_amount: platformFee,
+        net_artist_amount: netArtist,
+        currency: song.currency || 'RWF',
+        description: `Manual purchase confirmed by Admin for "${song.title}" (${payload.adminNote || 'Manual transfer verified'})`,
+      });
+    }
+
+    // 5. Increment song purchases_count
+    await supabase
+      .from('marketplace_songs')
+      .update({ purchases_count: Math.max(1, (song.purchases_count || 0) + 1) })
+      .eq('id', song.id);
+
+    return { success: true, message: `Song "${song.title}" successfully marked as purchased!`, purchase };
   },
 };

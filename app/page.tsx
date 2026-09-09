@@ -69,7 +69,7 @@ export default function HomePage() {
     async function loadData() {
       try {
         const [songs, liveStats] = await Promise.all([
-          marketplaceService.getMarketplaceSongs({ sortBy: 'popular' }),
+          marketplaceService.getMarketplaceSongs({ sortBy: 'popular', hidePurchased: true }),
           statsService.getPlatformStats(),
         ]);
         setFeaturedSongs(songs.slice(0, 6));

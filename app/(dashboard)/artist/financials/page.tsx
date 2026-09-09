@@ -28,11 +28,13 @@ export default function ArtistFinancialsPage() {
   const [summary, setSummary] = useState<ArtistFinancialSummary | null>(null);
   const [ledger, setLedger] = useState<FinancialLedgerEntry[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [settings, setSettings] = useState<any>(null);
+  const [minWithdrawal, setMinWithdrawal] = useState<number>(5000);
   const [loading, setLoading] = useState(true);
 
   // Modal
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [withdrawAmount, setWithdrawAmount] = useState<number>(50000);
+  const [withdrawAmount, setWithdrawAmount] = useState<number>(5000);
   const [payoutMethod, setPayoutMethod] = useState<'momo' | 'airtel' | 'bank'>('momo');
   const [momoNumber, setMomoNumber] = useState('');
   const [momoName, setMomoName] = useState('');
@@ -54,14 +56,19 @@ export default function ArtistFinancialsPage() {
 
     async function loadFinancialData() {
       try {
-        const [sum, leg, withs] = await Promise.all([
+        const [sum, leg, withs, setRes] = await Promise.all([
           financialService.getArtistFinancialSummary(artistProfile!.id),
           financialService.getArtistLedger(artistProfile!.id),
           financialService.getArtistWithdrawalRequests(artistProfile!.id),
+          financialService.getMarketplaceSettings(),
         ]);
         setSummary(sum);
         setLedger(leg);
         setWithdrawals(withs);
+        setSettings(setRes);
+        const minLimit = setRes?.min_withdrawal_amount ?? 5000;
+        setMinWithdrawal(minLimit);
+        setWithdrawAmount(minLimit);
 
         // Pre-fill payout details from artist profile
         const details = artistProfile?.payout_details || {};
@@ -315,16 +322,22 @@ export default function ArtistFinancialsPage() {
 
             <form onSubmit={handleWithdrawSubmit} className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-slate-300 block mb-1">Withdrawal Amount (RWF) *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-white block">Withdrawal Amount (RWF) *</label>
+                  <span className="text-[11px] text-amber-400 font-bold">Min: {minWithdrawal.toLocaleString()} RWF</span>
+                </div>
                 <input
                   type="number"
-                  min={50000}
-                  max={summary?.availableBalance || 50000}
+                  min={minWithdrawal}
+                  max={summary?.availableBalance || minWithdrawal}
                   required
                   value={withdrawAmount}
                   onChange={e => setWithdrawAmount(Number(e.target.value))}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white font-mono font-bold focus:outline-none focus:border-amber-500"
                 />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Minimum withdrawal threshold configured by admin: <strong className="text-white">{minWithdrawal.toLocaleString()} RWF</strong>.
+                </p>
               </div>
 
               <div>
