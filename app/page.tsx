@@ -24,7 +24,10 @@ import {
   Calendar,
   CheckCircle2,
   ChevronRight,
+  AlertCircle,
+  X
 } from 'lucide-react';
+
 
 export default function HomePage() {
   const router = useRouter();
@@ -45,6 +48,7 @@ export default function HomePage() {
   const [currentPreviewSong, setCurrentPreviewSong] = useState<MarketplaceSong | null>(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [previewError, setPreviewError] = useState<{ songId: string; message: string } | null>(null);
 
   const stopAudio = () => {
     if (audioElement) {
@@ -84,12 +88,17 @@ export default function HomePage() {
   }, []);
 
   const handlePlayPreview = (song: MarketplaceSong) => {
+    setPreviewError(null);
+
     if (currentPreviewSong?.id === song.id && audioElement) {
       if (isPlayingPreview) {
         audioElement.pause();
         setIsPlayingPreview(false);
       } else {
-        audioElement.play().catch(() => setIsPlayingPreview(false));
+        audioElement.play().catch(() => {
+          setIsPlayingPreview(false);
+          setPreviewError({ songId: song.id, message: 'Playback was blocked by browser. Please tap again to start audio.' });
+        });
         setIsPlayingPreview(true);
       }
       return;
@@ -102,7 +111,10 @@ export default function HomePage() {
 
     const audioUrl = song.preview_audio_path || song.audio_file_path;
     if (!audioUrl || audioUrl.startsWith('blob:')) {
-      alert('Audio preview is currently unavailable for this track.');
+      setPreviewError({
+        songId: song.id,
+        message: 'Audio preview stream is not yet available for this track.'
+      });
       return;
     }
 
@@ -117,10 +129,18 @@ export default function HomePage() {
       }
     };
 
-    audio.onerror = () => {
-      console.warn('Audio preview failed to load');
+    audio.onerror = (e) => {
+      console.warn('Audio preview failed to load', e);
       setIsPlayingPreview(false);
       setCurrentPreviewSong(null);
+      const errCode = audio.error?.code;
+      let msg = 'Failed to load audio preview stream.';
+      if (errCode === 4) {
+        msg = 'Audio format not supported by browser.';
+      } else if (errCode === 2) {
+        msg = 'Network connection error while streaming preview.';
+      }
+      setPreviewError({ songId: song.id, message: msg });
     };
 
     audio.onended = () => setIsPlayingPreview(false);
@@ -128,6 +148,10 @@ export default function HomePage() {
     audio.play().catch(e => {
       console.warn('Could not play audio preview:', e);
       setIsPlayingPreview(false);
+      setPreviewError({
+        songId: song.id,
+        message: 'Playback was blocked by browser. Please tap again to start audio.'
+      });
     });
 
     setAudioElement(audio);
@@ -150,8 +174,8 @@ export default function HomePage() {
               <Image src="/logo.png" alt="Voxify Logo" width={36} height={36} className="object-contain" />
             </div>
             <div>
-              <span className="font-extrabold text-lg sm:text-2xl tracking-tight text-slate-900 dark:text-white">
-                Voxify<span className="text-blue-600 dark:text-blue-400">Space</span>
+              <span className="font-extrabold text-base sm:text-2xl tracking-tight text-slate-900 dark:text-white">
+                Voxify<span className="text-blue-600 dark:text-blue-400 hidden min-[360px]:inline">Space</span>
               </span>
               <span className="hidden sm:block text-[11px] text-slate-500 dark:text-blue-300/80 font-bold uppercase tracking-widest">
                 Choir SaaS &amp; Music Marketplace
@@ -170,63 +194,67 @@ export default function HomePage() {
           </nav>
 
           {/* Auth-Aware Action Buttons & Theme Switcher */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <ThemeToggle showLabel={false} />
             {user ? (
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-1.5 sm:gap-3">
                 {artistProfile ? (
                   <Link
                     href="/artist/dashboard"
-                    className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold px-3.5 py-2 rounded-xl shadow-md shadow-blue-600/30 transition-all flex items-center gap-1.5"
+                    className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-extrabold px-2.5 sm:px-3.5 py-2 rounded-xl shadow-md shadow-blue-600/30 transition-all flex items-center gap-1.5"
+                    title="Artist Portal"
                   >
                     <Mic className="w-4 h-4" />
-                    <span className="hidden sm:inline">Artist Portal</span>
+                    <span className="hidden md:inline">Artist Portal</span>
                   </Link>
                 ) : (
                   <Link
                     href="/onboarding/artist"
-                    className="bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-700 dark:text-blue-300 text-xs font-bold px-3.5 py-2 rounded-xl border border-blue-200 dark:border-blue-800 transition-all flex items-center gap-1"
+                    className="bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 text-blue-700 dark:text-blue-300 text-xs font-bold px-2.5 sm:px-3.5 py-2 rounded-xl border border-blue-200 dark:border-blue-800 transition-all flex items-center gap-1"
+                    title="Become Artist"
                   >
                     <Mic className="w-4 h-4 text-blue-500" />
-                    <span className="hidden sm:inline">Become Artist</span>
+                    <span className="hidden md:inline">Become Artist</span>
                   </Link>
                 )}
                 <Link
                   href="/dashboard"
-                  className="bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
+                  className="bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white text-xs font-bold px-3 sm:px-4 py-2 rounded-xl shadow-sm transition-all flex items-center gap-1.5"
                 >
                   <LayoutDashboard className="w-4 h-4 text-blue-400" />
-                  <span className="hidden xs:inline">Dashboard</span>
+                  <span className="hidden sm:inline">Dashboard</span>
                 </Link>
                 <button
                   type="button"
                   onClick={() => signOut()}
-                  className="px-3 py-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                  className="px-2 sm:px-3 py-2 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                   title="Sign Out"
                 >
-                  Sign Out
+                  <span className="hidden sm:inline">Sign Out</span>
+                  <span className="sm:hidden text-[11px]">Exit</span>
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <Link
                   href="/login"
-                  className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-white px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="text-xs font-bold text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-white px-2.5 sm:px-3 py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   Sign In
                 </Link>
                 <Link
                   href="/register"
-                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md shadow-blue-600/30 transition-all flex items-center gap-1"
+                  className="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold px-3 sm:px-4 py-2 rounded-xl shadow-md shadow-blue-600/30 transition-all flex items-center gap-1"
                 >
-                  <span>Get Started</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>Join</span>
+                  <ArrowRight className="w-3.5 h-3.5 hidden min-[360px]:inline" />
                 </Link>
               </div>
             )}
           </div>
         </div>
       </header>
+
 
       {/* Hero Section */}
       <section className="relative pt-12 sm:pt-20 pb-16 sm:pb-24 px-4 sm:px-6 overflow-hidden">
@@ -386,17 +414,17 @@ export default function HomePage() {
                         )}
                       </div>
 
-                      {/* Preview Play Overlay Button - Visible On Mobile (opacity-90 on mobile, hover on desktop) */}
+                      {/* Preview Play Overlay Button - Visible On Mobile */}
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handlePlayPreview(song);
                         }}
-                        className={`absolute inset-0 bg-black/30 flex items-center justify-center transition-all cursor-pointer ${
+                        className={`absolute inset-0 bg-black/35 flex items-center justify-center transition-all cursor-pointer z-20 ${
                           isCurrentlyPlaying
                             ? 'opacity-100'
-                            : 'opacity-90 sm:opacity-0 sm:group-hover:opacity-100'
+                            : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'
                         }`}
                         aria-label={isCurrentlyPlaying ? 'Pause Audio Preview' : 'Play Audio Preview'}
                       >
@@ -422,32 +450,69 @@ export default function HomePage() {
                           {song.description}
                         </p>
                       )}
+
+                      {/* Inline Preview Error Message */}
+                      {previewError?.songId === song.id && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2 mt-2"
+                        >
+                          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                          <span className="flex-1 leading-snug">{previewError.message}</span>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewError(null)}
+                            className="text-rose-400 hover:text-rose-600 p-0.5 cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-3 border-t border-slate-100 dark:border-blue-900/40 flex items-center justify-between gap-2">
-                      <div>
+                      <div className="min-w-0">
                         <span className="text-[11px] text-slate-400 dark:text-slate-400 font-bold block">Buy Song</span>
-                        <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono">
+                        <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white font-mono truncate block">
                           {song.price.toLocaleString()} RWF
                         </span>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          stopAudio();
-                          router.push(`/songs/marketplace/${song.id}`);
-                        }}
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs shadow-md shadow-blue-600/30 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
-                      >
-                        <ShoppingBag className="w-4 h-4" />
-                        <span>Get Song</span>
-                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePlayPreview(song);
+                          }}
+                          className={`p-2.5 rounded-xl border transition-all flex items-center justify-center text-xs font-bold cursor-pointer ${
+                            isCurrentlyPlaying
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                          }`}
+                          title={isCurrentlyPlaying ? 'Pause preview' : 'Play preview'}
+                        >
+                          {isCurrentlyPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            stopAudio();
+                            router.push(`/songs/marketplace/${song.id}`);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold px-3.5 sm:px-4 py-2.5 rounded-xl text-xs shadow-md shadow-blue-600/30 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                        >
+                          <ShoppingBag className="w-4 h-4" />
+                          <span>Get Song</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
               })}
+
             </div>
           )}
 

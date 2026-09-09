@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { getAppUrl } from '@/lib/utils/appUrl';
 
 export async function GET(req: Request) {
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
       return NextResponse.redirect(`${getAppUrl()}/marketplace?error=Invalid+payment+params`);
     }
 
-    const supabase = await createServerSupabaseClient();
+    const supabase = createAdminClient();
 
     // Fetch song details & marketplace settings
     const [songRes, settingsRes] = await Promise.all([

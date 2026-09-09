@@ -20,8 +20,10 @@ import {
   Globe,
   Share2,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  X
 } from 'lucide-react';
+
 
 export default function SongDetailsPage() {
   const params = useParams();
@@ -47,6 +49,7 @@ export default function SongDetailsPage() {
   const [purchasing, setPurchasing] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [paymentNotice, setPaymentNotice] = useState<{ type: 'cancel' | 'error' | 'success'; message: string } | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
 
   // Clean up audio playback when leaving page or unmounting
   useEffect(() => {
@@ -70,24 +73,26 @@ export default function SongDetailsPage() {
     } else if (payment === 'failed') {
       setPaymentNotice({
         type: 'error',
-        message: err ? decodeURIComponent(err) : 'Payment verification failed or was unconfirmed. Please try again.',
+        message: err || 'Payment transaction failed or was declined. Please try again.',
+      });
+    } else if (searchParams.get('success') === 'true') {
+      setPaymentNotice({
+        type: 'success',
+        message: 'Congratulations! Your purchase was verified and completed successfully.',
       });
     }
   }, [searchParams]);
 
   useEffect(() => {
-    if (!songId) return;
     async function loadSongDetails() {
+      setLoading(true);
       try {
-        const [songData, commentsList] = await Promise.all([
+        const [songData, commentsData] = await Promise.all([
           marketplaceService.getMarketplaceSongById(songId, user?.id),
           marketplaceService.getSongComments(songId),
         ]);
         setSong(songData);
-        setComments(commentsList);
-        if (user) {
-          setAuthorName(user.full_name || '');
-        }
+        setComments(commentsData);
       } catch (err) {
         console.error('Error loading song details:', err);
       } finally {
@@ -99,6 +104,7 @@ export default function SongDetailsPage() {
 
   const handlePlayPreview = () => {
     if (!song) return;
+    setPreviewError(null);
 
     if (isPlayingPreview && audioElement) {
       audioElement.pause();
@@ -113,7 +119,7 @@ export default function SongDetailsPage() {
 
     const audioUrl = song.preview_audio_path || song.audio_file_path;
     if (!audioUrl || audioUrl.startsWith('blob:')) {
-      alert('Audio preview is currently unavailable for this track.');
+      setPreviewError('Audio preview stream is not yet available for this track.');
       return;
     }
 
@@ -128,9 +134,17 @@ export default function SongDetailsPage() {
       }
     };
 
-    audio.onerror = () => {
-      console.warn('Audio preview failed to load');
+    audio.onerror = (e) => {
+      console.warn('Audio preview failed to load', e);
       setIsPlayingPreview(false);
+      const errCode = audio.error?.code;
+      let msg = 'Failed to load audio preview stream.';
+      if (errCode === 4) {
+        msg = 'Audio format not supported by browser.';
+      } else if (errCode === 2) {
+        msg = 'Network connection error while streaming audio.';
+      }
+      setPreviewError(msg);
     };
 
     audio.onended = () => setIsPlayingPreview(false);
@@ -138,6 +152,7 @@ export default function SongDetailsPage() {
     audio.play().catch(e => {
       console.warn('Could not start audio playback:', e);
       setIsPlayingPreview(false);
+      setPreviewError('Browser autoplay was blocked. Please tap the play button again.');
     });
 
     setAudioElement(audio);
@@ -302,6 +317,22 @@ export default function SongDetailsPage() {
             <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
               <span>{purchaseError}</span>
+            </div>
+          )}
+
+          {previewError && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 text-xs flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                <span>{previewError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewError(null)}
+                className="text-rose-400 hover:text-rose-600 p-0.5 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
 

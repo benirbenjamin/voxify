@@ -37,7 +37,7 @@ import {
 export default function DashboardPage() {
   const router = useRouter();
   const { user, artistProfile } = useAuth();
-  const { activeChoir, activeMember, isAdmin } = useChoir();
+  const { activeChoir, activeMember, isAdmin, choirs, loading: choirLoading } = useChoir();
 
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [songs, setSongs] = useState<Song[]>([]);
@@ -53,7 +53,11 @@ export default function DashboardPage() {
   const [joinCodeInput, setJoinCodeInput] = useState('');
 
   useEffect(() => {
-    if (user?.user_type === 'artist') {
+    // Wait until choir context finishes loading before checking role redirection
+    if (choirLoading) return;
+
+    // Only redirect if user is exclusively an artist with NO choirs created or joined
+    if (user?.user_type === 'artist' && choirs.length === 0 && !activeChoir) {
       router.push(artistProfile ? '/artist/dashboard' : '/onboarding/artist');
       return;
     }
@@ -84,7 +88,7 @@ export default function DashboardPage() {
       }
     }
     loadData();
-  }, [user, artistProfile, activeChoir, activeMember, router]);
+  }, [user, artistProfile, activeChoir, activeMember, router, choirLoading, choirs]);
 
   const copyCode = () => {
     if (!activeChoir) return;
@@ -131,6 +135,38 @@ export default function DashboardPage() {
   if (!activeChoir) {
     return (
       <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 space-y-10">
+        {/* Dual-Role Workspace Switcher */}
+        {(artistProfile || user?.user_type === 'artist') && (
+          <div className="bg-gradient-to-r from-purple-700 via-indigo-700 to-blue-700 dark:from-purple-950 dark:via-indigo-950 dark:to-blue-950 p-4 sm:p-5 rounded-3xl text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-purple-400/30">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/20 shadow-inner">
+                <Sparkles className="w-5 h-5 text-amber-300" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black uppercase tracking-widest text-purple-200 bg-white/10 px-2.5 py-0.5 rounded-full">
+                    Dual-Role Account
+                  </span>
+                  <span className="text-xs font-bold text-white/80">Choir Management &amp; Artist Creator</span>
+                </div>
+                <h2 className="text-base sm:text-lg font-black tracking-tight mt-0.5">
+                  Currently viewing <span className="text-amber-300">Choir Management</span>
+                </h2>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 w-full sm:w-auto">
+              <Link
+                href="/artist/dashboard"
+                className="flex-1 sm:flex-none text-center px-4 py-2.5 rounded-2xl bg-white text-purple-900 hover:bg-purple-50 font-black text-xs sm:text-sm shadow-md transition-all hover:scale-[1.02] flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Mic className="w-4 h-4 text-purple-600" />
+                <span>Go to Artist Dashboard &rarr;</span>
+              </Link>
+            </div>
+          </div>
+        )}
+
         <div className="text-center space-y-3">
           <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-3xl flex items-center justify-center mx-auto border border-purple-200 dark:border-purple-800 shadow-sm">
             <Music className="w-8 h-8" />
@@ -336,6 +372,38 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 font-sans">
+      {/* Dual-Role Workspace Switcher */}
+      {(artistProfile || user?.user_type === 'artist') && (
+        <div className="bg-gradient-to-r from-purple-700 via-indigo-700 to-blue-700 dark:from-purple-950 dark:via-indigo-950 dark:to-blue-950 p-4 sm:p-5 rounded-3xl text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-purple-400/30">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/20 shadow-inner">
+              <Sparkles className="w-5 h-5 text-amber-300" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-widest text-purple-200 bg-white/10 px-2.5 py-0.5 rounded-full">
+                  Dual-Role Account Active
+                </span>
+                <span className="text-xs font-bold text-white/80">Choir Director &amp; Artist</span>
+              </div>
+              <h2 className="text-base sm:text-lg font-black tracking-tight mt-0.5">
+                Currently in <span className="text-amber-300">Choir Workspace</span>
+              </h2>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+            <Link
+              href="/artist/dashboard"
+              className="flex-1 sm:flex-none text-center px-4 py-2.5 rounded-2xl bg-white text-purple-900 hover:bg-purple-50 font-black text-xs sm:text-sm shadow-md transition-all hover:scale-[1.02] flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Mic className="w-4 h-4 text-purple-600" />
+              <span>Switch to Artist Dashboard &rarr;</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Active Choir Welcome & Code Banner */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 md:p-8 rounded-3xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">

@@ -70,8 +70,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="light">
-      <body className="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen font-sans antialiased selection:bg-purple-600 selection:text-white transition-colors duration-200">
+    <html lang="en" className="light overflow-x-hidden max-w-full">
+      <body className="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen font-sans antialiased selection:bg-purple-600 selection:text-white transition-colors duration-200 overflow-x-hidden max-w-full">
         <ThemeProvider>
           <AuthProvider>
             <ChoirProvider>

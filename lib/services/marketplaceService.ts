@@ -71,6 +71,11 @@ export const marketplaceService = {
       query = query.or(`title.ilike.${term},description.ilike.${term}`);
     }
 
+    if (options.hidePurchased) {
+      // Exclude any songs that have been purchased (purchases_count > 0)
+      query = query.or('purchases_count.eq.0,purchases_count.is.null');
+    }
+
     if (options.sortBy === 'latest') {
       query = query.order('published_at', { ascending: false });
     } else if (options.sortBy === 'price_asc') {
@@ -100,15 +105,21 @@ export const marketplaceService = {
       result = result.filter(song => song.genre?.is_local === true);
     }
 
-    // Hide purchased songs if requested (e.g. for homepage / available catalog)
+    // Hide purchased songs if requested (double check against user_purchases if logged in)
     if (options.hidePurchased && result.length > 0) {
-      const songIds = result.map(s => s.id);
-      const { data: purchaseRows } = await supabase
-        .from('user_purchases')
-        .select('song_id')
-        .in('song_id', songIds);
-      const purchasedSet = new Set((purchaseRows || []).map(p => p.song_id));
-      result = result.filter(song => (song.purchases_count === 0 || !song.purchases_count) && !purchasedSet.has(song.id));
+      result = result.filter(song => !song.purchases_count || song.purchases_count === 0);
+      if (userId) {
+        const songIds = result.map(s => s.id);
+        const { data: purchaseRows } = await supabase
+          .from('user_purchases')
+          .select('song_id')
+          .eq('buyer_id', userId)
+          .in('song_id', songIds);
+        if (purchaseRows && purchaseRows.length > 0) {
+          const purchasedSet = new Set(purchaseRows.map(p => p.song_id));
+          result = result.filter(song => !purchasedSet.has(song.id));
+        }
+      }
     }
 
     // Check user purchase state & liked state if logged in

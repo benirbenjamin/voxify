@@ -21,8 +21,11 @@ import {
   CheckCircle2,
   Volume2,
   Share2,
-  Globe
+  Globe,
+  AlertCircle,
+  X
 } from 'lucide-react';
+
 
 export default function MarketplacePage() {
   const router = useRouter();
@@ -42,6 +45,7 @@ export default function MarketplacePage() {
   const [currentPreviewSong, setCurrentPreviewSong] = useState<MarketplaceSong | null>(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [previewError, setPreviewError] = useState<{ songId: string; message: string } | null>(null);
 
   const stopAudio = () => {
     if (audioElement) {
@@ -74,6 +78,7 @@ export default function MarketplacePage() {
             isLocalOnly,
             searchQuery,
             sortBy,
+            hidePurchased: true,
           }, user?.id),
         ]);
         setGenres(gList);
@@ -89,6 +94,8 @@ export default function MarketplacePage() {
   }, [selectedGenreId, musicTypeCategory, isLocalOnly, searchQuery, sortBy, user]);
 
   const handlePlayPreview = (song: MarketplaceSong) => {
+    setPreviewError(null);
+
     if (currentPreviewSong?.id === song.id && isPlayingPreview) {
       audioElement?.pause();
       setIsPlayingPreview(false);
@@ -102,7 +109,10 @@ export default function MarketplacePage() {
 
     const audioUrl = song.preview_audio_path || song.audio_file_path;
     if (!audioUrl || audioUrl.startsWith('blob:')) {
-      alert('Audio preview is currently unavailable for this track.');
+      setPreviewError({
+        songId: song.id,
+        message: 'Audio preview stream is not yet available for this track.'
+      });
       return;
     }
 
@@ -120,10 +130,18 @@ export default function MarketplacePage() {
       }
     };
 
-    audio.onerror = () => {
-      console.warn('Audio preview error');
+    audio.onerror = (e) => {
+      console.warn('Audio preview error', e);
       setIsPlayingPreview(false);
       setCurrentPreviewSong(null);
+      const errCode = audio.error?.code;
+      let msg = 'Failed to load audio preview stream.';
+      if (errCode === 4) {
+        msg = 'Audio format not supported by browser.';
+      } else if (errCode === 2) {
+        msg = 'Network connection error while streaming preview.';
+      }
+      setPreviewError({ songId: song.id, message: msg });
     };
 
     audio.onended = () => {
@@ -133,6 +151,10 @@ export default function MarketplacePage() {
     audio.play().catch(e => {
       console.warn('Could not play audio preview:', e);
       setIsPlayingPreview(false);
+      setPreviewError({
+        songId: song.id,
+        message: 'Playback was blocked by browser. Please tap again to start audio.'
+      });
     });
 
     setAudioElement(audio);
@@ -317,21 +339,21 @@ export default function MarketplacePage() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
 
-                    {/* Preview Play Overlay Button */}
+                    {/* Preview Play Overlay Button - Visible on Mobile */}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handlePlayPreview(song);
                       }}
-                      className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-all cursor-pointer ${
+                      className={`absolute inset-0 bg-black/35 flex items-center justify-center transition-all cursor-pointer z-20 ${
                         isCurrentlyPlaying
                           ? 'opacity-100'
-                          : 'opacity-90 sm:opacity-0 sm:group-hover:opacity-100'
+                          : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'
                       }`}
                       aria-label={isCurrentlyPlaying ? 'Pause Audio Preview' : 'Play Audio Preview'}
                     >
-                      <div className="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-transform">
+                      <div className="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-transform border border-white/30">
                         {isCurrentlyPlaying ? (
                           <Pause className="w-6 h-6 fill-current text-white" />
                         ) : (
@@ -381,29 +403,65 @@ export default function MarketplacePage() {
                         {song.description}
                       </p>
                     )}
+
+                    {/* Inline Preview Error Message */}
+                    {previewError?.songId === song.id && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-semibold flex items-center gap-2 mt-2"
+                      >
+                        <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                        <span className="flex-1 leading-snug">{previewError.message}</span>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewError(null)}
+                          className="text-rose-400 hover:text-rose-600 p-0.5 cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Bottom Action Row */}
                   <div className="pt-3 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
-                    <div>
-                      <span className="text-xs text-slate-400 font-bold block">Buy Full Track</span>
-                      <span className="text-base font-extrabold text-slate-900 dark:text-white font-mono">
+                    <div className="min-w-0">
+                      <span className="text-[11px] text-slate-400 font-bold block">Buy Full Track</span>
+                      <span className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white font-mono truncate block">
                         {song.price.toLocaleString()} RWF
                       </span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        stopAudio();
-                        router.push(`/songs/marketplace/${song.id}`);
-                      }}
-                      className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs shadow-md shadow-blue-600/30 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
-                    >
-                      <ShoppingBag className="w-4 h-4" />
-                      <span>{song.is_purchased ? 'Stream Track' : 'Get Song'}</span>
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayPreview(song);
+                        }}
+                        className={`p-2.5 rounded-xl border transition-all flex items-center justify-center text-xs font-bold cursor-pointer ${
+                          isCurrentlyPlaying
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
+                        title={isCurrentlyPlaying ? 'Pause preview' : 'Play preview'}
+                      >
+                        {isCurrentlyPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          stopAudio();
+                          router.push(`/songs/marketplace/${song.id}`);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold px-3 sm:px-4 py-2.5 rounded-xl text-xs shadow-md shadow-blue-600/30 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                        <span>{song.is_purchased ? 'Stream' : 'Get Song'}</span>
+                      </button>
+                    </div>
                   </div>
 
                 </div>

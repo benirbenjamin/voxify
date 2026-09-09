@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
+import { useChoir } from '@/lib/context/ChoirContext';
 import { financialService, ArtistFinancialSummary } from '@/lib/services/financialService';
 import { marketplaceService } from '@/lib/services/marketplaceService';
 import { MarketplaceSong } from '@/lib/types/database.types';
@@ -19,11 +20,14 @@ import {
   Sparkles,
   ArrowUpRight,
   ShoppingBag,
+  Users,
 } from 'lucide-react';
+
 
 export default function ArtistDashboardPage() {
   const router = useRouter();
   const { user, artistProfile, loading: authLoading } = useAuth();
+  const { choirs, activeChoir } = useChoir();
   const [summary, setSummary] = useState<ArtistFinancialSummary | null>(null);
   const [songs, setSongs] = useState<MarketplaceSong[]>([]);
   const [minWithdrawal, setMinWithdrawal] = useState<number>(5000);
@@ -92,6 +96,38 @@ export default function ArtistDashboardPage() {
           <ShoppingBag className="w-3.5 h-3.5" /> Browse Marketplace &rarr;
         </Link>
       </div>
+
+      {/* Dual-Role Switch to Choir Workspace */}
+      {(choirs.length > 0 || activeChoir) && (
+        <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 dark:from-blue-950 dark:via-indigo-950 dark:to-purple-950 p-4 sm:p-5 rounded-3xl text-white shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-blue-400/30">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/20 shadow-inner">
+              <Users className="w-5 h-5 text-blue-200" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black uppercase tracking-widest text-blue-200 bg-white/10 px-2.5 py-0.5 rounded-full">
+                  Dual-Role Account Active
+                </span>
+                <span className="text-xs font-bold text-white/80">Choir Director &amp; Artist</span>
+              </div>
+              <h2 className="text-base sm:text-lg font-black tracking-tight mt-0.5">
+                Currently in <span className="text-blue-300">Artist Studio</span>
+              </h2>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 w-full sm:w-auto">
+            <Link
+              href="/dashboard"
+              className="flex-1 sm:flex-none text-center px-4 py-2.5 rounded-2xl bg-white text-blue-900 hover:bg-blue-50 font-black text-xs sm:text-sm shadow-md transition-all hover:scale-[1.02] flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Music className="w-4 h-4 text-blue-600" />
+              <span>Switch to Choir Dashboard &rarr;</span>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Top Professional Royal Banner - Matching Admin Dashboard Card Theme */}
       <div className="bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-900/50 p-6 sm:p-8 rounded-3xl relative overflow-hidden shadow-sm text-slate-900 dark:text-white">

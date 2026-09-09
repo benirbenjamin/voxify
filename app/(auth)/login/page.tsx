@@ -29,13 +29,10 @@ function LoginContent() {
         router.push(redirectParam);
         return;
       }
-      if (user.user_type === 'artist') {
-        router.push(artistProfile ? '/artist/dashboard' : '/onboarding/artist');
-      } else {
-        router.push('/dashboard');
-      }
+      router.push('/dashboard');
     }
-  }, [user, artistProfile, router, redirectParam]);
+  }, [user, router, redirectParam]);
+
 
   useEffect(() => {
     const errorType = searchParams.get('error');
@@ -74,30 +71,27 @@ function LoginContent() {
         return;
       }
 
-      // Query profile user_type directly for fast immediate redirect
-      const { data: prof } = await supabase
-        .from('profiles')
-        .select('user_type')
-        .eq('id', authRes.user.id)
-        .maybeSingle();
+      // Query profile user_type, artist profile, and choir membership
+      const [profRes, artProfRes, choirRes] = await Promise.all([
+        supabase.from('profiles').select('user_type').eq('id', authRes.user.id).maybeSingle(),
+        supabase.from('artist_profiles').select('id').eq('user_id', authRes.user.id).maybeSingle(),
+        supabase.from('choir_members').select('id').eq('user_id', authRes.user.id).limit(1),
+      ]);
 
-      if (prof?.user_type === 'artist') {
-        const { data: artProf } = await supabase
-          .from('artist_profiles')
-          .select('id')
-          .eq('user_id', authRes.user.id)
-          .maybeSingle();
+      const isArtist = profRes.data?.user_type === 'artist' || !!artProfRes.data;
+      const hasChoir = (choirRes.data && choirRes.data.length > 0);
 
-        if (!artProf) {
-          router.push('/onboarding/artist');
-        } else {
-          router.push('/artist/dashboard');
-        }
+      if (isArtist && hasChoir) {
+        // User has both! Route to dashboard where both workspaces are seamlessly accessible
+        router.push('/dashboard');
+      } else if (isArtist) {
+        router.push(artProfRes.data ? '/artist/dashboard' : '/onboarding/artist');
       } else {
         router.push('/dashboard');
       }
     }
   };
+
 
   const handleResendVerification = async () => {
     if (!email) {

@@ -74,17 +74,17 @@ export function ChoirHeader() {
   }, [user]);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xs transition-colors duration-200">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 w-full max-w-full overflow-hidden border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md shadow-xs transition-colors duration-200">
+      <div className="mx-auto flex h-16 max-w-7xl w-full items-center justify-between px-2 sm:px-6 lg:px-8">
         
         {/* Left Section: Brand Logo & Choir Switcher */}
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0 group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-600 text-white shadow-md shadow-purple-600/30 group-hover:scale-105 transition-transform">
-              <Music2 className="h-5 w-5" />
+        <div className="flex items-center gap-1.5 sm:gap-3 min-w-0">
+          <Link href="/dashboard" className="flex items-center gap-1.5 sm:gap-2 shrink-0 group">
+            <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl bg-purple-600 text-white shadow-md shadow-purple-600/30 group-hover:scale-105 transition-transform shrink-0">
+              <Music2 className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
-            <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
-              Voxify<span className="text-purple-600 dark:text-purple-400">Space</span>
+            <span className="text-sm sm:text-base md:text-lg font-black tracking-tight text-slate-900 dark:text-white">
+              Voxify<span className="text-purple-600 dark:text-purple-400 hidden min-[360px]:inline">Space</span>
             </span>
           </Link>
 
@@ -97,10 +97,10 @@ export function ChoirHeader() {
                 setArtistDropdownOpen(false);
                 setProfileDropdownOpen(false);
               }}
-              className="flex items-center gap-1.5 sm:gap-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/70 transition-all max-w-[130px] sm:max-w-[170px]"
+              className="flex items-center gap-1 sm:gap-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700/80 px-2 sm:px-3 py-1.5 text-xs font-bold text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700/70 transition-all max-w-[90px] min-[360px]:max-w-[125px] sm:max-w-[170px]"
             >
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-              <span className="truncate">{activeChoir?.name || 'Select Choir'}</span>
+              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 shrink-0" />
+              <span className="truncate">{activeChoir?.name || 'Choir'}</span>
               <ChevronDown className={`h-3.5 w-3.5 text-slate-500 shrink-0 transition-transform ${choirDropdownOpen ? 'rotate-180' : ''}`} />
             </button>
 
