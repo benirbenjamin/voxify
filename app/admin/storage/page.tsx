@@ -379,6 +379,28 @@ export default function AdminStoragePage() {
           </div>
         </div>
 
+        {/* Important Info / Architecture Guide */}
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-2.5 text-blue-400 font-bold text-sm">
+            <Cloud className="w-5 h-5 shrink-0" />
+            <span>Google Drive Pool Setup &amp; Architecture Notes</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-300">
+            <div className="space-y-1.5 bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+              <span className="font-bold text-blue-300 block text-xs">Recommended: Google Workspace Shared Drive</span>
+              <p className="text-slate-400 leading-relaxed">
+                Google Service Accounts have 0 MB personal quota on regular personal <code className="text-blue-300">@gmail.com</code> accounts. To store files using a Service Account, share a folder inside a <strong>Google Workspace Shared Drive (Team Drive)</strong> with your Service Account email (<code className="text-purple-300">voxify-space@...</code>).
+              </p>
+            </div>
+            <div className="space-y-1.5 bg-slate-900/60 p-3.5 rounded-xl border border-slate-800">
+              <span className="font-bold text-emerald-300 block text-xs">Automatic Supabase Failover &amp; Resilient Uploads</span>
+              <p className="text-slate-400 leading-relaxed">
+                If Google Drive is unavailable or personal quota restricts the Service Account, Voxify automatically and transparently uploads audio tracks and documents directly to <strong>Supabase Permanent Storage</strong> (50 MB limit per file), ensuring songs are always saved reliably.
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* 2. Pool Overview Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-5 shadow-lg">

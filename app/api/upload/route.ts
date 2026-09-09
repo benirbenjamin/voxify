@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { getStorageSettings, uploadToGoogleDrive } from '@/lib/services/googleDriveService';
+import {
+  getStorageSettings,
+  uploadToGoogleDrive,
+  initDriveResumableUpload,
+  finalizeDriveUpload,
+} from '@/lib/services/googleDriveService';
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +15,26 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: 'User must be authenticated to upload files' }, { status: 401 });
+    }
+
+    const contentType = request.headers.get('content-type') || '';
+
+    // Handle JSON actions: Resumable Drive upload init & finalize (0 payload overhead, bypasses Vercel 4.5MB limit)
+    if (contentType.includes('application/json')) {
+      const body = await request.json();
+      const { action } = body;
+
+      if (action === 'init_drive_upload') {
+        const { fileName, mimeType, fileSize } = body;
+        const result = await initDriveResumableUpload(fileName, mimeType, Number(fileSize) || 0);
+        return NextResponse.json(result);
+      }
+
+      if (action === 'finalize_drive_upload') {
+        const { fileId, accountEmail, fileSizeMb } = body;
+        const result = await finalizeDriveUpload(fileId, accountEmail, Number(fileSizeMb) || 0);
+        return NextResponse.json({ success: !result.error, url: result.streamUrl, error: result.error, provider: 'google_drive' });
+      }
     }
 
     const formData = await request.formData();
@@ -61,7 +86,7 @@ export async function POST(request: Request) {
     if (!bucketData) {
       await adminSupabase.storage.createBucket(bucket, {
         public: true,
-        fileSizeLimit: 15728640,
+        fileSizeLimit: 52428800, // 50MB limit
       }).catch((createErr) => {
         console.log(`Auto-create bucket ${bucket} note:`, createErr);
       });

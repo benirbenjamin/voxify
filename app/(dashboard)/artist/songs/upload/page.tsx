@@ -129,37 +129,113 @@ export default function SongUploadPage() {
       const fileExt = file.name.split('.').pop() || 'mp3';
       const cleanFileName = `marketplace/${artistProfile.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      // Primary: Route via server /api/upload to use Google Drive storage pool or Supabase based on platform settings
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('bucket', 'song-audio');
-      formData.append('choirId', artistProfile.id);
+      let uploadedUrl: string | null = null;
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      // Tier 1: Try Resumable Google Drive Upload (Bypasses Vercel 4.5MB limit, files go straight to Google Drive)
+      try {
+        const initRes = await fetch('/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'init_drive_upload',
+            fileName: file.name,
+            mimeType: file.type || 'audio/mpeg',
+            fileSize: file.size,
+          }),
+        });
 
-      const resData = await res.json();
-      if (res.ok && resData.url && !resData.url.startsWith('blob:')) {
-        setAudioFilePath(resData.url);
-      } else {
-        // Fallback to direct client Supabase upload
-        const supabase = createClient();
-        const { data, error: uploadErr } = await supabase.storage
-          .from('song-audio')
-          .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
+        if (initRes.ok) {
+          const initData = await initRes.json();
+          if (initData.success && initData.resumableUploadUrl) {
+            // Upload directly to Google Drive via PUT
+            const drivePutRes = await fetch(initData.resumableUploadUrl, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': file.type || 'application/octet-stream',
+              },
+              body: file,
+            });
 
-        if (!uploadErr && data) {
-          const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
-          if (publicUrlData?.publicUrl) {
-            setAudioFilePath(publicUrlData.publicUrl);
-          } else {
-            setError('Could not retrieve public URL for uploaded audio.');
+            if (drivePutRes.ok) {
+              const driveFileData = await drivePutRes.json().catch(() => ({}));
+              if (driveFileData?.id) {
+                // Finalize upload & get stream url
+                const finRes = await fetch('/api/upload', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'finalize_drive_upload',
+                    fileId: driveFileData.id,
+                    accountEmail: initData.accountEmail,
+                    fileSizeMb: file.size / (1024 * 1024),
+                  }),
+                });
+                if (finRes.ok) {
+                  const finData = await finRes.json().catch(() => ({}));
+                  if (finData?.url) {
+                    uploadedUrl = finData.url;
+                  }
+                }
+              }
+            } else {
+              console.warn('Google Drive direct PUT rejected, falling back to Supabase permanent storage...');
+            }
           }
-        } else {
-          setError(resData.error || uploadErr?.message || 'Failed to upload audio file to permanent storage.');
         }
+      } catch (driveErr) {
+        console.warn('Google Drive upload attempt note:', driveErr);
+      }
+
+      // Tier 2: Direct Client Supabase Upload (Handles files up to 50MB directly from browser, zero Vercel limits)
+      if (!uploadedUrl) {
+        try {
+          const supabase = createClient();
+          const { data: uploadData, error: uploadErr } = await supabase.storage
+            .from('song-audio')
+            .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
+
+          if (!uploadErr && uploadData) {
+            const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
+            if (publicUrlData?.publicUrl) {
+              uploadedUrl = publicUrlData.publicUrl;
+            }
+          } else {
+            console.warn('Direct Supabase client upload note:', uploadErr?.message);
+          }
+        } catch (supaClientErr) {
+          console.warn('Direct Supabase upload error:', supaClientErr);
+        }
+      }
+
+      // Tier 3: Server /api/upload fallback for small files
+      if (!uploadedUrl && file.size < 4 * 1024 * 1024) {
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('bucket', 'song-audio');
+          formData.append('choirId', artistProfile.id);
+
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (res.ok) {
+            const resData = await res.json().catch(() => ({}));
+            if (resData?.url && !resData.url.startsWith('blob:')) {
+              uploadedUrl = resData.url;
+            }
+          }
+        } catch (serverUploadErr) {
+          console.warn('Server fallback upload error:', serverUploadErr);
+        }
+      }
+
+      if (uploadedUrl) {
+        setAudioFilePath(uploadedUrl);
+        setError(null);
+      } else {
+        setError('Failed to upload audio file to permanent storage. Please try again.');
       }
     } catch (err: any) {
       console.error('Audio upload error:', err);
@@ -206,9 +282,11 @@ export default function SongUploadPage() {
           body: formData,
         });
 
-        const resData = await res.json();
-        if (res.ok && resData.url && !resData.url.startsWith('blob:')) {
-          setCoverImageUrl(resData.url);
+        if (res.ok) {
+          const resData = await res.json().catch(() => ({}));
+          if (resData?.url && !resData.url.startsWith('blob:')) {
+            setCoverImageUrl(resData.url);
+          }
         }
       }
     } catch (err: any) {

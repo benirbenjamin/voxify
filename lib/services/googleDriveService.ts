@@ -253,6 +253,25 @@ export async function getAccessTokenFromServiceAccount(creds: any): Promise<stri
     return creds.access_token;
   }
 
+  // Support for OAuth 2.0 User Credentials (client_id, client_secret, refresh_token)
+  if (creds.refresh_token && creds.client_id && creds.client_secret) {
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: creds.client_id,
+        client_secret: creds.client_secret,
+        refresh_token: creds.refresh_token,
+        grant_type: 'refresh_token',
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.access_token) {
+      throw new Error(`Google OAuth refresh failed: ${data.error_description || data.error || 'Unknown error'}`);
+    }
+    return data.access_token;
+  }
+
   const clientEmail = creds.client_email;
   let privateKey = creds.private_key;
 
@@ -393,7 +412,7 @@ export async function uploadToGoogleDrive(
     ]);
 
     return fetch(
-      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,size,webViewLink',
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id,name,mimeType,size,webViewLink',
       {
         method: 'POST',
         headers: {
@@ -420,7 +439,7 @@ export async function uploadToGoogleDrive(
       let uploadRes = await sendDriveUpload(accessToken, metadata, fileBuffer, mimeType);
       let uploadData = await uploadRes.json();
 
-      // If folder upload failed due to folder permission or not found, retry without folder (upload to service account Drive)
+      // If folder upload failed due to folder permission or not found, retry without folder
       if (!uploadRes.ok && account.folder_id && (uploadRes.status === 404 || uploadRes.status === 403)) {
         console.warn(
           `[GoogleDrivePool] Account ${account.account_email} upload to folder '${account.folder_id}' failed (${uploadRes.status}). Retrying directly to root Drive...`
@@ -435,16 +454,22 @@ export async function uploadToGoogleDrive(
         lastError = errorMsg;
         console.warn(`[GoogleDrivePool] Account ${account.account_email} upload error:`, errorMsg);
 
-        // Check if error is STRICTLY a genuine storage quota error
+        // Check if error is specifically service account quota limitation on personal @gmail accounts
+        const isServiceAccountLimitation = errorMsg.toLowerCase().includes('service accounts do not have storage quota');
         const isQuota =
-          uploadData.error?.errors?.some((e: any) => e.reason === 'storageQuotaExceeded') ||
+          !isServiceAccountLimitation &&
+          (uploadData.error?.errors?.some((e: any) => e.reason === 'storageQuotaExceeded') ||
           errorMsg.toLowerCase().includes('storagequotaexceeded') ||
-          errorMsg.toLowerCase().includes('storage quota exceeded');
+          errorMsg.toLowerCase().includes('storage quota exceeded'));
 
         if (isQuota) {
           await markAccountFull(account.id);
           console.log(`[GoogleDrivePool] Account ${account.account_email} genuinely exceeded quota. Auto-rotating...`);
           continue; // Try next account in pool
+        }
+
+        if (isServiceAccountLimitation) {
+          console.warn(`[GoogleDrivePool] Account ${account.account_email} note: Service accounts cannot own files in standard personal Gmail folders. A Google Workspace Shared Drive or OAuth Refresh Token is required.`);
         }
 
         // It was a permission or configuration error, do NOT mark as full!
@@ -456,7 +481,7 @@ export async function uploadToGoogleDrive(
 
       // Make file readable via permissions API
       try {
-        await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
+        await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions?supportsAllDrives=true`, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -502,4 +527,119 @@ export async function uploadToGoogleDrive(
     accountEmail: '',
     error: lastError ? `Google Drive API error: ${lastError}` : 'All Google Drive accounts in pool failed to process upload.',
   };
+}
+
+/**
+ * Initialize a direct resumable upload session for large files
+ * Bypasses serverless payload limits by letting the client browser PUT directly to Google Drive
+ */
+export async function initDriveResumableUpload(
+  fileName: string,
+  mimeType: string,
+  fileSize: number
+): Promise<{
+  success: boolean;
+  resumableUploadUrl?: string;
+  accountEmail?: string;
+  error?: string;
+}> {
+  try {
+    const accounts = await getDriveAccounts();
+    const activeAccount = accounts.find(
+      (acc) => acc.status === 'active' && (acc.used_storage_mb || 0) < (acc.max_storage_mb || 15000)
+    );
+
+    if (!activeAccount) {
+      return {
+        success: false,
+        error: accounts.length === 0
+          ? 'No Google Drive accounts configured.'
+          : 'All Google Drive accounts in pool have reached maximum limit.',
+      };
+    }
+
+    const accessToken = await getAccessTokenFromServiceAccount(activeAccount.credentials_json);
+
+    const metadata: any = { name: fileName };
+    if (activeAccount.folder_id && activeAccount.folder_id.trim()) {
+      metadata.parents = [activeAccount.folder_id.trim()];
+    }
+
+    const initRes = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json; charset=UTF-8',
+          'X-Upload-Content-Type': mimeType || 'application/octet-stream',
+          'X-Upload-Content-Length': fileSize.toString(),
+        },
+        body: JSON.stringify(metadata),
+      }
+    );
+
+    if (!initRes.ok) {
+      const errText = await initRes.text();
+      return { success: false, error: `Failed to initialize Google Drive upload: ${errText}` };
+    }
+
+    const resumableUploadUrl = initRes.headers.get('Location');
+    if (!resumableUploadUrl) {
+      return { success: false, error: 'Google Drive did not return a resumable upload location.' };
+    }
+
+    return {
+      success: true,
+      resumableUploadUrl,
+      accountEmail: activeAccount.account_email,
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message || 'Error initializing Google Drive upload' };
+  }
+}
+
+/**
+ * Finalize Google Drive upload after browser successfully uploads file to the resumable URL
+ */
+export async function finalizeDriveUpload(
+  fileId: string,
+  accountEmail: string,
+  fileSizeMb: number
+): Promise<{ streamUrl: string; error: string | null }> {
+  try {
+    const accounts = await getDriveAccounts();
+    const account = accounts.find((a) => a.account_email === accountEmail);
+    if (account) {
+      const accessToken = await getAccessTokenFromServiceAccount(account.credentials_json);
+      // Grant public read permission
+      try {
+        await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions?supportsAllDrives=true`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ role: 'reader', type: 'anyone' }),
+        });
+      } catch (e) {
+        console.warn('Google Drive permission update error:', e);
+      }
+
+      // Update storage tracking
+      const updatedUsedMb = (account.used_storage_mb || 0) + fileSizeMb;
+      const updatedCount = (account.file_count || 0) + 1;
+      const newStatus = updatedUsedMb >= account.max_storage_mb ? 'full' : 'active';
+      await updateDriveAccount(account.id, {
+        used_storage_mb: Math.round(updatedUsedMb * 100) / 100,
+        file_count: updatedCount,
+        status: newStatus,
+      });
+    }
+
+    const streamUrl = `/api/storage/drive?id=${fileId}&email=${encodeURIComponent(accountEmail)}`;
+    return { streamUrl, error: null };
+  } catch (err: any) {
+    return { streamUrl: '', error: err.message || 'Failed to finalize Drive upload' };
+  }
 }

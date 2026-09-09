@@ -188,34 +188,76 @@ export const songService = {
   async uploadAudioFile(file: File, choirId: string): Promise<{ url: string | null; error: string | null }> {
     const fileSizeMb = file.size / (1024 * 1024);
 
-    // Primary: Route through server /api/upload which respects Super Admin storage mode (Google Drive pool or Supabase)
+    // Tier 1: Try Resumable Google Drive Upload (Bypasses Vercel 4.5MB limit)
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('bucket', 'song-audio');
-      formData.append('choirId', choirId);
-
-      const res = await fetch('/api/upload', {
+      const initRes = await fetch('/api/upload', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'init_drive_upload',
+          fileName: file.name,
+          mimeType: file.type || 'audio/mpeg',
+          fileSize: file.size,
+        }),
       });
 
-      if (res.status === 413) {
-        return {
-          url: null,
-          error: `Audio file '${file.name}' (${fileSizeMb.toFixed(1)} MB) exceeds server upload limit (4.5 MB). Please select a smaller audio file under 4.5 MB or paste a direct audio URL.`,
-        };
-      }
+      if (initRes.ok) {
+        const initData = await initRes.json().catch(() => ({}));
+        if (initData?.success && initData?.resumableUploadUrl) {
+          const drivePutRes = await fetch(initData.resumableUploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type || 'application/octet-stream' },
+            body: file,
+          });
 
-      const data = await res.json();
-      if (res.ok && data.url) {
-        return { url: data.url, error: null };
+          if (drivePutRes.ok) {
+            const driveFileData = await drivePutRes.json().catch(() => ({}));
+            if (driveFileData?.id) {
+              const finRes = await fetch('/api/upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'finalize_drive_upload',
+                  fileId: driveFileData.id,
+                  accountEmail: initData.accountEmail,
+                  fileSizeMb,
+                }),
+              });
+              if (finRes.ok) {
+                const finData = await finRes.json().catch(() => ({}));
+                if (finData?.url) return { url: finData.url, error: null };
+              }
+            }
+          }
+        }
       }
-    } catch (serverErr) {
-      console.warn('Server upload route note:', serverErr);
+    } catch (driveErr) {
+      console.warn('Google Drive direct upload attempt note:', driveErr);
     }
 
-    // Secondary fallback: Direct Supabase client upload
+    // Tier 2: If small file (<= 4MB), route through server /api/upload
+    if (file.size <= 4 * 1024 * 1024) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('bucket', 'song-audio');
+        formData.append('choirId', choirId);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (data?.url) return { url: data.url, error: null };
+        }
+      } catch (serverErr) {
+        console.warn('Server upload route note:', serverErr);
+      }
+    }
+
+    // Tier 3: Direct Supabase client upload (Handles large files up to 50MB from browser with zero Vercel limits)
     try {
       const supabase = createClient();
       const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
@@ -234,36 +276,29 @@ export const songService = {
   },
 
   async uploadPdfFile(file: File, choirId: string): Promise<{ url: string | null; error: string | null }> {
-    const fileSizeMb = file.size / (1024 * 1024);
+    // If small, try server route
+    if (file.size <= 4 * 1024 * 1024) {
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('bucket', 'song-documents');
+        formData.append('choirId', choirId);
 
-    // Primary: Route through server /api/upload which respects Super Admin storage mode (Google Drive pool or Supabase)
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('bucket', 'song-documents');
-      formData.append('choirId', choirId);
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (res.status === 413) {
-        return {
-          url: null,
-          error: `PDF document '${file.name}' (${fileSizeMb.toFixed(1)} MB) exceeds server upload limit (4.5 MB). Please select a smaller PDF under 4.5 MB or paste a direct link.`,
-        };
+        if (res.ok) {
+          const data = await res.json().catch(() => ({}));
+          if (data?.url) return { url: data.url, error: null };
+        }
+      } catch (serverErr) {
+        console.warn('Server PDF upload route note:', serverErr);
       }
-
-      const data = await res.json();
-      if (res.ok && data.url) {
-        return { url: data.url, error: null };
-      }
-    } catch (serverErr) {
-      console.warn('Server upload route note:', serverErr);
     }
 
-    // Secondary fallback: Direct Supabase client upload
+    // Direct Supabase client upload for PDFs of any size
     try {
       const supabase = createClient();
       const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
@@ -277,7 +312,7 @@ export const songService = {
       }
       return { url: null, error: error?.message || 'PDF upload failed' };
     } catch (err: any) {
-      return { url: null, error: err.message || 'Error during PDF upload' };
+      return { url: null, error: err.message || 'Error uploading PDF file' };
     }
-  }
+  },
 };
