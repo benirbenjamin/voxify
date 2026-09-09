@@ -109,5 +109,17 @@ export const planService = {
 
     if (error) return { success: false, error: error.message };
     return { success: true, error: null };
+  },
+
+  // Super Admin: Delete subscription plan
+  async deletePlan(planId: string): Promise<{ success: boolean; error: string | null }> {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('subscription_plans')
+      .delete()
+      .eq('id', planId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, error: null };
   }
 };

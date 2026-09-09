@@ -6,21 +6,21 @@
   --section-bg: #ffffff;
   --card-bg: #ffffff;
   --highlight-bg: #f1f5f9;
-  --accent-primary: #9333ea;
+  --accent-primary: #2563eb;
   --foreground: #0f172a;
   --secondary: #475569;
   --border: #e2e8f0;
 }
 
 html.dark {
-  --background: #030712;
-  --section-bg: #0f172a;
-  --card-bg: #1e293b;
-  --highlight-bg: #1e1b4b;
-  --accent-primary: #a855f7;
+  --background: #070e1e;
+  --section-bg: #0b162b;
+  --card-bg: #0d1b33;
+  --highlight-bg: #112344;
+  --accent-primary: #3b82f6;
   --foreground: #f8fafc;
   --secondary: #94a3b8;
-  --border: #1e293b;
+  --border: #1e3a5f;
 }
 
 @theme inline {
@@ -43,7 +43,7 @@ body {
 
 /* ----------------------------------------------------
    LIGHT MODE RULES (html.light) - Clean Google/Stripe Style
-   Pure crisp white cards, deep slate-900 black text, no washed-out opacity
+   Crisp white cards, solid dark slate text, clear contours
    ---------------------------------------------------- */
 html.light,
 html.light body {
@@ -80,11 +80,11 @@ html.light .border-slate-600 {
   border-color: #e2e8f0 !important;
 }
 
-/* Prevent text-white from becoming invisible inside cards in light mode */
-html.light .bg-white .text-white,
-html.light .bg-slate-50 .text-white,
-html.light .bg-slate-900 .text-white,
-html.light .bg-slate-950 .text-white {
+/* Standalone text elements inside light containers turn dark */
+html.light .bg-white > .text-white,
+html.light .bg-slate-50 > .text-white,
+html.light .p-5 > .text-white,
+html.light .space-y-2 > .text-white {
   color: #0f172a !important;
 }
 
@@ -100,37 +100,68 @@ html.light .text-slate-500 {
 }
 
 /* ----------------------------------------------------
-   DARK MODE RULES (html.dark)
-   Rich dark navy/black background, bright crisp white text
+   DARK MODE RULES (html.dark) - Deep Navy/Blue Theme
+   Rich blue background, bright crisp white text
    ---------------------------------------------------- */
 html.dark,
 html.dark body {
-  background-color: #030712 !important;
+  background-color: #070e1e !important;
   color: #f8fafc !important;
 }
 
 html.dark .bg-\[\#FCFEFF\],
 html.dark .bg-\[\#F5FAFF\],
 html.dark .bg-\[\#FFFFFF\] {
-  background-color: #0f172a !important;
+  background-color: #0b162b !important;
   color: #ffffff !important;
 }
 
 html.dark .border-\[\#E6F2FC\],
 html.dark .border-\[\#B9E2FC\] {
-  border-color: #334155 !important;
+  border-color: #1e3a5f !important;
+}
+
+/* Make legacy hardcoded dark classes visible in dark mode */
+html.dark .text-\[\#000000\] {
+  color: #ffffff !important;
+}
+
+html.dark .text-\[\#475569\] {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-\[\#A8B5C2\] {
+  color: #94a3b8 !important;
+}
+
+/* ----------------------------------------------------
+   BADGE & OVERLAY TEXT CONTRAST GUARANTEE
+   Badges, pills, and overlay tags on dark covers MUST have white text
+   ---------------------------------------------------- */
+.bg-black .text-white,
+.bg-black\/80 .text-white,
+.bg-black\/75 .text-white,
+.bg-black\/70 .text-white,
+.bg-black\/60 .text-white,
+.bg-emerald-600 .text-white,
+.bg-rose-600 .text-white,
+.bg-blue-600 .text-white,
+.bg-purple-600 .text-white {
+  color: #ffffff !important;
 }
 
 /* ----------------------------------------------------
    SOLID BUTTON TEXT CONTRAST GUARANTEE
    All action buttons MUST have bold bright white text (#ffffff)
    ---------------------------------------------------- */
+.bg-blue-600,
+.bg-blue-500,
+.bg-blue-700,
 .bg-purple-600,
 .bg-purple-500,
 .bg-purple-700,
 .bg-indigo-600,
 .bg-indigo-700,
-.bg-blue-600,
 .bg-emerald-600,
 .bg-emerald-500,
 .bg-rose-600,
@@ -141,12 +172,14 @@ html.dark .border-\[\#B9E2FC\] {
   color: #ffffff !important;
 }
 
+.bg-blue-600 *,
+.bg-blue-500 *,
+.bg-blue-700 *,
 .bg-purple-600 *,
 .bg-purple-500 *,
 .bg-purple-700 *,
 .bg-indigo-600 *,
 .bg-indigo-700 *,
-.bg-blue-600 *,
 .bg-emerald-600 *,
 .bg-emerald-500 *,
 .bg-rose-600 *,

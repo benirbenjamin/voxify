@@ -76,6 +76,33 @@ export default function RegisterPage() {
     }
   };
 
+  const [resending, setResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
+
+  const handleResend = async () => {
+    setResending(true);
+    setResendMsg(null);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: `${getAppUrl()}/auth/callback`,
+        },
+      });
+      if (error) {
+        setResendMsg('Note: ' + error.message);
+      } else {
+        setResendMsg('Verification link resent! Please check your spam folder as well.');
+      }
+    } catch (e: any) {
+      setResendMsg(e.message || 'Failed to resend');
+    } finally {
+      setResending(false);
+    }
+  };
+
   // State: Verification Email Sent Card
   if (verificationSent) {
     return (
@@ -115,7 +142,21 @@ export default function RegisterPage() {
             )}
           </div>
 
-          <div className="pt-4 border-t border-slate-800 flex flex-col gap-3">
+          {resendMsg && (
+            <div className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl">
+              {resendMsg}
+            </div>
+          )}
+
+          <div className="pt-2 border-t border-slate-800 flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={resending}
+              className="text-xs font-semibold text-purple-400 hover:text-purple-300 underline"
+            >
+              {resending ? 'Sending...' : 'Didn’t receive it? Resend verification email'}
+            </button>
             <Link
               href="/login"
               className="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-600/30 transition-all text-xs"
@@ -261,7 +302,13 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full bg-purple-600 hover:bg-purple-500 text-white font-semibold py-3.5 rounded-xl shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2 text-sm mt-2"
           >
-            {loading ? 'Creating Account...' : rolePreference === 'director' ? 'Register & Create Choir' : 'Register & Join Choir'} <ArrowRight className="w-4 h-4" />
+            {loading
+              ? 'Creating Account...'
+              : rolePreference === 'artist'
+              ? 'Register as Artist'
+              : rolePreference === 'director'
+              ? 'Register & Create Choir'
+              : 'Register'} <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 

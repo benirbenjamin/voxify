@@ -90,10 +90,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    setUser(null);
-    setArtistProfile(null);
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('Sign out error:', e);
+    } finally {
+      setUser(null);
+      setArtistProfile(null);
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
+    }
   };
 
   return (

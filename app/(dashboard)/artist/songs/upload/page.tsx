@@ -7,6 +7,7 @@ import { marketplaceService } from '@/lib/services/marketplaceService';
 import { Genre, MusicTypeCategory } from '@/lib/types/database.types';
 import { createClient } from '@/lib/supabase/client';
 import { BackButton } from '@/components/ui/BackButton';
+import { generateSongCover } from '@/lib/utils/coverGenerator';
 import {
   UploadCloud,
   Music,
@@ -230,6 +231,13 @@ export default function SongUploadPage() {
     setError(null);
 
     try {
+      const selectedGenre = allGenres.find(g => g.id === genreId);
+      const finalCoverUrl = coverImageUrl.trim() || generateSongCover({
+        title: title.trim(),
+        artistName: artistProfile.stage_name,
+        genre: selectedGenre?.name || musicType,
+      });
+
       await marketplaceService.createMarketplaceSong(artistProfile.id, {
         title: title.trim(),
         description: description.trim(),
@@ -239,7 +247,7 @@ export default function SongUploadPage() {
         audio_file_path: audioFilePath.trim(),
         preview_start_time: Number(previewStart) || 0,
         preview_end_time: Number(previewEnd) || 30,
-        cover_image_url: coverImageUrl.trim() || undefined,
+        cover_image_url: finalCoverUrl,
         lyrics: lyrics.trim() || undefined,
         price: Number(price) || 1000,
         currency: 'RWF',
@@ -459,6 +467,9 @@ export default function SongUploadPage() {
                     placeholder="Or paste cover image URL..."
                     className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
                   />
+                  <p className="text-[11px] text-purple-400 font-medium">
+                    ✨ Optional: Upload your own cover image, or leave empty to automatically generate a custom textured artwork with your song title &amp; genre.
+                  </p>
                 </div>
               </div>
 
