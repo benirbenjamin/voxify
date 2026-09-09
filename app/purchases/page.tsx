@@ -53,6 +53,16 @@ export default function MyPurchasesPage() {
     loadPurchases();
   }, [user, authLoading, router]);
 
+  // Stop audio on unmount or page change
+  useEffect(() => {
+    return () => {
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.src = '';
+      }
+    };
+  }, [audioElement]);
+
   const handlePlayFullAudio = (song: MarketplaceSong) => {
     if (currentSong?.id === song.id && isPlaying) {
       audioElement?.pause();
@@ -62,13 +72,27 @@ export default function MyPurchasesPage() {
 
     if (audioElement) {
       audioElement.pause();
+      audioElement.src = '';
     }
 
     const audioUrl = song.audio_file_path;
+    if (!audioUrl || audioUrl.startsWith('blob:')) {
+      alert('Audio file for this song is not currently accessible.');
+      return;
+    }
+
     const audio = new Audio(audioUrl);
+    audio.onerror = () => {
+      console.warn('Audio playback error on purchases page');
+      setIsPlaying(false);
+      setCurrentSong(null);
+    };
 
     audio.onended = () => setIsPlaying(false);
-    audio.play();
+    audio.play().catch(e => {
+      console.warn('Could not play purchased audio:', e);
+      setIsPlaying(false);
+    });
 
     setAudioElement(audio);
     setCurrentSong(song);

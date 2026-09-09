@@ -44,10 +44,12 @@ export default function SongUploadPage() {
   // Storage paths / URL inputs
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioFilePath, setAudioFilePath] = useState('');
+  const [localAudioPreviewUrl, setLocalAudioPreviewUrl] = useState('');
   const [audioFileName, setAudioFileName] = useState('');
   const [isUploadingAudio, setIsUploadingAudio] = useState(false);
 
   const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [localCoverPreviewUrl, setLocalCoverPreviewUrl] = useState('');
   const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   const [lyrics, setLyrics] = useState('');
@@ -59,6 +61,22 @@ export default function SongUploadPage() {
   // Live Audio Player Preview State
   const [isPlaying, setIsPlaying] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+
+  // Clean up audio playback & object URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.src = '';
+      }
+      if (localAudioPreviewUrl) {
+        URL.revokeObjectURL(localAudioPreviewUrl);
+      }
+      if (localCoverPreviewUrl) {
+        URL.revokeObjectURL(localCoverPreviewUrl);
+      }
+    };
+  }, [audioElement, localAudioPreviewUrl, localCoverPreviewUrl]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -88,10 +106,11 @@ export default function SongUploadPage() {
     setAudioFileName(file.name);
     setIsUploadingAudio(true);
     setError(null);
+    setAudioFilePath(''); // Clear previous permanent path while uploading
 
-    // Create immediate local object URL for instant playability
+    // Create immediate local object URL for instant preview testing
     const localBlobUrl = URL.createObjectURL(file);
-    setAudioFilePath(localBlobUrl);
+    setLocalAudioPreviewUrl(localBlobUrl);
 
     // Calculate audio duration for preview clip default
     const audio = new Audio();
@@ -101,6 +120,9 @@ export default function SongUploadPage() {
       if (dur > 0 && previewEnd === 30) {
         setPreviewEnd(Math.min(dur, 30));
       }
+    };
+    audio.onerror = () => {
+      console.warn('Could not read audio metadata from local preview');
     };
 
     try {
@@ -119,7 +141,7 @@ export default function SongUploadPage() {
       });
 
       const resData = await res.json();
-      if (res.ok && resData.url) {
+      if (res.ok && resData.url && !resData.url.startsWith('blob:')) {
         setAudioFilePath(resData.url);
       } else {
         // Fallback to direct client Supabase upload
@@ -130,13 +152,18 @@ export default function SongUploadPage() {
 
         if (!uploadErr && data) {
           const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
-          setAudioFilePath(publicUrlData.publicUrl);
-        } else if (!localBlobUrl) {
-          setError(resData.error || 'Failed to upload audio file.');
+          if (publicUrlData?.publicUrl) {
+            setAudioFilePath(publicUrlData.publicUrl);
+          } else {
+            setError('Could not retrieve public URL for uploaded audio.');
+          }
+        } else {
+          setError(resData.error || uploadErr?.message || 'Failed to upload audio file to permanent storage.');
         }
       }
     } catch (err: any) {
       console.error('Audio upload error:', err);
+      setError(err.message || 'Server error uploading audio file.');
     } finally {
       setIsUploadingAudio(false);
     }
@@ -149,9 +176,10 @@ export default function SongUploadPage() {
 
     setIsUploadingCover(true);
     setError(null);
+    setCoverImageUrl(''); // Clear previous permanent path while uploading
 
     const localBlobUrl = URL.createObjectURL(file);
-    setCoverImageUrl(localBlobUrl);
+    setLocalCoverPreviewUrl(localBlobUrl);
 
     try {
       const supabase = createClient();
@@ -164,7 +192,9 @@ export default function SongUploadPage() {
 
       if (!uploadErr && data) {
         const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
-        setCoverImageUrl(publicUrlData.publicUrl);
+        if (publicUrlData?.publicUrl) {
+          setCoverImageUrl(publicUrlData.publicUrl);
+        }
       } else {
         const formData = new FormData();
         formData.append('file', file);
@@ -177,7 +207,7 @@ export default function SongUploadPage() {
         });
 
         const resData = await res.json();
-        if (res.ok && resData.url) {
+        if (res.ok && resData.url && !resData.url.startsWith('blob:')) {
           setCoverImageUrl(resData.url);
         }
       }
@@ -189,7 +219,8 @@ export default function SongUploadPage() {
   };
 
   const toggleTestPlayback = () => {
-    if (!audioFilePath) return;
+    const playbackUrl = localAudioPreviewUrl || audioFilePath;
+    if (!playbackUrl) return;
 
     if (isPlaying && audioElement) {
       audioElement.pause();
@@ -201,9 +232,16 @@ export default function SongUploadPage() {
       audioElement.pause();
     }
 
-    const audio = new Audio(audioFilePath);
+    const audio = new Audio(playbackUrl);
+    audio.onerror = () => {
+      console.warn('Audio playback error on test player');
+      setIsPlaying(false);
+    };
     audio.onended = () => setIsPlaying(false);
-    audio.play();
+    audio.play().catch(e => {
+      console.warn('Could not start playback:', e);
+      setIsPlaying(false);
+    });
     setAudioElement(audio);
     setIsPlaying(true);
   };
@@ -217,13 +255,13 @@ export default function SongUploadPage() {
       return;
     }
 
-    if (!audioFilePath.trim()) {
-      setError('Please select an audio track file to upload first.');
+    if (isUploadingAudio || isUploadingCover) {
+      setError('Please wait a moment while your audio and cover files finish uploading to storage...');
       return;
     }
 
-    if (isUploadingAudio || isUploadingCover) {
-      setError('Please wait a moment while your audio file finishes uploading...');
+    if (!audioFilePath.trim() || audioFilePath.startsWith('blob:')) {
+      setError('Audio track file has not been uploaded to permanent storage. Please re-select your audio file to upload.');
       return;
     }
 
@@ -232,7 +270,8 @@ export default function SongUploadPage() {
 
     try {
       const selectedGenre = allGenres.find(g => g.id === genreId);
-      const finalCoverUrl = coverImageUrl.trim() || generateSongCover({
+      const validCover = (coverImageUrl && !coverImageUrl.startsWith('blob:')) ? coverImageUrl.trim() : '';
+      const finalCoverUrl = validCover || generateSongCover({
         title: title.trim(),
         artistName: artistProfile.stage_name,
         genre: selectedGenre?.name || musicType,
@@ -310,9 +349,11 @@ export default function SongUploadPage() {
                 </div>
                 <div className="text-sm font-bold text-white">
                   {isUploadingAudio
-                    ? `Uploading "${audioFileName}" to Storage...`
+                    ? `Uploading "${audioFileName}" to Cloud Storage...`
+                    : audioFilePath
+                    ? `Selected: ${audioFileName} (Storage Uploaded ✅)`
                     : audioFileName
-                    ? `Selected: ${audioFileName} (Uploaded ✅)`
+                    ? `Selected: ${audioFileName} (Upload failed - please click to re-select)`
                     : 'Click to select audio file from device (MP3, WAV, M4A)'}
                 </div>
                 <p className="text-xs text-slate-400">
@@ -322,27 +363,35 @@ export default function SongUploadPage() {
             </div>
 
             {/* Live Audio Playback Verification Bar */}
-            {audioFilePath && (
+            {(localAudioPreviewUrl || audioFilePath) && (
               <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={toggleTestPlayback}
-                    className="w-10 h-10 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center justify-center shadow-lg transition-all"
+                    className="w-10 h-10 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold flex items-center justify-center shadow-lg transition-all cursor-pointer"
                   >
                     {isPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
                   </button>
                   <div>
                     <span className="text-xs font-bold text-white block">
-                      {isPlaying ? '▶ Playing Uploaded Track...' : 'Test Uploaded Audio Track'}
+                      {isPlaying ? '▶ Playing Track Preview...' : 'Test Audio Track Playback'}
                     </span>
-                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Audio Track Playable &amp; Ready
+                    <span className={`text-[10px] font-semibold flex items-center gap-1 ${audioFilePath ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {audioFilePath ? (
+                        <>
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Cloud Storage Ready for Publishing
+                        </>
+                      ) : (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin text-amber-400" /> Uploading to Cloud Storage in background...
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>
 
-                <audio controls src={audioFilePath} className="w-full sm:w-64 h-9 rounded-lg" />
+                <audio controls src={localAudioPreviewUrl || audioFilePath} className="w-full sm:w-64 h-9 rounded-lg" />
               </div>
             )}
           </div>

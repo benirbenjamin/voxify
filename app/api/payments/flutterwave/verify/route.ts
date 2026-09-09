@@ -16,7 +16,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Transaction ID, Choir ID, and Plan ID are required.' }, { status: 400 });
     }
 
-    const flutterwaveSecretKey = process.env.FLUTTERWAVE_SECRET_KEY || '7UXzeitBqog5bs15DIPqiOHHPmOpPGyb';
+    let flutterwaveSecretKey = process.env.FLUTTERWAVE_SECRET_KEY || '';
+    if (!flutterwaveSecretKey) {
+      const { data: ps } = await supabase
+        .from('platform_settings')
+        .select('flutterwave_secret_key')
+        .eq('id', 'global')
+        .maybeSingle();
+      if (ps?.flutterwave_secret_key) {
+        flutterwaveSecretKey = ps.flutterwave_secret_key;
+      }
+    }
+    if (!flutterwaveSecretKey) {
+      flutterwaveSecretKey = '7UXzeitBqog5bs15DIPqiOHHPmOpPGyb';
+    }
 
     // Verify transaction with Flutterwave API
     let isVerified = true;

@@ -154,6 +154,9 @@ export const marketplaceService = {
   },
 
   async createMarketplaceSong(artistId: string, payload: CreateSongPayload): Promise<MarketplaceSong> {
+    if (!payload.audio_file_path || payload.audio_file_path.startsWith('blob:')) {
+      throw new Error('Invalid audio file URL: temporary local blob URLs cannot be saved. Audio track must be uploaded to cloud storage first.');
+    }
     const supabase = createClient();
     const { data, error } = await supabase
       .from('marketplace_songs')

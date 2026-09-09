@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/context/AuthContext';
 import { marketplaceService } from '@/lib/services/marketplaceService';
@@ -26,6 +26,7 @@ import {
 export default function SongDetailsPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const songId = params?.id as string;
 
@@ -42,9 +43,37 @@ export default function SongDetailsPage() {
   const [commentContent, setCommentContent] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
 
-  // Purchasing
+  // Purchasing & Payment Return Status
   const [purchasing, setPurchasing] = useState(false);
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [paymentNotice, setPaymentNotice] = useState<{ type: 'cancel' | 'error' | 'success'; message: string } | null>(null);
+
+  // Clean up audio playback when leaving page or unmounting
+  useEffect(() => {
+    return () => {
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.src = '';
+      }
+    };
+  }, [audioElement]);
+
+  // Handle payment redirect flags
+  useEffect(() => {
+    const payment = searchParams.get('payment');
+    const err = searchParams.get('error');
+    if (payment === 'cancelled' || payment === 'cancel') {
+      setPaymentNotice({
+        type: 'cancel',
+        message: 'Payment checkout was cancelled. No money was charged to your account.',
+      });
+    } else if (payment === 'failed') {
+      setPaymentNotice({
+        type: 'error',
+        message: err ? decodeURIComponent(err) : 'Payment verification failed or was unconfirmed. Please try again.',
+      });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!songId) return;
@@ -77,7 +106,17 @@ export default function SongDetailsPage() {
       return;
     }
 
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.src = '';
+    }
+
     const audioUrl = song.preview_audio_path || song.audio_file_path;
+    if (!audioUrl || audioUrl.startsWith('blob:')) {
+      alert('Audio preview is currently unavailable for this track.');
+      return;
+    }
+
     const audio = new Audio(audioUrl);
     audio.currentTime = song.preview_start_time || 0;
 
@@ -89,9 +128,18 @@ export default function SongDetailsPage() {
       }
     };
 
+    audio.onerror = () => {
+      console.warn('Audio preview failed to load');
+      setIsPlayingPreview(false);
+    };
+
     audio.onended = () => setIsPlayingPreview(false);
 
-    audio.play();
+    audio.play().catch(e => {
+      console.warn('Could not start audio playback:', e);
+      setIsPlayingPreview(false);
+    });
+
     setAudioElement(audio);
     setIsPlayingPreview(true);
   };
@@ -102,8 +150,16 @@ export default function SongDetailsPage() {
       return;
     }
 
+    // Stop preview before checkout redirect
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.src = '';
+      setIsPlayingPreview(false);
+    }
+
     setPurchasing(true);
     setPurchaseError(null);
+    setPaymentNotice(null);
 
     try {
       const res = await fetch('/api/payments/marketplace/checkout', {
@@ -224,6 +280,17 @@ export default function SongDetailsPage() {
             <p className="text-xs sm:text-sm text-[#475569] leading-relaxed max-w-xl">
               {song.description}
             </p>
+          )}
+
+          {paymentNotice && (
+            <div className={`p-3.5 rounded-xl border text-xs flex items-center gap-2.5 font-semibold ${
+              paymentNotice.type === 'cancel'
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-300'
+                : 'bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-300'
+            }`}>
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{paymentNotice.message}</span>
+            </div>
           )}
 
           {purchaseError && (

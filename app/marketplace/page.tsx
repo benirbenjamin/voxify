@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { marketplaceService } from '@/lib/services/marketplaceService';
 import { Genre, MarketplaceSong } from '@/lib/types/database.types';
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react';
 
 export default function MarketplacePage() {
+  const router = useRouter();
   const { user } = useAuth();
   const [songs, setSongs] = useState<MarketplaceSong[]>([]);
   const [genres, setGenres] = useState<Genre[]>([]);
@@ -39,6 +41,25 @@ export default function MarketplacePage() {
   const [currentPreviewSong, setCurrentPreviewSong] = useState<MarketplaceSong | null>(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+
+  const stopAudio = () => {
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.src = '';
+      setIsPlayingPreview(false);
+      setCurrentPreviewSong(null);
+    }
+  };
+
+  // Clean up audio playback when leaving page or unmounting
+  useEffect(() => {
+    return () => {
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.src = '';
+      }
+    };
+  }, [audioElement]);
 
   useEffect(() => {
     async function loadData() {
@@ -75,9 +96,15 @@ export default function MarketplacePage() {
 
     if (audioElement) {
       audioElement.pause();
+      audioElement.src = '';
     }
 
     const audioUrl = song.preview_audio_path || song.audio_file_path;
+    if (!audioUrl || audioUrl.startsWith('blob:')) {
+      alert('Audio preview is currently unavailable for this track.');
+      return;
+    }
+
     const audio = new Audio(audioUrl);
     
     // Set preview start timestamp
@@ -92,11 +119,21 @@ export default function MarketplacePage() {
       }
     };
 
+    audio.onerror = () => {
+      console.warn('Audio preview error');
+      setIsPlayingPreview(false);
+      setCurrentPreviewSong(null);
+    };
+
     audio.onended = () => {
       setIsPlayingPreview(false);
     };
 
-    audio.play();
+    audio.play().catch(e => {
+      console.warn('Could not play audio preview:', e);
+      setIsPlayingPreview(false);
+    });
+
     setAudioElement(audio);
     setCurrentPreviewSong(song);
     setIsPlayingPreview(true);
@@ -259,7 +296,11 @@ export default function MarketplacePage() {
               return (
                 <div
                   key={song.id}
-                  className="bg-white border border-[#E6F2FC] rounded-3xl p-5 space-y-4 hover:shadow-xl hover:border-[#B9E2FF] transition-all group relative flex flex-col justify-between"
+                  onClick={() => {
+                    stopAudio();
+                    router.push(`/songs/marketplace/${song.id}`);
+                  }}
+                  className="bg-white border border-[#E6F2FC] rounded-3xl p-5 space-y-4 hover:shadow-xl hover:border-[#B9E2FF] transition-all group relative flex flex-col justify-between cursor-pointer"
                 >
                   {/* Cover Art & Play Button */}
                   <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-900 border border-[#E6F2FC] group">
@@ -271,12 +312,21 @@ export default function MarketplacePage() {
                       </div>
                     )}
 
-                    {/* Preview Play Overlay Button */}
+                    {/* Preview Play Overlay Button - Visible On Mobile */}
                     <button
-                      onClick={() => handlePlayPreview(song)}
-                      className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePlayPreview(song);
+                      }}
+                      className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-all cursor-pointer ${
+                        isCurrentlyPlaying
+                          ? 'opacity-100'
+                          : 'opacity-90 sm:opacity-0 sm:group-hover:opacity-100'
+                      }`}
+                      aria-label={isCurrentlyPlaying ? 'Pause Audio Preview' : 'Play Audio Preview'}
                     >
-                      <div className="w-14 h-14 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-2xl hover:scale-110 transition-transform">
+                      <div className="w-14 h-14 rounded-full bg-white text-slate-950 flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-transform">
                         {isCurrentlyPlaying ? (
                           <Pause className="w-6 h-6 fill-current text-purple-600" />
                         ) : (
@@ -286,7 +336,7 @@ export default function MarketplacePage() {
                     </button>
 
                     {/* Tags */}
-                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+                    <div className="absolute top-3 left-3 flex flex-wrap gap-1.5 z-10">
                       <span className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[10px] font-extrabold uppercase tracking-wider">
                         {song.genre?.name || song.music_type}
                       </span>
@@ -299,8 +349,9 @@ export default function MarketplacePage() {
 
                     {/* Like button */}
                     <button
+                      type="button"
                       onClick={(e) => handleLike(song.id, e)}
-                      className="absolute top-3 right-3 p-2 rounded-full bg-black/60 backdrop-blur-md text-white hover:text-rose-400 transition-colors"
+                      className="absolute top-3 right-3 p-2 rounded-full bg-black/60 backdrop-blur-md text-white hover:text-rose-400 transition-colors z-10"
                     >
                       <Heart className={`w-4 h-4 ${song.is_liked ? 'fill-rose-500 text-rose-500' : ''}`} />
                     </button>
@@ -329,13 +380,18 @@ export default function MarketplacePage() {
                       </span>
                     </div>
 
-                    <Link
-                      href={`/songs/marketplace/${song.id}`}
-                      className="bg-purple-600 hover:bg-purple-500 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center gap-1.5"
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        stopAudio();
+                        router.push(`/songs/marketplace/${song.id}`);
+                      }}
+                      className="bg-purple-600 hover:bg-purple-500 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs shadow-md transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
                     >
                       <ShoppingBag className="w-4 h-4" />
                       <span>{song.is_purchased ? 'Stream Track' : 'Get Song'}</span>
-                    </Link>
+                    </button>
                   </div>
 
                 </div>
@@ -348,7 +404,13 @@ export default function MarketplacePage() {
 
       {/* Floating Audio Preview Drawer */}
       {currentPreviewSong && (
-        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-8 sm:max-w-md bg-slate-900 border border-slate-800 text-white p-4 rounded-3xl shadow-2xl z-50 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-5">
+        <div
+          onClick={() => {
+            stopAudio();
+            router.push(`/songs/marketplace/${currentPreviewSong.id}`);
+          }}
+          className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-8 sm:max-w-md bg-slate-900 border border-slate-800 text-white p-4 rounded-3xl shadow-2xl z-50 flex items-center justify-between gap-4 animate-in slide-in-from-bottom-5 cursor-pointer"
+        >
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-12 h-12 rounded-xl bg-slate-800 overflow-hidden shrink-0 relative border border-slate-700">
               {currentPreviewSong.cover_image_url ? (
@@ -367,8 +429,12 @@ export default function MarketplacePage() {
           </div>
 
           <button
-            onClick={() => handlePlayPreview(currentPreviewSong)}
-            className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center shrink-0 hover:bg-purple-500 shadow-md"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePlayPreview(currentPreviewSong);
+            }}
+            className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center shrink-0 hover:bg-purple-500 shadow-md cursor-pointer"
           >
             {isPlayingPreview ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
           </button>

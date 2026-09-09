@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { marketplaceService } from '@/lib/services/marketplaceService';
 import { statsService } from '@/lib/services/statsService';
@@ -26,6 +27,7 @@ import {
 } from 'lucide-react';
 
 export default function HomePage() {
+  const router = useRouter();
   const { user, artistProfile, signOut } = useAuth();
   const [code, setCode] = useState('');
   const [featuredSongs, setFeaturedSongs] = useState<MarketplaceSong[]>([]);
@@ -43,6 +45,25 @@ export default function HomePage() {
   const [currentPreviewSong, setCurrentPreviewSong] = useState<MarketplaceSong | null>(null);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+
+  const stopAudio = () => {
+    if (audioElement) {
+      audioElement.pause();
+      audioElement.src = '';
+      setIsPlayingPreview(false);
+      setCurrentPreviewSong(null);
+    }
+  };
+
+  // Stop audio when navigating away or unmounting
+  useEffect(() => {
+    return () => {
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.src = '';
+      }
+    };
+  }, [audioElement]);
 
   useEffect(() => {
     async function loadData() {
@@ -68,7 +89,7 @@ export default function HomePage() {
         audioElement.pause();
         setIsPlayingPreview(false);
       } else {
-        audioElement.play();
+        audioElement.play().catch(() => setIsPlayingPreview(false));
         setIsPlayingPreview(true);
       }
       return;
@@ -76,9 +97,15 @@ export default function HomePage() {
 
     if (audioElement) {
       audioElement.pause();
+      audioElement.src = '';
     }
 
     const audioUrl = song.preview_audio_path || song.audio_file_path;
+    if (!audioUrl || audioUrl.startsWith('blob:')) {
+      alert('Audio preview is currently unavailable for this track.');
+      return;
+    }
+
     const audio = new Audio(audioUrl);
     audio.currentTime = song.preview_start_time || 0;
 
@@ -90,9 +117,19 @@ export default function HomePage() {
       }
     };
 
+    audio.onerror = () => {
+      console.warn('Audio preview failed to load');
+      setIsPlayingPreview(false);
+      setCurrentPreviewSong(null);
+    };
+
     audio.onended = () => setIsPlayingPreview(false);
 
-    audio.play();
+    audio.play().catch(e => {
+      console.warn('Could not play audio preview:', e);
+      setIsPlayingPreview(false);
+    });
+
     setAudioElement(audio);
     setCurrentPreviewSong(song);
     setIsPlayingPreview(true);
@@ -324,7 +361,11 @@ export default function HomePage() {
                 return (
                   <div
                     key={song.id}
-                    className="bg-white dark:bg-[#0b162b] border border-slate-200 dark:border-blue-900/50 rounded-3xl p-5 space-y-4 hover:shadow-xl hover:border-blue-400 dark:hover:border-blue-500 transition-all group flex flex-col justify-between shadow-xs"
+                    onClick={() => {
+                      stopAudio();
+                      router.push(`/songs/marketplace/${song.id}`);
+                    }}
+                    className="bg-white dark:bg-[#0b162b] border border-slate-200 dark:border-blue-900/50 rounded-3xl p-5 space-y-4 hover:shadow-xl hover:border-blue-400 dark:hover:border-blue-500 transition-all group flex flex-col justify-between shadow-xs cursor-pointer"
                   >
                     <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 dark:border-slate-800">
                       <img
@@ -348,7 +389,10 @@ export default function HomePage() {
                       {/* Preview Play Overlay Button - Visible On Mobile (opacity-90 on mobile, hover on desktop) */}
                       <button
                         type="button"
-                        onClick={() => handlePlayPreview(song)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayPreview(song);
+                        }}
                         className={`absolute inset-0 bg-black/30 flex items-center justify-center transition-all cursor-pointer ${
                           isCurrentlyPlaying
                             ? 'opacity-100'
@@ -383,13 +427,18 @@ export default function HomePage() {
                         </span>
                       </div>
 
-                      <Link
-                        href={`/songs/marketplace/${song.id}`}
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs shadow-md shadow-blue-600/30 transition-all flex items-center gap-1.5 active:scale-95"
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          stopAudio();
+                          router.push(`/songs/marketplace/${song.id}`);
+                        }}
+                        className="bg-blue-600 hover:bg-blue-500 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs shadow-md shadow-blue-600/30 transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
                       >
                         <ShoppingBag className="w-4 h-4" />
                         <span>Get Song</span>
-                      </Link>
+                      </button>
                     </div>
                   </div>
                 );
