@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { subscriptionService } from '@/lib/services/subscriptionService';
 import { adminService } from '@/lib/services/adminService';
 import { SubscriptionPlan } from '@/lib/types/database.types';
-import { Shield, Layers, Users, Music, Sparkles, ArrowRight, Plus, Edit3, Trash2, Power, Calendar, BarChart3, Globe, TrendingUp, Mic } from 'lucide-react';
+import { Shield, Layers, Users, Music, Sparkles, ArrowRight, Plus, Edit3, Trash2, Power, Calendar, BarChart3, Globe, TrendingUp, Mic, HardDrive } from 'lucide-react';
 
 import { platformSettingsService } from '@/lib/services/platformSettingsService';
 import { CreditCard, ToggleLeft, ToggleRight, Check } from 'lucide-react';
@@ -317,6 +317,18 @@ export default function SuperAdminPage() {
           </div>
           <p className="text-3xl font-extrabold text-white group-hover:text-amber-300 transition-colors">Marketplace</p>
           <p className="text-xs text-amber-300/80 font-medium">Payout Requests, Artist Approvals &amp; Commission % →</p>
+        </Link>
+
+        <Link
+          href="/admin/storage"
+          className="bg-gradient-to-br from-purple-950/70 via-slate-900 to-blue-950/70 p-6 rounded-3xl border border-purple-500/40 space-y-2 hover:border-purple-400 hover:scale-[1.01] transition-all group cursor-pointer block shadow-lg"
+        >
+          <div className="flex items-center justify-between text-purple-400">
+            <span className="text-xs font-extrabold uppercase tracking-wider">Storage &amp; Drive Pool</span>
+            <HardDrive className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
+          </div>
+          <p className="text-3xl font-extrabold text-white group-hover:text-purple-300 transition-colors">Storage Pool</p>
+          <p className="text-xs text-purple-300/80 font-medium">Google Drive Multi-Account Email Pool &amp; Settings →</p>
         </Link>
 
         <Link

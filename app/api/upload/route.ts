@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { getStorageSettings, uploadToGoogleDrive } from '@/lib/services/googleDriveService';
 
 export async function POST(request: Request) {
   try {
@@ -20,17 +21,40 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
+    const arrayBuffer = await file.arrayBuffer();
+    const fileBuffer = Buffer.from(arrayBuffer);
+    const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
+    // Get platform storage configuration
+    const storageSettings = await getStorageSettings();
+
+    // 1. Handle Google Drive Primary Mode
+    if (storageSettings.storage_mode === 'google_drive_primary') {
+      console.log(`[UploadAPI] Primary storage mode is Google Drive. Uploading file '${file.name}' to Drive pool...`);
+      const driveResult = await uploadToGoogleDrive(fileBuffer, file.name, file.type);
+      
+      if (!driveResult.error) {
+        return NextResponse.json({
+          url: driveResult.streamUrl,
+          provider: 'google_drive',
+          accountEmail: driveResult.accountEmail,
+          error: null,
+        });
+      }
+
+      console.warn(`[UploadAPI] Google Drive primary upload failed: ${driveResult.error}. Checking fallback...`);
+      if (!storageSettings.storage_fallback_enabled) {
+        return NextResponse.json({ error: driveResult.error }, { status: 500 });
+      }
+    }
+
+    // 2. Handle Supabase Primary Mode (or fallback destination)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mdubljdeimlpntyzektn.supabase.co';
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-    // Admin Supabase client using Service Role Key to bypass RLS policies on storage.objects
     const adminSupabase = createClient(supabaseUrl, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false }
+      auth: { autoRefreshToken: false, persistSession: false },
     });
-
-    const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-    const arrayBuffer = await file.arrayBuffer();
-    const fileBuffer = Buffer.from(arrayBuffer);
 
     // Ensure bucket exists or create it automatically with public access
     const { data: bucketData } = await adminSupabase.storage.getBucket(bucket);
@@ -63,14 +87,36 @@ export async function POST(request: Request) {
         });
     }
 
-    if (uploadResult.error) {
-      console.error(`Storage upload error for bucket ${bucket}:`, uploadResult.error);
-      return NextResponse.json({ error: uploadResult.error.message }, { status: 500 });
+    // Check if Supabase succeeded
+    if (!uploadResult.error) {
+      const { data: publicUrlData } = adminSupabase.storage.from(bucket).getPublicUrl(cleanFileName);
+      return NextResponse.json({ url: publicUrlData.publicUrl, provider: 'supabase', error: null });
     }
 
-    const { data: publicUrlData } = adminSupabase.storage.from(bucket).getPublicUrl(cleanFileName);
+    // Supabase upload failed (e.g. storage full / quota / limit)
+    console.error(`[UploadAPI] Supabase storage upload failed: ${uploadResult.error.message}`);
 
-    return NextResponse.json({ url: publicUrlData.publicUrl, error: null });
+    // 3. Fallback to Google Drive if fallback enabled
+    if (storageSettings.storage_fallback_enabled && storageSettings.storage_mode !== 'google_drive_primary') {
+      console.log(`[UploadAPI] Supabase storage failed/full. Falling back to Google Drive multi-account pool...`);
+      const driveResult = await uploadToGoogleDrive(fileBuffer, file.name, file.type);
+
+      if (!driveResult.error) {
+        return NextResponse.json({
+          url: driveResult.streamUrl,
+          provider: 'google_drive',
+          accountEmail: driveResult.accountEmail,
+          error: null,
+        });
+      }
+
+      console.error(`[UploadAPI] Both Supabase and Google Drive fallback failed:`, driveResult.error);
+      return NextResponse.json({
+        error: `Supabase upload failed (${uploadResult.error.message}) and Google Drive fallback failed (${driveResult.error})`,
+      }, { status: 500 });
+    }
+
+    return NextResponse.json({ error: uploadResult.error.message }, { status: 500 });
 
   } catch (err: any) {
     console.error('Server upload API error:', err);
