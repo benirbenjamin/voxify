@@ -7,6 +7,7 @@ import {
   addDriveAccount,
   updateDriveAccount,
   deleteDriveAccount,
+  resetFullAccounts,
 } from '@/lib/services/googleDriveService';
 
 async function verifySuperAdmin() {
@@ -95,6 +96,12 @@ export async function POST(request: Request) {
       const { id } = body;
       const result = await deleteDriveAccount(id);
       return NextResponse.json(result);
+    }
+
+    if (action === 'reset_full_accounts') {
+      const result = await resetFullAccounts();
+      const accounts = await getDriveAccounts();
+      return NextResponse.json({ ...result, accounts });
     }
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });

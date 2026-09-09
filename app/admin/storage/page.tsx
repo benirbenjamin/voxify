@@ -202,6 +202,30 @@ export default function AdminStoragePage() {
     }
   }
 
+  async function handleResetFullAccounts() {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/admin/storage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset_full_accounts' }),
+      });
+      const result = await res.json();
+
+      if (res.ok) {
+        if (result.accounts) setAccounts(result.accounts);
+        setMessage({ type: 'success', text: `Reactivated ${result.count || 0} account(s) back to active status!` });
+      } else {
+        setMessage({ type: 'error', text: result.error || 'Failed to reactivate accounts' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to reactivate accounts' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // Pool summary stats
   const totalMaxMb = accounts.reduce((acc, a) => acc + (a.max_storage_mb || 0), 0);
   const totalUsedMb = accounts.reduce((acc, a) => acc + (a.used_storage_mb || 0), 0);
@@ -412,12 +436,24 @@ export default function AdminStoragePage() {
               </p>
             </div>
 
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl text-sm shadow-lg shadow-purple-600/30 transition"
-            >
-              <Plus className="w-4 h-4" /> Add Google Drive Email
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleResetFullAccounts}
+                disabled={loading}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl font-medium text-xs transition"
+                title="Reset falsely marked full accounts back to active"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-purple-400" /> Reactivate Accounts
+              </button>
+
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-semibold rounded-xl text-sm shadow-lg shadow-purple-600/30 transition"
+              >
+                <Plus className="w-4 h-4" /> Add Google Drive Email
+              </button>
+            </div>
           </div>
 
           {accounts.length === 0 ? (

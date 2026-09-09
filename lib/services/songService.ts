@@ -188,21 +188,7 @@ export const songService = {
   async uploadAudioFile(file: File, choirId: string): Promise<{ url: string | null; error: string | null }> {
     const fileSizeMb = file.size / (1024 * 1024);
 
-    try {
-      const supabase = createClient();
-      const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      const { data, error } = await supabase.storage
-        .from('song-audio')
-        .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
-
-      if (!error && data) {
-        const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
-        return { url: publicUrlData.publicUrl, error: null };
-      }
-    } catch (directErr) {
-      console.warn('Direct Storage upload attempted, trying server route...', directErr);
-    }
-
+    // Primary: Route through server /api/upload which respects Super Admin storage mode (Google Drive pool or Supabase)
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -225,31 +211,32 @@ export const songService = {
       if (res.ok && data.url) {
         return { url: data.url, error: null };
       }
+    } catch (serverErr) {
+      console.warn('Server upload route note:', serverErr);
+    }
 
-      return { url: null, error: data.error || `Upload failed (Status ${res.status})` };
+    // Secondary fallback: Direct Supabase client upload
+    try {
+      const supabase = createClient();
+      const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const { data, error } = await supabase.storage
+        .from('song-audio')
+        .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
+
+      if (!error && data) {
+        const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
+        return { url: publicUrlData.publicUrl, error: null };
+      }
+      return { url: null, error: error?.message || 'Upload failed' };
     } catch (err: any) {
-      return { url: null, error: err.message || 'Network error during audio upload' };
+      return { url: null, error: err.message || 'Error during audio upload' };
     }
   },
 
   async uploadPdfFile(file: File, choirId: string): Promise<{ url: string | null; error: string | null }> {
     const fileSizeMb = file.size / (1024 * 1024);
 
-    try {
-      const supabase = createClient();
-      const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      const { data, error } = await supabase.storage
-        .from('song-documents')
-        .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
-
-      if (!error && data) {
-        const { data: publicUrlData } = supabase.storage.from('song-documents').getPublicUrl(cleanFileName);
-        return { url: publicUrlData.publicUrl, error: null };
-      }
-    } catch (directErr) {
-      console.warn('Direct Storage upload attempted, trying server route...', directErr);
-    }
-
+    // Primary: Route through server /api/upload which respects Super Admin storage mode (Google Drive pool or Supabase)
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -272,10 +259,25 @@ export const songService = {
       if (res.ok && data.url) {
         return { url: data.url, error: null };
       }
+    } catch (serverErr) {
+      console.warn('Server upload route note:', serverErr);
+    }
 
-      return { url: null, error: data.error || `Upload failed (Status ${res.status})` };
+    // Secondary fallback: Direct Supabase client upload
+    try {
+      const supabase = createClient();
+      const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+      const { data, error } = await supabase.storage
+        .from('song-documents')
+        .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
+
+      if (!error && data) {
+        const { data: publicUrlData } = supabase.storage.from('song-documents').getPublicUrl(cleanFileName);
+        return { url: publicUrlData.publicUrl, error: null };
+      }
+      return { url: null, error: error?.message || 'PDF upload failed' };
     } catch (err: any) {
-      return { url: null, error: err.message || 'Network error during PDF upload' };
+      return { url: null, error: err.message || 'Error during PDF upload' };
     }
   }
 };

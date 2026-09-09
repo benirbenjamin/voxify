@@ -206,7 +206,7 @@ export async function getActiveDriveAccount(): Promise<GoogleDriveAccount | null
 }
 
 /**
- * Mark a Google Drive account as full when capacity is exceeded
+ * Mark a Google Drive account as full when capacity is genuinely exceeded
  */
 export async function markAccountFull(accountId: string): Promise<void> {
   try {
@@ -222,10 +222,30 @@ export async function markAccountFull(accountId: string): Promise<void> {
 }
 
 /**
+ * Reset all accounts falsely marked as full back to active
+ */
+export async function resetFullAccounts(): Promise<{ count: number; error: string | null }> {
+  try {
+    const supabase = getAdminSupabase();
+    const accounts = await getDriveAccounts();
+    const toReset = accounts.filter(
+      (a) => a.status === 'full' && (a.used_storage_mb || 0) < (a.max_storage_mb || 15000)
+    );
+
+    for (const acc of toReset) {
+      await supabase.from('google_drive_accounts').update({ status: 'active' }).eq('id', acc.id);
+    }
+
+    return { count: toReset.length, error: null };
+  } catch (err: any) {
+    return { count: 0, error: err.message || 'Error resetting accounts' };
+  }
+}
+
+/**
  * Obtain an OAuth2 Access Token using Service Account JSON credentials
  */
 export async function getAccessTokenFromServiceAccount(creds: any): Promise<string> {
-  // If creds is direct access_token string passed by admin
   if (typeof creds === 'string' && creds.length > 50 && !creds.startsWith('{')) {
     return creds;
   }
@@ -292,7 +312,7 @@ export async function getAccessTokenFromServiceAccount(creds: any): Promise<stri
 }
 
 /**
- * Upload file to Google Drive with multi-account auto-rotation
+ * Upload file to Google Drive with multi-account auto-rotation & folder permission fallback
  */
 export async function uploadToGoogleDrive(
   fileBuffer: Buffer,
@@ -306,9 +326,28 @@ export async function uploadToGoogleDrive(
   error: string | null;
 }> {
   const accounts = await getDriveAccounts();
-  const activeAccounts = accounts.filter(
-    (acc) => acc.status === 'active' && acc.used_storage_mb < acc.max_storage_mb
+  
+  // Find accounts that are active with available space
+  let activeAccounts = accounts.filter(
+    (acc) => acc.status === 'active' && (acc.used_storage_mb || 0) < (acc.max_storage_mb || 15000)
   );
+
+  // AUTO-RECOVERY: If no accounts are active, check if any accounts were falsely marked "full"
+  // when their recorded storage is still well below max capacity!
+  if (activeAccounts.length === 0) {
+    const recoverableAccounts = accounts.filter(
+      (acc) => acc.status === 'full' && (acc.used_storage_mb || 0) < (acc.max_storage_mb || 15000)
+    );
+
+    if (recoverableAccounts.length > 0) {
+      console.log(`[GoogleDrivePool] Auto-recovering ${recoverableAccounts.length} accounts marked full before reaching max limit...`);
+      for (const rec of recoverableAccounts) {
+        await updateDriveAccount(rec.id, { status: 'active' });
+        rec.status = 'active';
+      }
+      activeAccounts = recoverableAccounts;
+    }
+  }
 
   if (preferredAccountId) {
     const idx = activeAccounts.findIndex((a) => a.id === preferredAccountId);
@@ -323,73 +362,99 @@ export async function uploadToGoogleDrive(
       fileId: '',
       streamUrl: '',
       accountEmail: '',
-      error: 'No active Google Drive storage accounts available in the pool. All accounts are full or disabled.',
+      error: accounts.length === 0
+        ? 'No Google Drive accounts are configured in Super Admin -> Storage Settings.'
+        : 'All Google Drive accounts in the pool have reached their maximum storage limit.',
     };
   }
+
+  let lastError = '';
+
+  // Helper to send multipart upload
+  const sendDriveUpload = async (
+    accessToken: string,
+    metadata: any,
+    buffer: Buffer,
+    type: string
+  ) => {
+    const boundary = '-------VoxifyBoundary' + Date.now().toString(16);
+    const delimiter = `\r\n--${boundary}\r\n`;
+    const closeDelimiter = `\r\n--${boundary}--`;
+
+    const bodyBuffer = Buffer.concat([
+      Buffer.from(
+        `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}`
+      ),
+      Buffer.from(
+        `${delimiter}Content-Type: ${type || 'application/octet-stream'}\r\n\r\n`
+      ),
+      buffer,
+      Buffer.from(closeDelimiter),
+    ]);
+
+    return fetch(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,size,webViewLink',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': `multipart/related; boundary=${boundary}`,
+          'Content-Length': bodyBuffer.length.toString(),
+        },
+        body: bodyBuffer,
+      }
+    );
+  };
 
   // Iterate over active accounts until upload succeeds or pool exhausted
   for (const account of activeAccounts) {
     try {
       const accessToken = await getAccessTokenFromServiceAccount(account.credentials_json);
 
-      // Construct multipart body for Google Drive API v3
-      const boundary = '-------VoxifyBoundary' + Date.now().toString(16);
-      const metadata = {
-        name: fileName,
-        parents: account.folder_id ? [account.folder_id] : undefined,
-      };
+      // Attempt 1: Upload with folder_id if provided
+      let metadata: any = { name: fileName };
+      if (account.folder_id && account.folder_id.trim()) {
+        metadata.parents = [account.folder_id.trim()];
+      }
 
-      const delimiter = `\r\n--${boundary}\r\n`;
-      const closeDelimiter = `\r\n--${boundary}--`;
+      let uploadRes = await sendDriveUpload(accessToken, metadata, fileBuffer, mimeType);
+      let uploadData = await uploadRes.json();
 
-      const bodyBuffer = Buffer.concat([
-        Buffer.from(
-          `${delimiter}Content-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(metadata)}`
-        ),
-        Buffer.from(
-          `${delimiter}Content-Type: ${mimeType || 'application/octet-stream'}\r\n\r\n`
-        ),
-        fileBuffer,
-        Buffer.from(closeDelimiter),
-      ]);
-
-      const uploadRes = await fetch(
-        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,mimeType,size,webViewLink',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': `multipart/related; boundary=${boundary}`,
-            'Content-Length': bodyBuffer.length.toString(),
-          },
-          body: bodyBuffer,
-        }
-      );
-
-      const uploadData = await uploadRes.json();
+      // If folder upload failed due to folder permission or not found, retry without folder (upload to service account Drive)
+      if (!uploadRes.ok && account.folder_id && (uploadRes.status === 404 || uploadRes.status === 403)) {
+        console.warn(
+          `[GoogleDrivePool] Account ${account.account_email} upload to folder '${account.folder_id}' failed (${uploadRes.status}). Retrying directly to root Drive...`
+        );
+        metadata = { name: fileName };
+        uploadRes = await sendDriveUpload(accessToken, metadata, fileBuffer, mimeType);
+        uploadData = await uploadRes.json();
+      }
 
       if (!uploadRes.ok) {
         const errorMsg = uploadData.error?.message || JSON.stringify(uploadData);
-        console.warn(`[GoogleDrivePool] Account ${account.account_email} upload failed:`, errorMsg);
+        lastError = errorMsg;
+        console.warn(`[GoogleDrivePool] Account ${account.account_email} upload error:`, errorMsg);
 
-        // Check if quota error or 403 storage limit
-        if (
-          uploadRes.status === 403 ||
-          errorMsg.toLowerCase().includes('quota') ||
-          errorMsg.toLowerCase().includes('storage')
-        ) {
+        // Check if error is STRICTLY a genuine storage quota error
+        const isQuota =
+          uploadData.error?.errors?.some((e: any) => e.reason === 'storageQuotaExceeded') ||
+          errorMsg.toLowerCase().includes('storagequotaexceeded') ||
+          errorMsg.toLowerCase().includes('storage quota exceeded');
+
+        if (isQuota) {
           await markAccountFull(account.id);
-          console.log(`[GoogleDrivePool] Account ${account.account_email} auto-rotated (marked full). Trying next account...`);
-          continue; // Try next account in loop
+          console.log(`[GoogleDrivePool] Account ${account.account_email} genuinely exceeded quota. Auto-rotating...`);
+          continue; // Try next account in pool
         }
 
-        throw new Error(`Google Drive API error: ${errorMsg}`);
+        // It was a permission or configuration error, do NOT mark as full!
+        continue;
       }
 
       const fileId = uploadData.id;
-      const fileSizeMb = (fileBuffer.length / (1024 * 1024));
+      const fileSizeMb = fileBuffer.length / (1024 * 1024);
 
-      // Make file readable via permissions API if needed or proxy will handle authentication
+      // Make file readable via permissions API
       try {
         await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}/permissions`, {
           method: 'POST',
@@ -426,8 +491,8 @@ export async function uploadToGoogleDrive(
         error: null,
       };
     } catch (err: any) {
+      lastError = err.message || 'Unknown error';
       console.error(`[GoogleDrivePool] Exception uploading to ${account.account_email}:`, err);
-      // Try next account in rotation
     }
   }
 
@@ -435,6 +500,6 @@ export async function uploadToGoogleDrive(
     fileId: '',
     streamUrl: '',
     accountEmail: '',
-    error: 'All Google Drive accounts in pool failed or encountered quota limits.',
+    error: lastError ? `Google Drive API error: ${lastError}` : 'All Google Drive accounts in pool failed to process upload.',
   };
 }

@@ -103,33 +103,33 @@ export default function SongUploadPage() {
     };
 
     try {
-      const supabase = createClient();
       const fileExt = file.name.split('.').pop() || 'mp3';
       const cleanFileName = `marketplace/${artistProfile.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      // Try direct client upload first using 'song-audio' bucket
-      const { data, error: uploadErr } = await supabase.storage
-        .from('song-audio')
-        .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
+      // Primary: Route via server /api/upload to use Google Drive storage pool or Supabase based on platform settings
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('bucket', 'song-audio');
+      formData.append('choirId', artistProfile.id);
 
-      if (!uploadErr && data) {
-        const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
-        setAudioFilePath(publicUrlData.publicUrl);
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const resData = await res.json();
+      if (res.ok && resData.url) {
+        setAudioFilePath(resData.url);
       } else {
-        // Fallback to server /api/upload which auto-creates bucket using Service Role Key
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('bucket', 'song-audio');
-        formData.append('choirId', artistProfile.id);
+        // Fallback to direct client Supabase upload
+        const supabase = createClient();
+        const { data, error: uploadErr } = await supabase.storage
+          .from('song-audio')
+          .upload(cleanFileName, file, { cacheControl: '3600', upsert: true });
 
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const resData = await res.json();
-        if (res.ok && resData.url) {
-          setAudioFilePath(resData.url);
+        if (!uploadErr && data) {
+          const { data: publicUrlData } = supabase.storage.from('song-audio').getPublicUrl(cleanFileName);
+          setAudioFilePath(publicUrlData.publicUrl);
         } else if (!localBlobUrl) {
           setError(resData.error || 'Failed to upload audio file.');
         }
