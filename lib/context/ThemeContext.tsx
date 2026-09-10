@@ -13,55 +13,37 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light');
-  const [mounted, setMounted] = useState(false);
+  const [theme] = useState<Theme>('light');
 
   useEffect(() => {
-    setMounted(true);
     try {
-      const savedTheme = localStorage.getItem('voxify_theme') as Theme | null;
-      if (savedTheme === 'dark' || savedTheme === 'light') {
-        setThemeState(savedTheme);
-        applyTheme(savedTheme);
-      } else {
-        // Default to light mode as requested
-        setThemeState('light');
-        applyTheme('light');
-      }
-    } catch {
-      applyTheme('light');
+      localStorage.setItem('voxify_theme', 'light');
+    } catch {}
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
+      root.classList.remove('dark');
+      root.classList.add('light');
+      root.style.colorScheme = 'light';
     }
   }, []);
 
-  const applyTheme = (newTheme: Theme) => {
-    if (typeof document === 'undefined') return;
-    const root = document.documentElement;
-    if (newTheme === 'dark') {
-      root.classList.add('dark');
-      root.classList.remove('light');
-      root.style.colorScheme = 'dark';
-    } else {
-      root.classList.add('light');
+  const setTheme = () => {
+    // Light mode only - ignore attempts to switch to dark
+    if (typeof document !== 'undefined') {
+      const root = document.documentElement;
       root.classList.remove('dark');
+      root.classList.add('light');
       root.style.colorScheme = 'light';
     }
   };
 
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
-    applyTheme(newTheme);
-    try {
-      localStorage.setItem('voxify_theme', newTheme);
-    } catch {}
-  };
-
   const toggleTheme = () => {
-    const nextTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(nextTheme);
+    // Light mode only
+    setTheme();
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider value={{ theme: 'light', toggleTheme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

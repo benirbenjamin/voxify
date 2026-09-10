@@ -29,6 +29,8 @@ import {
   ExternalLink,
   Settings,
   LayoutDashboard,
+  Info,
+  MessageSquare
 } from 'lucide-react';
 
 export function ChoirHeader() {
@@ -291,10 +293,6 @@ export function ChoirHeader() {
             )}
           </nav>
 
-          {/* Theme Toggle Button */}
-          <div className="flex items-center">
-            <ThemeToggle showLabel={false} />
-          </div>
 
           {/* Notifications Bell */}
           <Link
@@ -417,6 +415,24 @@ export function ChoirHeader() {
                         <span>Super Admin Panel</span>
                       </Link>
                     )}
+
+                    <Link
+                      href="/about"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <Info className="w-4 h-4 text-blue-500" />
+                      <span>About NebeluRw</span>
+                    </Link>
+
+                    <Link
+                      href="/contact"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      <MessageSquare className="w-4 h-4 text-emerald-500" />
+                      <span>Contact Support</span>
+                    </Link>
                   </div>
 
                   <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
@@ -641,11 +657,26 @@ export function ChoirHeader() {
             </div>
           )}
 
-          {/* Theme & Actions */}
+          {/* Quick Links & Company Info */}
           <div className="pt-2 border-t border-slate-200 dark:border-slate-800 space-y-3">
-            <div className="flex items-center justify-between px-2">
-              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Display Theme</span>
-              <ThemeToggle showLabel={true} />
+            <div className="space-y-1">
+              <Link
+                href="/about"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <Info className="w-4 h-4 text-blue-500" />
+                <span>About NebeluRw Co. Ltd</span>
+              </Link>
+
+              <Link
+                href="/contact"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <MessageSquare className="w-4 h-4 text-emerald-500" />
+                <span>Contact &amp; WhatsApp Support</span>
+              </Link>
             </div>
 
             {user && (

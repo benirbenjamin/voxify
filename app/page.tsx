@@ -9,6 +9,7 @@ import { marketplaceService } from '@/lib/services/marketplaceService';
 import { statsService } from '@/lib/services/statsService';
 import { MarketplaceSong } from '@/lib/types/database.types';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
+import { Footer } from '@/components/layout/Footer';
 import { generateSongCover } from '@/lib/utils/coverGenerator';
 import {
   Users,
@@ -185,12 +186,13 @@ export default function HomePage() {
 
           {/* Desktop Navigation Links */}
           <nav className="hidden md:flex items-center gap-5 text-sm font-semibold text-slate-700 dark:text-slate-200">
-            <Link href="/marketplace" className="text-blue-600 dark:text-blue-400 hover:underline font-extrabold flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/50 px-3 py-1.5 rounded-xl border border-blue-200 dark:border-blue-800">
+            <Link href="/songs/marketplace" className="text-blue-600 dark:text-blue-400 hover:underline font-extrabold flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/50 px-3 py-1.5 rounded-xl border border-blue-200 dark:border-blue-800">
               <Sparkles className="w-4 h-4 text-blue-500" /> Marketplace
             </Link>
             <a href="#featured-songs" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Featured Songs</a>
-            <a href="#features" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Choir Platform</a>
-            <a href="/login" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Sign In</a>
+            <Link href="/about" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">About Us</Link>
+            <Link href="/contact" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Contact</Link>
+            <Link href="/login" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Sign In</Link>
           </nav>
 
           {/* Auth-Aware Action Buttons & Theme Switcher */}
@@ -552,6 +554,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      <Footer />
     </div>
   );
 }

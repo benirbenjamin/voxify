@@ -346,6 +346,18 @@ function RegisterContent() {
             </div>
           </div>
 
+          {/* Terms and Conditions Acceptance Notice */}
+          <p className="text-[11px] text-slate-500 text-center leading-relaxed">
+            By creating an account, you accept our{' '}
+            <Link href="/terms" target="_blank" className="text-purple-600 hover:underline font-bold">
+              Terms and Conditions
+            </Link>{' '}
+            and acknowledge our{' '}
+            <Link href="/disclaimer" target="_blank" className="text-purple-600 hover:underline font-bold">
+              Disclaimer
+            </Link>.
+          </p>
+
           <button
             type="submit"
             disabled={loading}
