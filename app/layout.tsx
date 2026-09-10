@@ -71,6 +71,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="light overflow-x-hidden max-w-full">
+      <head>
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4078466828008985"
+     crossorigin="anonymous"></script>
+      </head>
       <body className="bg-slate-50 text-slate-900 min-h-screen font-sans antialiased selection:bg-purple-600 selection:text-white overflow-x-hidden max-w-full">
         <ThemeProvider>
           <AuthProvider>

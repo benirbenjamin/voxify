@@ -10,6 +10,7 @@ import { statsService } from '@/lib/services/statsService';
 import { MarketplaceSong } from '@/lib/types/database.types';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Footer } from '@/components/layout/Footer';
+import { SongShareButtons } from '@/components/marketplace/SongShareButtons';
 import { generateSongCover } from '@/lib/utils/coverGenerator';
 import {
   Users,
@@ -481,6 +482,8 @@ export default function HomePage() {
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
+                        <SongShareButtons song={song} variant="compact" />
+
                         <button
                           type="button"
                           onClick={(e) => {

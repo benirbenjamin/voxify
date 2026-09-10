@@ -25,6 +25,7 @@ import {
   AlertCircle,
   X
 } from 'lucide-react';
+import { SongShareButtons } from '@/components/marketplace/SongShareButtons';
 
 
 export default function MarketplacePage() {
@@ -433,6 +434,8 @@ export default function MarketplacePage() {
                     </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
+                      <SongShareButtons song={song} variant="compact" />
+
                       <button
                         type="button"
                         onClick={(e) => {

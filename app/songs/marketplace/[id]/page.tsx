@@ -23,6 +23,7 @@ import {
   AlertCircle,
   X
 } from 'lucide-react';
+import { SongShareButtons } from '@/components/marketplace/SongShareButtons';
 
 
 export default function SongDetailsPage() {
@@ -369,6 +370,12 @@ export default function SongDetailsPage() {
               {isPlayingPreview ? <Pause className="w-4 h-4 text-purple-600" /> : <Play className="w-4 h-4 text-purple-600" />}
               <span>{isPlayingPreview ? 'Pause Preview' : `Listen Preview (${song.preview_start_time}s - ${song.preview_end_time}s)`}</span>
             </button>
+          </div>
+
+          {/* Share Song Action (WhatsApp & Native Share Sheet) */}
+          <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Share Song:</span>
+            <SongShareButtons song={song} variant="full" />
           </div>
         </div>
 
