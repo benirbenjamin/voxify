@@ -24,6 +24,7 @@ import {
   X
 } from 'lucide-react';
 import { SongShareButtons } from '@/components/marketplace/SongShareButtons';
+import { GoogleAdSenseBanner } from '@/components/ads/GoogleAdSenseBanner';
 
 
 export default function SongDetailsPage() {
@@ -380,6 +381,9 @@ export default function SongDetailsPage() {
         </div>
 
       </div>
+
+      {/* Google AdSense Slot: Song Detail Page */}
+      <GoogleAdSenseBanner className="my-2" />
 
       {/* Full Lyrics Section (Gated) */}
       <div className="bg-white border border-[#E6F2FC] rounded-3xl p-6 sm:p-8 space-y-4 shadow-sm">

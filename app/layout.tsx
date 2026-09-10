@@ -79,8 +79,6 @@ export default function RootLayout({
             __html: `(function(){try{document.documentElement.classList.remove('dark');document.documentElement.classList.add('light');document.documentElement.style.colorScheme='light';}catch(e){}})();`,
           }}
         />
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4078466828008985"
-          crossOrigin="anonymous"></script>
       </head>
       <body className="bg-slate-50 text-slate-900 min-h-screen font-sans antialiased selection:bg-purple-600 selection:text-white overflow-x-hidden max-w-full" style={{ colorScheme: 'light' }}>
         <ThemeProvider>

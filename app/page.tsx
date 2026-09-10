@@ -11,6 +11,7 @@ import { MarketplaceSong } from '@/lib/types/database.types';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
 import { Footer } from '@/components/layout/Footer';
 import { SongShareButtons } from '@/components/marketplace/SongShareButtons';
+import { GoogleAdSenseBanner } from '@/components/ads/GoogleAdSenseBanner';
 import { generateSongCover } from '@/lib/utils/coverGenerator';
 import {
   Users,
@@ -330,6 +331,11 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Google AdSense Slot: Homepage Top Banner */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
+        <GoogleAdSenseBanner className="my-4" />
+      </div>
+
       {/* FEATURED ARTIST MUSIC & MARKETPLACE SECTION */}
       <section id="featured-songs" className="bg-slate-100/70 dark:bg-[#091326] border-y border-slate-200 dark:border-blue-950 py-16 sm:py-20 px-4 sm:px-8 space-y-10">
         <div className="max-w-7xl mx-auto space-y-8">
@@ -523,6 +529,11 @@ export default function HomePage() {
 
         </div>
       </section>
+
+      {/* Google AdSense Slot: Homepage Middle Banner */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
+        <GoogleAdSenseBanner className="my-4" />
+      </div>
 
       {/* Real Database Statistics Counter Banner */}
       <section className="bg-white dark:bg-[#070e1e] py-14 px-4 sm:px-6 border-b border-slate-200 dark:border-blue-950">

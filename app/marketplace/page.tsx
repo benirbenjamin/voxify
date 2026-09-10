@@ -26,6 +26,7 @@ import {
   X
 } from 'lucide-react';
 import { SongShareButtons } from '@/components/marketplace/SongShareButtons';
+import { GoogleAdSenseBanner } from '@/components/ads/GoogleAdSenseBanner';
 
 
 export default function MarketplacePage() {
@@ -294,6 +295,9 @@ export default function MarketplacePage() {
           </div>
         </div>
 
+        {/* Google AdSense Slot: Marketplace Top Banner */}
+        <GoogleAdSenseBanner className="my-2" />
+
         {/* Songs Grid */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -472,6 +476,9 @@ export default function MarketplacePage() {
             })}
           </div>
         )}
+
+        {/* Google AdSense Slot: Marketplace Bottom Banner */}
+        <GoogleAdSenseBanner className="mt-8 mb-4" />
 
       </div>
 
