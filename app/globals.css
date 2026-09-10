@@ -1,7 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.never-match-dark, .never-match-dark *));
+
 :root {
+  color-scheme: light !important;
   --background: #f8fafc;
   --section-bg: #ffffff;
   --card-bg: #ffffff;
@@ -12,15 +15,23 @@
   --border: #e2e8f0;
 }
 
+/* Guard against dark class ever being added */
+html,
+html.dark,
+html.light,
+body {
+  color-scheme: light !important;
+}
+
 html.dark {
-  --background: #070e1e;
-  --section-bg: #0b162b;
-  --card-bg: #0d1b33;
-  --highlight-bg: #112344;
-  --accent-primary: #3b82f6;
-  --foreground: #f8fafc;
-  --secondary: #94a3b8;
-  --border: #1e3a5f;
+  --background: #f8fafc !important;
+  --section-bg: #ffffff !important;
+  --card-bg: #ffffff !important;
+  --highlight-bg: #f1f5f9 !important;
+  --accent-primary: #2563eb !important;
+  --foreground: #0f172a !important;
+  --secondary: #475569 !important;
+  --border: #e2e8f0 !important;
 }
 
 @theme inline {
@@ -42,96 +53,65 @@ body {
 }
 
 /* ----------------------------------------------------
-   LIGHT MODE RULES (html.light) - Clean Google/Stripe Style
+   LIGHT MODE RULES - Clean Google/Stripe Style
    Crisp white cards, solid dark slate text, clear contours
    ---------------------------------------------------- */
+html,
 html.light,
-html.light body {
+html.dark,
+html body,
+html.light body,
+html.dark body {
   background-color: #f8fafc !important;
   color: #0f172a !important;
 }
 
-html.light .bg-\[\#FCFEFF\],
-html.light .bg-\[\#F5FAFF\],
-html.light .bg-slate-950,
-html.light .bg-slate-900,
-html.light .bg-slate-900\/98,
-html.light .bg-slate-900\/90,
-html.light .bg-slate-900\/80,
-html.light .bg-slate-900\/70,
-html.light .bg-purple-950,
-html.light .bg-indigo-950 {
+.bg-\[\#FCFEFF\],
+.bg-\[\#F5FAFF\],
+.bg-slate-950,
+.bg-slate-900,
+.bg-slate-900\/98,
+.bg-slate-900\/90,
+.bg-slate-900\/80,
+.bg-slate-900\/70,
+.bg-purple-950,
+.bg-indigo-950 {
   background-color: #ffffff !important;
   color: #0f172a !important;
 }
 
-html.light .bg-\[\#DFF1FF\],
-html.light .bg-purple-950\/60,
-html.light .bg-purple-900\/40,
-html.light .bg-slate-800 {
+.bg-\[\#DFF1FF\],
+.bg-purple-950\/60,
+.bg-purple-900\/40,
+.bg-slate-800 {
   background-color: #f1f5f9 !important;
   color: #0f172a !important;
 }
 
-html.light .border-\[\#E6F2FC\],
-html.light .border-slate-800,
-html.light .border-slate-700,
-html.light .border-slate-600 {
+.border-\[\#E6F2FC\],
+.border-slate-800,
+.border-slate-700,
+.border-slate-600 {
   border-color: #e2e8f0 !important;
 }
 
 /* Standalone text elements inside light containers turn dark */
-html.light .bg-white > .text-white,
-html.light .bg-slate-50 > .text-white,
-html.light .p-5 > .text-white,
-html.light .space-y-2 > .text-white {
+.bg-white > .text-white,
+.bg-slate-50 > .text-white,
+.p-5 > .text-white,
+.space-y-2 > .text-white {
   color: #0f172a !important;
 }
 
-html.light .text-slate-100,
-html.light .text-slate-200,
-html.light .text-slate-300 {
+.text-slate-100,
+.text-slate-200,
+.text-slate-300 {
   color: #1e293b !important;
 }
 
-html.light .text-slate-400,
-html.light .text-slate-500 {
+.text-slate-400,
+.text-slate-500 {
   color: #475569 !important;
-}
-
-/* ----------------------------------------------------
-   DARK MODE RULES (html.dark) - Deep Navy/Blue Theme
-   Rich blue background, bright crisp white text
-   ---------------------------------------------------- */
-html.dark,
-html.dark body {
-  background-color: #070e1e !important;
-  color: #f8fafc !important;
-}
-
-html.dark .bg-\[\#FCFEFF\],
-html.dark .bg-\[\#F5FAFF\],
-html.dark .bg-\[\#FFFFFF\] {
-  background-color: #0b162b !important;
-  color: #ffffff !important;
-}
-
-html.dark .border-\[\#E6F2FC\],
-html.dark .border-\[\#B9E2FC\] {
-  border-color: #1e3a5f !important;
-}
-
-/* Make legacy hardcoded dark classes visible in dark mode */
-html.dark .text-\[\#000000\] {
-  color: #ffffff !important;
-}
-
-html.dark .text-\[\#475569\] {
-  color: #cbd5e1 !important;
-}
-
-html.dark .text-\[\#A8B5C2\] {
-  color: #94a3b8 !important;
 }
 
 /* ----------------------------------------------------

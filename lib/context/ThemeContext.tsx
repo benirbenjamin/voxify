@@ -19,11 +19,44 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem('voxify_theme', 'light');
     } catch {}
-    if (typeof document !== 'undefined') {
-      const root = document.documentElement;
-      root.classList.remove('dark');
-      root.classList.add('light');
-      root.style.colorScheme = 'light';
+
+    const enforceLight = () => {
+      if (typeof document !== 'undefined') {
+        const root = document.documentElement;
+        if (root.classList.contains('dark')) {
+          root.classList.remove('dark');
+        }
+        if (!root.classList.contains('light')) {
+          root.classList.add('light');
+        }
+        root.style.colorScheme = 'light';
+        if (document.body && document.body.style.colorScheme !== 'light') {
+          document.body.style.colorScheme = 'light';
+        }
+      }
+    };
+
+    enforceLight();
+
+    if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.attributeName === 'class') {
+            const root = document.documentElement;
+            if (root.classList.contains('dark')) {
+              root.classList.remove('dark');
+              root.classList.add('light');
+            }
+          }
+        }
+      });
+
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+
+      return () => observer.disconnect();
     }
   }, []);
 
