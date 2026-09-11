@@ -148,7 +148,8 @@ html.dark body {
 .bg-rose-500,
 .bg-amber-600,
 .bg-amber-500,
-.bg-slate-900 {
+button.bg-slate-900,
+a.bg-slate-900 {
   color: #ffffff !important;
 }
 
@@ -165,8 +166,27 @@ html.dark body {
 .bg-rose-600 *,
 .bg-rose-500 *,
 .bg-amber-600 *,
-.bg-amber-500 * {
+.bg-amber-500 *,
+button.bg-slate-900 *,
+a.bg-slate-900 * {
   color: #ffffff !important;
+}
+
+/* ----------------------------------------------------
+   FORM INPUT CONTRAST & READABILITY GUARANTEE
+   All text inputs, textareas, and selects MUST have dark readable text
+   ---------------------------------------------------- */
+input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  color: #0f172a !important;
+  background-color: #ffffff;
+}
+
+input:not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="checkbox"]):not([type="radio"])::placeholder,
+textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
 }
 
 /* Animation Utilities */

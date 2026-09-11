@@ -1,5 +1,5 @@
 import { createClient } from '../supabase/client';
-import { Genre, MarketplaceSong, SongComment } from '../types/database.types';
+import { Genre, MarketplaceSong, SongComment, MarketplaceSongStatus } from '../types/database.types';
 
 export interface FilterSongsOptions {
   genreId?: string;
@@ -27,7 +27,7 @@ export interface CreateSongPayload {
   lyrics?: string;
   price: number;
   currency?: string;
-  status?: 'draft' | 'published';
+  status?: MarketplaceSongStatus;
 }
 
 export const marketplaceService = {
@@ -211,10 +211,24 @@ export const marketplaceService = {
   },
 
   async updateMarketplaceSong(songId: string, payload: Partial<CreateSongPayload>): Promise<MarketplaceSong> {
+    if (payload.audio_file_path && payload.audio_file_path.startsWith('blob:')) {
+      throw new Error('Invalid audio file URL: temporary local blob URLs cannot be saved. Audio track must be uploaded to cloud storage first.');
+    }
+    const cleanPayload: Record<string, any> = { ...payload };
+    if ('genre_id' in cleanPayload && (!cleanPayload.genre_id || cleanPayload.genre_id === 'all' || cleanPayload.genre_id === '')) {
+      cleanPayload.genre_id = null;
+    }
+    if (cleanPayload.title !== undefined) cleanPayload.title = cleanPayload.title.trim();
+    if (cleanPayload.description !== undefined) cleanPayload.description = cleanPayload.description.trim();
+    if (cleanPayload.lyrics !== undefined) cleanPayload.lyrics = cleanPayload.lyrics.trim();
+    if (cleanPayload.price !== undefined) cleanPayload.price = Number(cleanPayload.price);
+    if (cleanPayload.preview_start_time !== undefined) cleanPayload.preview_start_time = Number(cleanPayload.preview_start_time);
+    if (cleanPayload.preview_end_time !== undefined) cleanPayload.preview_end_time = Number(cleanPayload.preview_end_time);
+
     const supabase = createClient();
     const { data, error } = await supabase
       .from('marketplace_songs')
-      .update(payload)
+      .update(cleanPayload)
       .eq('id', songId)
       .select('*, artist:artist_profiles(*), genre:genres(*)')
       .single();

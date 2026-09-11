@@ -21,6 +21,7 @@ import {
   ArrowUpRight,
   ShoppingBag,
   Users,
+  Pencil,
 } from 'lucide-react';
 
 
@@ -292,11 +293,19 @@ export default function ArtistDashboardPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0 text-xs">
-                  <div className="text-right hidden sm:block">
+                <div className="flex items-center gap-2 shrink-0 text-xs">
+                  <div className="text-right hidden sm:block mr-1">
                     <div className="text-slate-800 dark:text-slate-200 font-bold">{song.purchases_count || 0} sales</div>
                     <div className="text-slate-500 text-[10px]">{song.views_count || 0} plays</div>
                   </div>
+                  <Link
+                    href={`/artist/songs/${song.id}/edit`}
+                    className="p-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors flex items-center gap-1 font-bold text-xs"
+                    title="Edit Song Details"
+                  >
+                    <Pencil className="w-4 h-4 text-amber-600" />
+                    <span className="hidden sm:inline text-amber-700">Edit</span>
+                  </Link>
                   <Link
                     href={`/songs/marketplace/${song.id}`}
                     className="p-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-colors"

@@ -21,7 +21,8 @@ import {
   Share2,
   CheckCircle2,
   AlertCircle,
-  X
+  X,
+  Pencil,
 } from 'lucide-react';
 import { SongShareButtons } from '@/components/marketplace/SongShareButtons';
 import { GoogleAdSenseBanner } from '@/components/ads/GoogleAdSenseBanner';
@@ -31,7 +32,7 @@ export default function SongDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, artistProfile } = useAuth();
   const songId = params?.id as string;
 
   const [song, setSong] = useState<MarketplaceSong | null>(null);
@@ -339,39 +340,61 @@ export default function SongDetailsPage() {
           )}
 
           {/* Action CTAs */}
-          <div className="pt-4 flex flex-wrap items-center justify-center md:justify-start gap-4">
-            {song.is_purchased ? (
-              <a
-                href={`/api/marketplace/download/${song.id}`}
-                download
-                className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-6 py-3.5 rounded-2xl shadow-lg transition-all flex items-center gap-2 text-sm"
-              >
-                <Download className="w-5 h-5" /> Download Full Audio Track
-              </a>
-            ) : (song.purchases_count || 0) > 0 ? (
-              <div className="bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 font-extrabold px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm">
-                <CheckCircle2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                <span>Exclusive Track — Sold &amp; Owned by Buyer</span>
-              </div>
-            ) : (
-              <button
-                onClick={handleBuy}
-                disabled={purchasing}
-                className="bg-purple-600 hover:bg-purple-500 text-white font-extrabold px-8 py-3.5 rounded-2xl shadow-xl shadow-purple-600/30 transition-all flex items-center gap-2 text-sm"
-              >
-                <ShoppingBag className="w-5 h-5" />
-                <span>{purchasing ? 'Redirecting to Checkout...' : `Buy Full Song — ${song.price.toLocaleString()} RWF`}</span>
-              </button>
-            )}
+          {(() => {
+            const isOwner = Boolean(
+              user &&
+              song &&
+              (song.artist?.user_id === user.id ||
+               (artistProfile && song.artist_id === artistProfile.id) ||
+               user?.is_super_admin)
+            );
 
-            <button
-              onClick={handlePlayPreview}
-              className="bg-[#F5FAFF] hover:bg-[#DFF1FF] text-[#000000] font-bold px-5 py-3.5 rounded-2xl border border-[#E6F2FC] transition-all flex items-center gap-2 text-sm"
-            >
-              {isPlayingPreview ? <Pause className="w-4 h-4 text-purple-600" /> : <Play className="w-4 h-4 text-purple-600" />}
-              <span>{isPlayingPreview ? 'Pause Preview' : `Listen Preview (${song.preview_start_time}s - ${song.preview_end_time}s)`}</span>
-            </button>
-          </div>
+            return (
+              <div className="pt-4 flex flex-wrap items-center justify-center md:justify-start gap-4">
+                {isOwner && (
+                  <Link
+                    href={`/artist/songs/${song.id}/edit`}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-6 py-3.5 rounded-2xl shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2 text-sm cursor-pointer active:scale-95"
+                  >
+                    <Pencil className="w-4 h-4 text-slate-950" />
+                    <span>Edit Song Details</span>
+                  </Link>
+                )}
+
+                {song.is_purchased ? (
+                  <a
+                    href={`/api/marketplace/download/${song.id}`}
+                    download
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-6 py-3.5 rounded-2xl shadow-lg transition-all flex items-center gap-2 text-sm"
+                  >
+                    <Download className="w-5 h-5" /> Download Full Audio Track
+                  </a>
+                ) : (song.purchases_count || 0) > 0 ? (
+                  <div className="bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-800 font-extrabold px-6 py-3.5 rounded-2xl flex items-center gap-2 text-sm">
+                    <CheckCircle2 className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                    <span>Exclusive Track — Sold &amp; Owned by Buyer</span>
+                  </div>
+                ) : !isOwner ? (
+                  <button
+                    onClick={handleBuy}
+                    disabled={purchasing}
+                    className="bg-purple-600 hover:bg-purple-500 text-white font-extrabold px-8 py-3.5 rounded-2xl shadow-xl shadow-purple-600/30 transition-all flex items-center gap-2 text-sm"
+                  >
+                    <ShoppingBag className="w-5 h-5" />
+                    <span>{purchasing ? 'Redirecting to Checkout...' : `Buy Full Song — ${song.price.toLocaleString()} RWF`}</span>
+                  </button>
+                ) : null}
+
+                <button
+                  onClick={handlePlayPreview}
+                  className="bg-[#F5FAFF] hover:bg-[#DFF1FF] text-[#000000] font-bold px-5 py-3.5 rounded-2xl border border-[#E6F2FC] transition-all flex items-center gap-2 text-sm"
+                >
+                  {isPlayingPreview ? <Pause className="w-4 h-4 text-purple-600" /> : <Play className="w-4 h-4 text-purple-600" />}
+                  <span>{isPlayingPreview ? 'Pause Preview' : `Listen Preview (${song.preview_start_time}s - ${song.preview_end_time}s)`}</span>
+                </button>
+              </div>
+            );
+          })()}
 
           {/* Share Song Action (WhatsApp & Native Share Sheet) */}
           <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-center md:justify-start gap-3">
