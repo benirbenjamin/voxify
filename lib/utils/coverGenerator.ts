@@ -12,27 +12,29 @@ const GRADIENTS = [
   { from: '#1c1917', via: '#292524', to: '#431407', accent: '#fbbf24', text: '#ffffff' }, // Amber Gold
 ];
 
-export function generateSongCover(options: {
-  title: string;
-  artistName?: string;
-  genre?: string;
+export function generateSongCover(options?: {
+  title?: string | null;
+  artistName?: string | null;
+  genre?: string | null;
 }): string {
-  const { title, artistName = 'Voxify Artist', genre = 'Original' } = options;
+  const rawTitle = (options?.title ? String(options.title).trim() : '') || 'Untitled Song';
+  const rawArtist = (options?.artistName ? String(options.artistName).trim() : '') || 'Voxify Artist';
+  const rawGenre = (options?.genre ? String(options.genre).trim() : '') || 'Original';
 
   // Pick deterministic gradient based on title length/character codes
-  const charSum = title.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+  const charSum = rawTitle.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const theme = GRADIENTS[charSum % GRADIENTS.length];
 
   // Sanitize strings for SVG
-  const safeTitle = (title || 'Untitled Song')
+  const safeTitle = rawTitle
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
-  const safeArtist = (artistName || 'Independent Artist')
+  const safeArtist = rawArtist
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
-  const safeGenre = (genre || 'Music')
+  const safeGenre = rawGenre
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');

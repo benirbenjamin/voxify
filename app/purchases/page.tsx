@@ -140,12 +140,16 @@ export default function MyPurchasesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {purchasedSongs.map(song => {
+          {purchasedSongs.filter(s => s && s.id).map(song => {
             const isCurrentlyPlaying = currentSong?.id === song.id && isPlaying;
+            const songTitle = song.title || 'Purchased Song';
+            const artistName = song.artist?.stage_name || 'Independent Creator';
+            const genreName = song.genre?.name || song.music_type || 'Gospel';
+
             const coverArt = song.cover_image_url || generateSongCover({
-              title: song.title,
-              artistName: song.artist?.stage_name,
-              genre: song.genre?.name || song.music_type,
+              title: songTitle,
+              artistName: artistName,
+              genre: genreName,
             });
 
             return (
@@ -157,14 +161,14 @@ export default function MyPurchasesPage() {
                   <div className="w-20 h-20 rounded-2xl bg-slate-100 dark:bg-slate-950 overflow-hidden shrink-0 relative border border-slate-200 dark:border-slate-800 shadow-sm">
                     <img
                       src={coverArt}
-                      alt={song.title}
+                      alt={songTitle}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         // Fallback to generated cover if remote image fails
                         (e.target as HTMLImageElement).src = generateSongCover({
-                          title: song.title,
-                          artistName: song.artist?.stage_name,
-                          genre: song.genre?.name || song.music_type,
+                          title: songTitle,
+                          artistName: artistName,
+                          genre: genreName,
                         });
                       }}
                     />
@@ -185,11 +189,11 @@ export default function MyPurchasesPage() {
                       <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-extrabold flex items-center gap-1 border border-emerald-300 dark:border-emerald-800">
                         <CheckCircle2 className="w-3 h-3" /> Purchased
                       </span>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">{song.genre?.name || song.music_type}</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">{genreName}</span>
                     </div>
 
-                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white truncate">{song.title}</h3>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium truncate">{song.artist?.stage_name || 'Independent Creator'}</p>
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white truncate">{songTitle}</h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 font-medium truncate">{artistName}</p>
                   </div>
                 </div>
 

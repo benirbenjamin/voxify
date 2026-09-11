@@ -253,10 +253,12 @@ export const marketplaceService = {
       return [];
     }
 
-    return (data || []).map(p => ({
-      ...(p.song as MarketplaceSong),
-      is_purchased: true,
-    }));
+    return (data || [])
+      .filter((p: any) => p && p.song && typeof p.song === 'object' && p.song.id)
+      .map((p: any) => ({
+        ...(p.song as MarketplaceSong),
+        is_purchased: true,
+      }));
   },
 
   async toggleLikeSong(songId: string, userId?: string, sessionId?: string): Promise<{ liked: boolean; count: number }> {
