@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { createClient } from '../supabase/client';
 import { Song, SongPart, LearningStatus } from '../types/database.types';
 import { notificationService } from './notificationService';
@@ -188,46 +189,31 @@ export const songService = {
   async uploadAudioFile(file: File, choirId: string): Promise<{ url: string | null; error: string | null }> {
     const fileSizeMb = file.size / (1024 * 1024);
 
-    // Tier 1: Try Resumable Google Drive Upload (Bypasses Vercel 4.5MB limit)
+    // Tier 1: Try Resumable Google Drive Upload (Bypasses Vercel 4.5MB limit) using AXIOS
     try {
-      const initRes = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'init_drive_upload',
-          fileName: file.name,
-          mimeType: file.type || 'audio/mpeg',
-          fileSize: file.size,
-        }),
+      const initRes = await axios.post('/api/upload', {
+        action: 'init_drive_upload',
+        fileName: file.name,
+        mimeType: file.type || 'audio/mpeg',
+        fileSize: file.size,
       });
 
-      if (initRes.ok) {
-        const initData = await initRes.json().catch(() => ({}));
-        if (initData?.success && initData?.resumableUploadUrl) {
-          const drivePutRes = await fetch(initData.resumableUploadUrl, {
-            method: 'PUT',
-            headers: { 'Content-Type': file.type || 'application/octet-stream' },
-            body: file,
-          });
+      const initData = initRes.data;
+      if (initData?.success && initData?.resumableUploadUrl) {
+        const drivePutRes = await axios.put(initData.resumableUploadUrl, file, {
+          headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        });
 
-          if (drivePutRes.ok) {
-            const driveFileData = await drivePutRes.json().catch(() => ({}));
-            if (driveFileData?.id) {
-              const finRes = await fetch('/api/upload', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  action: 'finalize_drive_upload',
-                  fileId: driveFileData.id,
-                  accountEmail: initData.accountEmail,
-                  fileSizeMb,
-                }),
-              });
-              if (finRes.ok) {
-                const finData = await finRes.json().catch(() => ({}));
-                if (finData?.url) return { url: finData.url, error: null };
-              }
-            }
+        if (drivePutRes.status >= 200 && drivePutRes.status < 300) {
+          const driveFileData = drivePutRes.data || {};
+          if (driveFileData?.id) {
+            const finRes = await axios.post('/api/upload', {
+              action: 'finalize_drive_upload',
+              fileId: driveFileData.id,
+              accountEmail: initData.accountEmail,
+              fileSizeMb,
+            });
+            if (finRes.data?.url) return { url: finRes.data.url, error: null };
           }
         }
       }
@@ -235,7 +221,7 @@ export const songService = {
       console.warn('Google Drive direct upload attempt note:', driveErr);
     }
 
-    // Tier 2: If small file (<= 4MB), route through server /api/upload
+    // Tier 2: If small file (<= 4MB), route through server /api/upload using AXIOS
     if (file.size <= 4 * 1024 * 1024) {
       try {
         const formData = new FormData();
@@ -243,45 +229,33 @@ export const songService = {
         formData.append('bucket', 'song-audio');
         formData.append('choirId', choirId);
 
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (res.ok) {
-          const data = await res.json().catch(() => ({}));
-          if (data?.url) return { url: data.url, error: null };
-        }
+        const res = await axios.post('/api/upload', formData);
+        if (res.data?.url) return { url: res.data.url, error: null };
       } catch (serverErr) {
         console.warn('Server upload route note:', serverErr);
       }
     }
 
-    // Tier 3: Signed Supabase Upload URL (Handles large files up to 50MB from browser with zero Vercel limits & bypasses RLS)
+    // Tier 3: Signed Supabase Upload URL (Handles large files up to 50MB from browser) using AXIOS
     try {
       const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      const signRes = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'init_signed_upload',
-          fileName: cleanFileName,
-          bucket: 'song-audio',
-        }),
+      const signRes = await axios.post('/api/upload', {
+        action: 'init_signed_upload',
+        fileName: cleanFileName,
+        bucket: 'song-audio',
+        fileSizeMb,
       });
 
-      if (signRes.ok) {
-        const signData = await signRes.json();
-        if (signData.success && signData.token) {
-          const supabase = createClient();
-          const { data, error } = await supabase.storage
-            .from('song-audio')
-            .uploadToSignedUrl(cleanFileName, signData.token, file);
+      const signData = signRes.data;
+      if (signData?.success && signData?.token) {
+        const supabase = createClient();
+        const { data, error } = await supabase.storage
+          .from('song-audio')
+          .uploadToSignedUrl(cleanFileName, signData.token, file);
 
-          if (!error && data) {
-            const publicUrl = signData.publicUrl || supabase.storage.from('song-audio').getPublicUrl(cleanFileName).data.publicUrl;
-            return { url: publicUrl, error: null };
-          }
+        if (!error && data) {
+          const publicUrl = signData.publicUrl || supabase.storage.from('song-audio').getPublicUrl(cleanFileName).data.publicUrl;
+          return { url: publicUrl, error: null };
         }
       }
 
@@ -302,7 +276,9 @@ export const songService = {
   },
 
   async uploadPdfFile(file: File, choirId: string): Promise<{ url: string | null; error: string | null }> {
-    // If small, try server route
+    const fileSizeMb = file.size / (1024 * 1024);
+
+    // If small, try server route with AXIOS
     if (file.size <= 4 * 1024 * 1024) {
       try {
         const formData = new FormData();
@@ -310,45 +286,33 @@ export const songService = {
         formData.append('bucket', 'song-documents');
         formData.append('choirId', choirId);
 
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (res.ok) {
-          const data = await res.json().catch(() => ({}));
-          if (data?.url) return { url: data.url, error: null };
-        }
+        const res = await axios.post('/api/upload', formData);
+        if (res.data?.url) return { url: res.data.url, error: null };
       } catch (serverErr) {
         console.warn('Server PDF upload route note:', serverErr);
       }
     }
 
-    // Signed Supabase client upload for PDFs of any size (bypasses RLS)
+    // Signed Supabase client upload for PDFs using AXIOS
     try {
       const cleanFileName = `${choirId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      const signRes = await fetch('/api/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'init_signed_upload',
-          fileName: cleanFileName,
-          bucket: 'song-documents',
-        }),
+      const signRes = await axios.post('/api/upload', {
+        action: 'init_signed_upload',
+        fileName: cleanFileName,
+        bucket: 'song-documents',
+        fileSizeMb,
       });
 
-      if (signRes.ok) {
-        const signData = await signRes.json();
-        if (signData.success && signData.token) {
-          const supabase = createClient();
-          const { data, error } = await supabase.storage
-            .from('song-documents')
-            .uploadToSignedUrl(cleanFileName, signData.token, file);
+      const signData = signRes.data;
+      if (signData?.success && signData?.token) {
+        const supabase = createClient();
+        const { data, error } = await supabase.storage
+          .from('song-documents')
+          .uploadToSignedUrl(cleanFileName, signData.token, file);
 
-          if (!error && data) {
-            const publicUrl = signData.publicUrl || supabase.storage.from('song-documents').getPublicUrl(cleanFileName).data.publicUrl;
-            return { url: publicUrl, error: null };
-          }
+        if (!error && data) {
+          const publicUrl = signData.publicUrl || supabase.storage.from('song-documents').getPublicUrl(cleanFileName).data.publicUrl;
+          return { url: publicUrl, error: null };
         }
       }
 

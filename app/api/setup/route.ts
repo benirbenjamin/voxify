@@ -306,8 +306,11 @@ CREATE POLICY "Settings admin write" ON marketplace_settings FOR ALL USING (
         // Execute embedded migration 00008 for storage provider schema
         const embedded00008Sql = `
 ALTER TABLE public.platform_settings
-ADD COLUMN IF NOT EXISTS storage_mode TEXT NOT NULL DEFAULT 'supabase_primary',
-ADD COLUMN IF NOT EXISTS storage_fallback_enabled BOOLEAN NOT NULL DEFAULT true;
+ADD COLUMN IF NOT EXISTS storage_mode TEXT NOT NULL DEFAULT 'dual_storage',
+ADD COLUMN IF NOT EXISTS storage_fallback_enabled BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN IF NOT EXISTS bucket_quota_mb NUMERIC NOT NULL DEFAULT 1000,
+ADD COLUMN IF NOT EXISTS bucket_used_mb NUMERIC NOT NULL DEFAULT 0,
+ADD COLUMN IF NOT EXISTS bucket_file_count INT NOT NULL DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS public.google_drive_accounts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

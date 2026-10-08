@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getDriveAccounts, getAccessTokenFromServiceAccount } from '@/lib/services/googleDriveService';
+import axios from 'axios';
+import { getDriveAccounts, getDriveAccessToken } from '@/lib/services/googleDriveService';
 
 export async function GET(request: Request) {
   try {
@@ -12,60 +13,74 @@ export async function GET(request: Request) {
     }
 
     const accounts = await getDriveAccounts();
-    let targetAccount = accountEmail
-      ? accounts.find((a) => a.account_email.toLowerCase() === accountEmail.toLowerCase())
-      : null;
-
-    if (!targetAccount && accounts.length > 0) {
-      targetAccount = accounts[0];
-    }
-
-    if (!targetAccount) {
-      // Try direct public Google Drive file fetch fallback
+    if (accounts.length === 0) {
+      // Fallback to direct public Google Drive file URL if no accounts configured
       const publicUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
       return NextResponse.redirect(publicUrl);
     }
 
-    const accessToken = await getAccessTokenFromServiceAccount(targetAccount.credentials_json);
+    // Sort accounts prioritizing the specified email, then active accounts
+    const orderedAccounts = [...accounts].sort((a, b) => {
+      if (accountEmail && a.account_email.toLowerCase() === accountEmail.toLowerCase()) return -1;
+      if (accountEmail && b.account_email.toLowerCase() === accountEmail.toLowerCase()) return 1;
+      if (a.status === 'active' && b.status !== 'active') return -1;
+      if (b.status === 'active' && a.status !== 'active') return 1;
+      return 0;
+    });
 
-    // Forward Range header if requested by audio player / browser
     const rangeHeader = request.headers.get('range');
-    const fetchHeaders: HeadersInit = {
-      Authorization: `Bearer ${accessToken}`,
-    };
-    if (rangeHeader) {
-      fetchHeaders['Range'] = rangeHeader;
+    let lastError: any = null;
+
+    for (const account of orderedAccounts) {
+      try {
+        const accessToken = await getDriveAccessToken(account.credentials_json);
+
+        const reqHeaders: Record<string, string> = {
+          Authorization: `Bearer ${accessToken}`,
+        };
+        if (rangeHeader) {
+          reqHeaders['Range'] = rangeHeader;
+        }
+
+        // Use AXIOS to fetch the file content from Google Drive
+        const driveRes = await axios.get(
+          `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&supportsAllDrives=true`,
+          {
+            headers: reqHeaders,
+            responseType: 'arraybuffer',
+            validateStatus: (status) => (status >= 200 && status < 300) || status === 206,
+            timeout: 30000,
+          }
+        );
+
+        const responseHeaders = new Headers();
+        const contentType = driveRes.headers['content-type'] || 'audio/mpeg';
+        const contentLength = driveRes.headers['content-length'] || driveRes.data?.byteLength?.toString();
+        const contentRange = driveRes.headers['content-range'];
+        const acceptRanges = driveRes.headers['accept-ranges'] || 'bytes';
+
+        responseHeaders.set('Content-Type', contentType);
+        responseHeaders.set('Accept-Ranges', acceptRanges);
+        responseHeaders.set('Cache-Control', 'public, max-age=31536000, immutable');
+        if (contentLength) responseHeaders.set('Content-Length', contentLength.toString());
+        if (contentRange) responseHeaders.set('Content-Range', contentRange);
+
+        const status = driveRes.status === 206 ? 206 : 200;
+
+        return new NextResponse(driveRes.data, {
+          status,
+          headers: responseHeaders,
+        });
+      } catch (err: any) {
+        lastError = err.response?.data || err.message;
+        console.warn(`[DriveProxy] Account ${account.account_email} failed to stream ${fileId}:`, lastError);
+        // Continue to try next account in pool
+      }
     }
 
-    const driveRes = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-      headers: fetchHeaders,
-    });
-
-    if (!driveRes.ok) {
-      console.error(`Google Drive proxy fetch error (status ${driveRes.status}):`, await driveRes.text());
-      return NextResponse.json({ error: `Failed to fetch file from Google Drive (${driveRes.status})` }, { status: driveRes.status });
-    }
-
-    const responseHeaders = new Headers();
-
-    const contentType = driveRes.headers.get('content-type') || 'application/octet-stream';
-    const contentLength = driveRes.headers.get('content-length');
-    const contentRange = driveRes.headers.get('content-range');
-    const acceptRanges = driveRes.headers.get('accept-ranges') || 'bytes';
-
-    responseHeaders.set('Content-Type', contentType);
-    responseHeaders.set('Accept-Ranges', acceptRanges);
-    responseHeaders.set('Cache-Control', 'public, max-age=86400');
-
-    if (contentLength) responseHeaders.set('Content-Length', contentLength);
-    if (contentRange) responseHeaders.set('Content-Range', contentRange);
-
-    const status = driveRes.status === 206 ? 206 : 200;
-
-    return new NextResponse(driveRes.body as any, {
-      status,
-      headers: responseHeaders,
-    });
+    // Final fallback: redirect to public Drive download link so file can never miss!
+    const publicUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+    return NextResponse.redirect(publicUrl);
   } catch (err: any) {
     console.error('Google Drive proxy route error:', err);
     return NextResponse.json({ error: err.message || 'Error streaming Google Drive file' }, { status: 500 });

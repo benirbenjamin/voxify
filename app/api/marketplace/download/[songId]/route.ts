@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import axios from 'axios';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export async function GET(
@@ -8,7 +9,9 @@ export async function GET(
   try {
     const { songId } = await params;
     const supabase = await createServerSupabaseClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (!session?.user) {
       return NextResponse.json({ error: 'Authentication required for song downloads.' }, { status: 401 });
@@ -55,45 +58,56 @@ export async function GET(
     // Determine raw file URL (either external URL or Supabase storage signed URL)
     let fileUrl = song.audio_file_path;
     if (!fileUrl.startsWith('http://') && !fileUrl.startsWith('https://')) {
-      const { data: signedUrlData, error: signedError } = await supabase.storage
-        .from('songs')
-        .createSignedUrl(song.audio_file_path, 3600, {
-          download: downloadFileName,
-        });
-
-      if (!signedError && signedUrlData?.signedUrl) {
-        fileUrl = signedUrlData.signedUrl;
+      if (fileUrl.startsWith('/')) {
+        // Relative path (e.g. /api/storage/drive?id=...)
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+        fileUrl = `${appUrl}${fileUrl}`;
       } else {
-        const { data: publicUrl } = supabase.storage.from('songs').getPublicUrl(song.audio_file_path);
-        fileUrl = publicUrl.publicUrl;
+        const { data: signedUrlData, error: signedError } = await supabase.storage
+          .from('songs')
+          .createSignedUrl(song.audio_file_path, 3600, {
+            download: downloadFileName,
+          });
+
+        if (!signedError && signedUrlData?.signedUrl) {
+          fileUrl = signedUrlData.signedUrl;
+        } else {
+          const { data: publicUrl } = supabase.storage.from('songs').getPublicUrl(song.audio_file_path);
+          fileUrl = publicUrl.publicUrl;
+        }
       }
     }
 
-    // Fetch and stream directly with attachment Content-Disposition header
+    // Fetch and stream directly using AXIOS with attachment Content-Disposition header
     // so the browser automatically downloads the file as "Voxify - [Title] - [Artist].mp3"
     try {
-      const audioRes = await fetch(fileUrl, { redirect: 'follow' });
-      if (audioRes.ok && audioRes.body) {
+      const audioRes = await axios.get(fileUrl, {
+        responseType: 'arraybuffer',
+        timeout: 60000,
+        maxRedirects: 5,
+      });
+
+      if (audioRes.status >= 200 && audioRes.status < 300 && audioRes.data) {
         const headers = new Headers();
         const encodedFileName = encodeURIComponent(downloadFileName).replace(/['()]/g, escape).replace(/\*/g, '%2A');
         headers.set(
           'Content-Disposition',
           `attachment; filename="${downloadFileName.replace(/"/g, '')}"; filename*=UTF-8''${encodedFileName}`
         );
-        headers.set('Content-Type', audioRes.headers.get('content-type') || 'audio/mpeg');
-        const contentLength = audioRes.headers.get('content-length');
+        headers.set('Content-Type', audioRes.headers['content-type'] || 'audio/mpeg');
+        const contentLength = audioRes.headers['content-length'] || audioRes.data.byteLength?.toString();
         if (contentLength) {
-          headers.set('Content-Length', contentLength);
+          headers.set('Content-Length', contentLength.toString());
         }
         headers.set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
 
-        return new Response(audioRes.body, {
+        return new Response(audioRes.data, {
           status: 200,
           headers,
         });
       }
-    } catch (fetchErr) {
-      console.error('Direct audio stream fetch error, falling back to redirect:', fetchErr);
+    } catch (axiosErr) {
+      console.error('Axios download stream fetch error, falling back to redirect:', axiosErr);
     }
 
     return NextResponse.redirect(fileUrl);

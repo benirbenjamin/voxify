@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/context/AuthContext';
 import { marketplaceService } from '@/lib/services/marketplaceService';
@@ -147,90 +148,71 @@ export default function SongUploadPage() {
       let uploadedUrl: string | null = null;
       let usedProvider: 'google_drive' | 'supabase' = 'supabase';
 
-      // Tier 1: Try Resumable Google Drive Upload (Bypasses Vercel 4.5MB limit, files go straight to Google Drive)
+      // Tier 1: Try Resumable Google Drive Upload (Bypasses Vercel 4.5MB limit) using AXIOS
       try {
-        const initRes = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'init_drive_upload',
-            fileName: file.name,
-            mimeType: file.type || 'audio/mpeg',
-            fileSize: file.size,
-          }),
+        const initRes = await axios.post('/api/upload', {
+          action: 'init_drive_upload',
+          fileName: file.name,
+          mimeType: file.type || 'audio/mpeg',
+          fileSize: file.size,
         });
 
-        if (initRes.ok) {
-          const initData = await initRes.json();
-          if (initData.success && initData.resumableUploadUrl) {
-            // Upload directly to Google Drive via PUT
-            const drivePutRes = await fetch(initData.resumableUploadUrl, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': file.type || 'application/octet-stream',
-              },
-              body: file,
-            });
+        const initData = initRes.data;
+        if (initData?.success && initData?.resumableUploadUrl) {
+          // Upload directly to Google Drive via PUT using AXIOS
+          const drivePutRes = await axios.put(initData.resumableUploadUrl, file, {
+            headers: {
+              'Content-Type': file.type || 'application/octet-stream',
+            },
+          });
 
-            if (drivePutRes.ok) {
-              const driveFileData = await drivePutRes.json().catch(() => ({}));
-              if (driveFileData?.id) {
-                // Finalize upload & get stream url
-                const finRes = await fetch('/api/upload', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    action: 'finalize_drive_upload',
-                    fileId: driveFileData.id,
-                    accountEmail: initData.accountEmail,
-                    fileSizeMb: file.size / (1024 * 1024),
-                  }),
-                });
-                if (finRes.ok) {
-                  const finData = await finRes.json().catch(() => ({}));
-                  if (finData?.url) {
-                    uploadedUrl = finData.url;
-                    usedProvider = 'google_drive';
-                  }
-                }
+          if (drivePutRes.status >= 200 && drivePutRes.status < 300) {
+            const driveFileData = drivePutRes.data || {};
+            if (driveFileData?.id) {
+              // Finalize upload & get stream url
+              const finRes = await axios.post('/api/upload', {
+                action: 'finalize_drive_upload',
+                fileId: driveFileData.id,
+                accountEmail: initData.accountEmail,
+                fileSizeMb: file.size / (1024 * 1024),
+              });
+              const finData = finRes.data || {};
+              if (finData?.url) {
+                uploadedUrl = finData.url;
+                usedProvider = 'google_drive';
               }
-            } else {
-              console.warn('Google Drive direct PUT rejected (e.g. Service Account personal drive quota). Routing to Voxify Cloud Storage...');
-              setStorageNote('Google Drive Service Account limitation detected. Saving securely to Voxify Cloud Storage.');
             }
+          } else {
+            console.warn('Google Drive direct PUT rejected. Routing to Voxify Cloud Storage...');
+            setStorageNote('Google Drive account quota limit detected. Saving securely to Voxify Cloud Storage.');
           }
         }
       } catch (driveErr) {
         console.warn('Google Drive upload attempt note:', driveErr);
       }
 
-      // Tier 2: Signed Supabase Upload URL (Uploads files up to 50MB directly from browser, bypasses Vercel limits & RLS)
+      // Tier 2: Signed Supabase Upload URL (Uploads files up to 50MB directly from browser) using AXIOS
       if (!uploadedUrl) {
         try {
-          const signRes = await fetch('/api/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'init_signed_upload',
-              fileName: cleanFileName,
-              bucket: 'song-audio',
-            }),
+          const signRes = await axios.post('/api/upload', {
+            action: 'init_signed_upload',
+            fileName: cleanFileName,
+            bucket: 'song-audio',
+            fileSizeMb: file.size / (1024 * 1024),
           });
 
-          if (signRes.ok) {
-            const signData = await signRes.json();
-            if (signData.success && signData.token) {
-              const supabase = createClient();
-              const { data: uploadData, error: uploadErr } = await supabase.storage
-                .from('song-audio')
-                .uploadToSignedUrl(cleanFileName, signData.token, file);
+          const signData = signRes.data;
+          if (signData?.success && signData?.token) {
+            const supabase = createClient();
+            const { data: uploadData, error: uploadErr } = await supabase.storage
+              .from('song-audio')
+              .uploadToSignedUrl(cleanFileName, signData.token, file);
 
-              if (!uploadErr && uploadData) {
-                uploadedUrl = signData.publicUrl || supabase.storage.from('song-audio').getPublicUrl(cleanFileName).data.publicUrl;
-                usedProvider = 'supabase';
-              } else {
-                console.warn('Signed Supabase upload error:', uploadErr?.message);
-              }
+            if (!uploadErr && uploadData) {
+              uploadedUrl = signData.publicUrl || supabase.storage.from('song-audio').getPublicUrl(cleanFileName).data.publicUrl;
+              usedProvider = 'supabase';
+            } else {
+              console.warn('Signed Supabase upload error:', uploadErr?.message);
             }
           }
         } catch (signUploadErr) {
@@ -238,25 +220,19 @@ export default function SongUploadPage() {
         }
       }
 
-      // Tier 3: Server /api/upload fallback for small files
-      if (!uploadedUrl && file.size < 4.5 * 1024 * 1024) {
+      // Tier 3: Server /api/upload fallback using AXIOS
+      if (!uploadedUrl) {
         try {
           const formData = new FormData();
           formData.append('file', file);
           formData.append('bucket', 'song-audio');
           formData.append('choirId', artistProfile.id);
 
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (res.ok) {
-            const resData = await res.json().catch(() => ({}));
-            if (resData?.url && !resData.url.startsWith('blob:')) {
-              uploadedUrl = resData.url;
-              usedProvider = resData.provider === 'google_drive' ? 'google_drive' : 'supabase';
-            }
+          const res = await axios.post('/api/upload', formData);
+          const resData = res.data;
+          if (resData?.url && !resData.url.startsWith('blob:')) {
+            uploadedUrl = resData.url;
+            usedProvider = resData.provider === 'google_drive' ? 'google_drive' : 'supabase';
           }
         } catch (serverUploadErr) {
           console.warn('Server fallback upload error:', serverUploadErr);
@@ -278,7 +254,7 @@ export default function SongUploadPage() {
     }
   };
 
-  // Immediate Cover Image Upload on Selection
+  // Immediate Cover Image Upload on Selection using AXIOS
   const handleCoverSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !artistProfile) return;
@@ -294,53 +270,42 @@ export default function SongUploadPage() {
       const fileExt = file.name.split('.').pop() || 'jpg';
       const cleanFileName = `covers/${artistProfile.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      // 1. Try Signed Supabase Upload URL (bypasses RLS)
+      // 1. Try Signed Supabase Upload URL using AXIOS
       try {
-        const signRes = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'init_signed_upload',
-            fileName: cleanFileName,
-            bucket: 'song-audio',
-          }),
+        const signRes = await axios.post('/api/upload', {
+          action: 'init_signed_upload',
+          fileName: cleanFileName,
+          bucket: 'song-audio',
+          fileSizeMb: file.size / (1024 * 1024),
         });
 
-        if (signRes.ok) {
-          const signData = await signRes.json();
-          if (signData.success && signData.token) {
-            const supabase = createClient();
-            const { data, error: uploadErr } = await supabase.storage
-              .from('song-audio')
-              .uploadToSignedUrl(cleanFileName, signData.token, file);
+        const signData = signRes.data;
+        if (signData?.success && signData?.token) {
+          const supabase = createClient();
+          const { data, error: uploadErr } = await supabase.storage
+            .from('song-audio')
+            .uploadToSignedUrl(cleanFileName, signData.token, file);
 
-            if (!uploadErr && data) {
-              const finalCover = signData.publicUrl || supabase.storage.from('song-audio').getPublicUrl(cleanFileName).data.publicUrl;
-              setCoverImageUrl(finalCover);
-              return;
-            }
+          if (!uploadErr && data) {
+            const finalCover = signData.publicUrl || supabase.storage.from('song-audio').getPublicUrl(cleanFileName).data.publicUrl;
+            setCoverImageUrl(finalCover);
+            return;
           }
         }
       } catch (signErr) {
         console.warn('Signed cover upload note:', signErr);
       }
 
-      // 2. Fallback to Server /api/upload
+      // 2. Fallback to Server /api/upload using AXIOS
       const formData = new FormData();
       formData.append('file', file);
       formData.append('bucket', 'song-audio');
       formData.append('choirId', artistProfile.id);
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (res.ok) {
-        const resData = await res.json().catch(() => ({}));
-        if (resData?.url && !resData.url.startsWith('blob:')) {
-          setCoverImageUrl(resData.url);
-        }
+      const res = await axios.post('/api/upload', formData);
+      const resData = res.data;
+      if (resData?.url && !resData.url.startsWith('blob:')) {
+        setCoverImageUrl(resData.url);
       }
     } catch (err: any) {
       console.error('Cover upload error:', err);
