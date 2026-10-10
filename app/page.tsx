@@ -333,7 +333,7 @@ export default function HomePage() {
 
       {/* Google AdSense Slot: Homepage Top Banner */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
-        <GoogleAdSenseBanner className="my-4" />
+        <GoogleAdSenseBanner slot="7034214536" className="my-4" />
       </div>
 
       {/* FEATURED ARTIST MUSIC & MARKETPLACE SECTION */}
@@ -532,7 +532,7 @@ export default function HomePage() {
 
       {/* Google AdSense Slot: Homepage Middle Banner */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
-        <GoogleAdSenseBanner className="my-4" />
+        <GoogleAdSenseBanner slot="7034214536" className="my-4" />
       </div>
 
       {/* Real Database Statistics Counter Banner */}

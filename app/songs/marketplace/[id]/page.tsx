@@ -406,7 +406,7 @@ export default function SongDetailsPage() {
       </div>
 
       {/* Google AdSense Slot: Song Detail Page */}
-      <GoogleAdSenseBanner className="my-2" />
+      <GoogleAdSenseBanner slot="7034214536" className="my-2" />
 
       {/* Full Lyrics Section (Gated) */}
       <div className="bg-white border border-[#E6F2FC] rounded-3xl p-6 sm:p-8 space-y-4 shadow-sm">

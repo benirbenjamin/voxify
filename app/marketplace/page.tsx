@@ -296,7 +296,7 @@ export default function MarketplacePage() {
         </div>
 
         {/* Google AdSense Slot: Marketplace Top Banner */}
-        <GoogleAdSenseBanner className="my-2" />
+        <GoogleAdSenseBanner slot="7034214536" className="my-2" />
 
         {/* Songs Grid */}
         {loading ? (
@@ -478,7 +478,7 @@ export default function MarketplacePage() {
         )}
 
         {/* Google AdSense Slot: Marketplace Bottom Banner */}
-        <GoogleAdSenseBanner className="mt-8 mb-4" />
+        <GoogleAdSenseBanner slot="7034214536" className="mt-8 mb-4" />
 
       </div>
 
